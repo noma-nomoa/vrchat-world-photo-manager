@@ -900,6 +900,103 @@ function setOrientationFilterMenuOpen(isOpen) {
   });
 }
 
+function ensureSettingsUtilityActionsContainer() {
+  if (!settingsSectionHeader?.parentElement) {
+    return null;
+  }
+
+  let utilityActions = settingsModalBody?.querySelector('.settings-utility-actions');
+  const utilityAnchor = trackedFolderAccordionPanel || trackedFolderList;
+
+  if (!utilityActions) {
+    utilityActions = document.createElement('div');
+    utilityActions.className = 'settings-utility-actions';
+    settingsSectionHeader.parentElement.insertBefore(
+      utilityActions,
+      utilityAnchor || null
+    );
+  } else if (
+    utilityAnchor &&
+    utilityActions.nextElementSibling !== utilityAnchor
+  ) {
+    settingsSectionHeader.parentElement.insertBefore(utilityActions, utilityAnchor);
+  }
+
+  return utilityActions;
+}
+
+function ensureRegenerateThumbnailMonthDropdown(utilityActions) {
+  if (!utilityActions) {
+    return;
+  }
+
+  if (!regenerateThumbnailMonthSelect) {
+    const monthSelect = document.createElement('select');
+    monthSelect.className = 'settings-month-select';
+    monthSelect.setAttribute('aria-label', 'サムネイル再生成の対象月');
+    utilityActions.appendChild(monthSelect);
+    regenerateThumbnailMonthSelect = monthSelect;
+  }
+
+  if (regenerateThumbnailMonthDropdown) {
+    return;
+  }
+
+  const monthDropdown = document.createElement('div');
+  monthDropdown.className = 'header-dropdown settings-month-dropdown';
+
+  const monthButton = document.createElement('button');
+  monthButton.type = 'button';
+  monthButton.className = 'header-filter-button settings-month-dropdown-button';
+  monthButton.setAttribute('aria-haspopup', 'menu');
+  monthButton.setAttribute('aria-expanded', 'false');
+  monthButton.setAttribute('aria-label', 'サムネイル再生成の対象月');
+
+  const monthLabel = document.createElement('span');
+  monthLabel.className = 'settings-month-dropdown-label';
+  monthLabel.textContent = '再生成する月を選択';
+  monthButton.appendChild(monthLabel);
+
+  const chevron = document.createElement('span');
+  chevron.className = 'material-symbols-outlined orientation-filter-chevron';
+  chevron.textContent = 'expand_more';
+  monthButton.appendChild(chevron);
+
+  const monthMenu = document.createElement('div');
+  monthMenu.className = 'header-dropdown-menu settings-month-dropdown-menu';
+  monthMenu.hidden = true;
+  monthMenu.setAttribute('role', 'menu');
+
+  monthDropdown.appendChild(monthButton);
+  monthDropdown.appendChild(monthMenu);
+  utilityActions.appendChild(monthDropdown);
+
+  regenerateThumbnailMonthDropdown = monthDropdown;
+  regenerateThumbnailMonthButton = monthButton;
+  regenerateThumbnailMonthLabel = monthLabel;
+  regenerateThumbnailMonthMenu = monthMenu;
+
+  monthButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setRegenerateThumbnailMonthMenuOpen(!isRegenerateThumbnailMonthMenuOpen);
+  });
+
+  monthMenu.addEventListener('click', (event) => {
+    const target = event.target.closest('[data-regenerate-thumbnail-month]');
+
+    if (!target || !regenerateThumbnailMonthSelect) {
+      return;
+    }
+
+    event.stopPropagation();
+    regenerateThumbnailMonthValue =
+      target.dataset.regenerateThumbnailMonth || '';
+    regenerateThumbnailMonthSelect.value = regenerateThumbnailMonthValue;
+    syncRegenerateThumbnailMonthDropdownFromSelect();
+    closeRegenerateThumbnailMonthMenu();
+  });
+}
+
 function closeOrientationFilterMenu() {
   setOrientationFilterMenuOpen(false);
 }
@@ -1478,6 +1575,17 @@ function syncFavoriteFilterUi() {
   }
 }
 
+// Any filter change should recalculate the current month, refresh button/count
+// text, and optionally replay the gallery transition in one shared step.
+async function syncCurrentPhotoFilterPresentation({ animate = true } = {}) {
+  applyCurrentPhotoFilter();
+  syncFavoriteFilterUi();
+
+  if (animate) {
+    await refreshCurrentMonthWithFilterAnimation();
+  }
+}
+
 async function togglePhotoLabelFilter(normalizedName) {
   if (!currentSelection) {
     closePhotoLabelFilterMenu();
@@ -1496,9 +1604,7 @@ async function togglePhotoLabelFilter(normalizedName) {
     }
   }
 
-  applyCurrentPhotoFilter();
-  syncFavoriteFilterUi();
-  await refreshCurrentMonthWithFilterAnimation();
+  await syncCurrentPhotoFilterPresentation();
 }
 
 async function setPhotoLabelFilterMode(nextMode) {
@@ -1509,14 +1615,13 @@ async function setPhotoLabelFilterMode(nextMode) {
   }
 
   photoLabelFilterMode = normalizedMode;
-  applyCurrentPhotoFilter();
-  syncFavoriteFilterUi();
 
   if (activePhotoLabelFilters.length === 0) {
+    await syncCurrentPhotoFilterPresentation({ animate: false });
     return;
   }
 
-  await refreshCurrentMonthWithFilterAnimation();
+  await syncCurrentPhotoFilterPresentation();
 }
 
 async function applyWorldNameFilter(nextValue) {
@@ -1527,9 +1632,7 @@ async function applyWorldNameFilter(nextValue) {
   }
 
   activeWorldNameFilter = normalizedValue;
-  applyCurrentPhotoFilter();
-  syncFavoriteFilterUi();
-  await refreshCurrentMonthWithFilterAnimation();
+  await syncCurrentPhotoFilterPresentation();
 }
 
 function scheduleWorldNameFilterApply(nextValue) {
@@ -1552,10 +1655,8 @@ async function setOrientationFilter(nextFilter) {
   }
 
   activeOrientationFilter = normalizedNextFilter;
-  applyCurrentPhotoFilter();
-  syncFavoriteFilterUi();
   closeOrientationFilterMenu();
-  await refreshCurrentMonthWithFilterAnimation();
+  await syncCurrentPhotoFilterPresentation();
 }
 
 const selectionCountBadge = document.getElementById('selection-count-badge');
@@ -1690,6 +1791,10 @@ function getLatestKnownPhotoById(photoId) {
   );
 }
 
+function isPhotoVisibleAfterCurrentFilters(photoId) {
+  return currentPhotos.some((photo) => photo.id === photoId);
+}
+
 function updatePhotoInCurrentCollections(updatedPhoto) {
   allCurrentMonthPhotos = allCurrentMonthPhotos.map((photo) =>
     photo.id === updatedPhoto.id ? updatedPhoto : photo
@@ -1697,18 +1802,8 @@ function updatePhotoInCurrentCollections(updatedPhoto) {
   applyCurrentPhotoFilter();
 }
 
-// Single-photo updates from modal actions should keep collections, cards, and
-// the open modal in sync without each caller repeating the same flow.
-function syncSinglePhotoUpdate(updatedPhoto, { refreshModal = true } = {}) {
-  if (!updatedPhoto) {
-    return null;
-  }
-
-  updatePhotoInCurrentCollections(updatedPhoto);
-
-  const isVisibleAfterFilters = currentPhotos.some(
-    (photo) => photo.id === updatedPhoto.id
-  );
+function syncMonthGalleryAfterPhotoUpdate(updatedPhoto) {
+  const isVisibleAfterFilters = isPhotoVisibleAfterCurrentFilters(updatedPhoto.id);
   let rerenderedMonthGallery = false;
 
   if (!isVisibleAfterFilters && isAnyPhotoFilterActive()) {
@@ -1724,6 +1819,48 @@ function syncSinglePhotoUpdate(updatedPhoto, { refreshModal = true } = {}) {
   if (!rerenderedMonthGallery) {
     syncFavoriteFilterUi();
   }
+
+  return {
+    rerenderedMonthGallery,
+    isVisibleAfterFilters,
+  };
+}
+
+function syncMonthGalleryAfterPhotoBatchUpdate(normalizedUpdates) {
+  let rerenderedMonthGallery = false;
+
+  for (const photo of normalizedUpdates) {
+    const isVisibleAfterFilters = isPhotoVisibleAfterCurrentFilters(photo.id);
+
+    if (!isVisibleAfterFilters && isAnyPhotoFilterActive()) {
+      rerenderedMonthGallery = true;
+      break;
+    }
+
+    if (!replaceRenderedPhotoCard(photo) && currentSelection) {
+      rerenderedMonthGallery = true;
+      break;
+    }
+  }
+
+  if (rerenderedMonthGallery && currentSelection) {
+    renderMonthGallery({ resetProgressive: true });
+  } else {
+    syncFavoriteFilterUi();
+  }
+
+  return rerenderedMonthGallery;
+}
+
+// Single-photo updates from modal actions should keep collections, cards, and
+// the open modal in sync without each caller repeating the same flow.
+function syncSinglePhotoUpdate(updatedPhoto, { refreshModal = true } = {}) {
+  if (!updatedPhoto) {
+    return null;
+  }
+
+  updatePhotoInCurrentCollections(updatedPhoto);
+  syncMonthGalleryAfterPhotoUpdate(updatedPhoto);
 
   const resolvedPhoto = getLatestKnownPhotoById(updatedPhoto.id) || updatedPhoto;
 
@@ -1751,30 +1888,7 @@ function syncBatchPhotoUpdates(updatedPhotos, { refreshModal = true } = {}) {
     (photo) => updatedPhotoMap.get(photo.id) || photo
   );
   applyCurrentPhotoFilter();
-
-  let rerenderedMonthGallery = false;
-
-  for (const photo of normalizedUpdates) {
-    const isVisibleAfterFilters = currentPhotos.some(
-      (currentPhoto) => currentPhoto.id === photo.id
-    );
-
-    if (!isVisibleAfterFilters && isAnyPhotoFilterActive()) {
-      rerenderedMonthGallery = true;
-      break;
-    }
-
-    if (!replaceRenderedPhotoCard(photo) && currentSelection) {
-      rerenderedMonthGallery = true;
-      break;
-    }
-  }
-
-  if (rerenderedMonthGallery && currentSelection) {
-    renderMonthGallery({ resetProgressive: true });
-  } else {
-    syncFavoriteFilterUi();
-  }
+  syncMonthGalleryAfterPhotoBatchUpdate(normalizedUpdates);
 
   const nextModalPhoto = currentModalPhoto
     ? getLatestKnownPhotoById(currentModalPhoto.id)
@@ -1996,6 +2110,38 @@ function syncSidebarSelectionState() {
   return hasSidebarEntries;
 }
 
+function setCurrentSelectionValue(selection) {
+  currentSelection = selection;
+
+  if (selection?.year) {
+    expandedYears.add(selection.year);
+  }
+}
+
+function ensureExpandedYearsForSidebar() {
+  if (expandedYears.size === 0) {
+    for (const yearEntry of sidebarData) {
+      expandedYears.add(yearEntry.year);
+    }
+  }
+
+  if (currentSelection?.year) {
+    expandedYears.add(currentSelection.year);
+  }
+}
+
+// Month selection affects multiple surfaces at once, so keep sidebar/settings
+// synchronization together instead of scattering it across each caller.
+function syncSelectionLinkedUi({ forceSidebarRender = false } = {}) {
+  ensureExpandedYearsForSidebar();
+
+  if (forceSidebarRender || !syncSidebarSelectionState()) {
+    renderSidebar();
+  }
+
+  syncSelectionDependentSettingsUi();
+}
+
 function applySidebarDeletionLocally(targetSelection, removedCount) {
   if (
     !targetSelection ||
@@ -2056,6 +2202,60 @@ function getLatestSelectionFromSidebarData() {
     year: latestYearEntry.year,
     month: latestMonthEntry.month,
   };
+}
+
+function hasSidebarMonthSelection(selection) {
+  if (
+    !selection ||
+    !Number.isInteger(selection.year) ||
+    !Number.isInteger(selection.month)
+  ) {
+    return false;
+  }
+
+  return sidebarData.some(
+    (yearEntry) =>
+      yearEntry.year === selection.year &&
+      yearEntry.months.some((monthEntry) => monthEntry.month === selection.month)
+  );
+}
+
+async function selectSidebarMonthIfAvailable(selection) {
+  if (!hasSidebarMonthSelection(selection)) {
+    return false;
+  }
+
+  await selectMonth(selection.year, selection.month);
+  return true;
+}
+
+// Data-changing operations often need to restore the same month, fall back to
+// a caller-provided month, or finally show the latest available month.
+async function restoreMonthViewAfterDataChange({
+  preferredSelection = null,
+  fallbackSelection = null,
+  clearWhenEmpty = true,
+} = {}) {
+  if (await selectSidebarMonthIfAvailable(preferredSelection)) {
+    return true;
+  }
+
+  if (await selectSidebarMonthIfAvailable(fallbackSelection)) {
+    return true;
+  }
+
+  const latestMonth = getLatestSelectionFromSidebarData();
+
+  if (latestMonth) {
+    await selectMonth(latestMonth.year, latestMonth.month);
+    return true;
+  }
+
+  if (clearWhenEmpty) {
+    clearMainContent();
+  }
+
+  return false;
 }
 
 function populateModal(item) {
@@ -2793,18 +2993,12 @@ async function savePhotoLabels() {
   currentModalPhotoLabels = sortPhotoLabels(result.labels);
   draftModalPhotoLabels = sortPhotoLabels(result.labels);
   photoLabelCatalog = sortPhotoLabels(result.catalog);
-  currentModalPhoto = {
+  const updatedModalPhoto = {
     ...currentModalPhoto,
     photoLabels: currentModalPhotoLabels,
   };
-  updatePhotoInCurrentCollections(currentModalPhoto);
-  syncFavoriteFilterUi();
-
-  if (isAnyPhotoFilterActive() && !photoMatchesCurrentFilters(currentModalPhoto)) {
-    await refreshCurrentMonthWithFilterAnimation();
-  } else {
-    replaceRenderedPhotoCard(currentModalPhoto);
-  }
+  syncSinglePhotoUpdate(updatedModalPhoto, { refreshModal: false });
+  setCurrentModalPhotoState(updatedModalPhoto);
   renderModalPhotoLabels();
   renderPhotoLabelEditorSelectedList();
   renderPhotoLabelCatalogOptions();
@@ -2818,6 +3012,12 @@ function getCurrentModalPhotoIndex() {
   }
 
   return currentPhotos.findIndex((photo) => photo.id === currentModalPhoto.id);
+}
+
+function invalidateCurrentModalAsyncRequests() {
+  modalWorldMetadataRequestId += 1;
+  modalPhotoLabelsRequestId += 1;
+  modalImageRecoveryRequestId += 1;
 }
 
 function updateImageModalNavigationState() {
@@ -2835,6 +3035,31 @@ function updateImageModalNavigationState() {
     imageModalNextButton.disabled = !hasNext;
     imageModalNextButton.classList.toggle('is-disabled', !hasNext);
   }
+}
+
+function setCurrentModalPhotoState(photo, { resetScroll = false } = {}) {
+  currentModalPhoto = photo;
+
+  if (resetScroll && imageModalInfo) {
+    imageModalInfo.scrollTop = 0;
+  }
+
+  syncImageModalPhotoLayout(photo);
+  updateImageModalNavigationState();
+  syncWorldMetadataSyncUi();
+}
+
+function clearCurrentModalPhotoState() {
+  modalImage.src = '';
+  currentModalPhoto = null;
+  currentModalPhotoLabels = [];
+  worldNameSaveStatus.textContent = '';
+
+  if (imageModalInfo) {
+    imageModalInfo.scrollTop = 0;
+  }
+
+  updateImageModalNavigationState();
 }
 
 function syncImageModalPhotoLayout(item) {
@@ -2974,19 +3199,11 @@ function showImageModalPhoto(item, { direction = null } = {}) {
     closePhotoLabelModal();
   }
 
-  currentModalPhoto = latestPhoto;
-  modalImageRecoveryRequestId += 1;
-  syncImageModalPhotoLayout(latestPhoto);
+  invalidateCurrentModalAsyncRequests();
+  setCurrentModalPhotoState(latestPhoto, { resetScroll: true });
   populateModal(latestPhoto);
   void loadModalWorldMetadata(latestPhoto);
   void loadModalPhotoLabels(latestPhoto);
-
-  if (imageModalInfo) {
-    imageModalInfo.scrollTop = 0;
-  }
-
-  updateImageModalNavigationState();
-  syncWorldMetadataSyncUi();
 
   if (direction) {
     playImageModalSwitchAnimation(direction);
@@ -3105,9 +3322,7 @@ function closeImageModal() {
 
   imageModal.classList.remove('is-open');
   imageModal.classList.add('is-closing');
-  modalWorldMetadataRequestId += 1;
-  modalPhotoLabelsRequestId += 1;
-  modalImageRecoveryRequestId += 1;
+  invalidateCurrentModalAsyncRequests();
 
   const finalizeImageModalClose = () => {
     if (imageModalSwitchTimer) {
@@ -3118,14 +3333,7 @@ function closeImageModal() {
     imageModalBody?.classList.remove('is-switching-prev', 'is-switching-next');
     imageModal.classList.remove('is-closing');
     imageModal.classList.add('hidden');
-    modalImage.src = '';
-    currentModalPhoto = null;
-    currentModalPhotoLabels = [];
-    worldNameSaveStatus.textContent = '';
-    if (imageModalInfo) {
-      imageModalInfo.scrollTop = 0;
-    }
-    updateImageModalNavigationState();
+    clearCurrentModalPhotoState();
     imageModalAnimationTimer = null;
 
     requestAnimationFrame(() => {
@@ -3370,12 +3578,7 @@ function initializeImageModalUi() {
       }
 
       if (result?.photo) {
-        updatePhotoInCurrentCollections(result.photo);
-        replaceRenderedPhotoCard(result.photo);
-        showImageModalPhoto(
-          currentPhotos.find((photo) => photo.id === result.photo.id) ||
-            result.photo
-        );
+        syncSinglePhotoUpdate(result.photo);
         showToast('画像パスを再検出して更新しました');
         return;
       }
@@ -3851,88 +4054,8 @@ function initializeTopToolbarLayout() {
   }
 
   if (regenerateThumbnailsButton && settingsSectionHeader?.parentElement) {
-    let utilityActions = settingsModalBody?.querySelector('.settings-utility-actions');
-    const utilityAnchor = trackedFolderAccordionPanel || trackedFolderList;
-
-    if (!utilityActions) {
-      utilityActions = document.createElement('div');
-      utilityActions.className = 'settings-utility-actions';
-      settingsSectionHeader.parentElement.insertBefore(
-        utilityActions,
-        utilityAnchor || null
-      );
-    } else if (
-      utilityAnchor &&
-      utilityActions.nextElementSibling !== utilityAnchor
-    ) {
-      settingsSectionHeader.parentElement.insertBefore(utilityActions, utilityAnchor);
-    }
-
-    if (!regenerateThumbnailMonthSelect) {
-      const monthSelect = document.createElement('select');
-      monthSelect.className = 'settings-month-select';
-      monthSelect.setAttribute('aria-label', 'サムネイル再生成の対象月');
-      utilityActions.appendChild(monthSelect);
-      regenerateThumbnailMonthSelect = monthSelect;
-    }
-
-    if (!regenerateThumbnailMonthDropdown) {
-      const monthDropdown = document.createElement('div');
-      monthDropdown.className = 'header-dropdown settings-month-dropdown';
-
-      const monthButton = document.createElement('button');
-      monthButton.type = 'button';
-      monthButton.className =
-        'header-filter-button settings-month-dropdown-button';
-      monthButton.setAttribute('aria-haspopup', 'menu');
-      monthButton.setAttribute('aria-expanded', 'false');
-      monthButton.setAttribute('aria-label', 'サムネイル再生成の対象月');
-
-      const monthLabel = document.createElement('span');
-      monthLabel.className = 'settings-month-dropdown-label';
-      monthLabel.textContent = '再生成する月を選択';
-      monthButton.appendChild(monthLabel);
-
-      const chevron = document.createElement('span');
-      chevron.className =
-        'material-symbols-outlined orientation-filter-chevron';
-      chevron.textContent = 'expand_more';
-      monthButton.appendChild(chevron);
-
-      const monthMenu = document.createElement('div');
-      monthMenu.className = 'header-dropdown-menu settings-month-dropdown-menu';
-      monthMenu.hidden = true;
-      monthMenu.setAttribute('role', 'menu');
-
-      monthDropdown.appendChild(monthButton);
-      monthDropdown.appendChild(monthMenu);
-      utilityActions.appendChild(monthDropdown);
-
-      regenerateThumbnailMonthDropdown = monthDropdown;
-      regenerateThumbnailMonthButton = monthButton;
-      regenerateThumbnailMonthLabel = monthLabel;
-      regenerateThumbnailMonthMenu = monthMenu;
-
-      monthButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-        setRegenerateThumbnailMonthMenuOpen(!isRegenerateThumbnailMonthMenuOpen);
-      });
-
-      monthMenu.addEventListener('click', (event) => {
-        const target = event.target.closest('[data-regenerate-thumbnail-month]');
-
-        if (!target || !regenerateThumbnailMonthSelect) {
-          return;
-        }
-
-        event.stopPropagation();
-        regenerateThumbnailMonthValue =
-          target.dataset.regenerateThumbnailMonth || '';
-        regenerateThumbnailMonthSelect.value = regenerateThumbnailMonthValue;
-        syncRegenerateThumbnailMonthDropdownFromSelect();
-        closeRegenerateThumbnailMonthMenu();
-      });
-    }
+    const utilityActions = ensureSettingsUtilityActionsContainer();
+    ensureRegenerateThumbnailMonthDropdown(utilityActions);
 
     regenerateThumbnailsButton.classList.remove('secondary-toolbar-button');
     regenerateThumbnailsButton.classList.add('small-action-button');
@@ -4011,7 +4134,7 @@ function syncSelectionDependentSettingsUi() {
 }
 
 function resetCurrentMonthState() {
-  currentSelection = null;
+  setCurrentSelectionValue(null);
   currentPhotos = [];
   allCurrentMonthPhotos = [];
 }
@@ -4907,19 +5030,7 @@ function renderSidebar() {
 
 async function refreshSidebar() {
   sidebarData = await window.electronAPI.getSidebarData();
-
-  if (expandedYears.size === 0) {
-    for (const yearEntry of sidebarData) {
-      expandedYears.add(yearEntry.year);
-    }
-  }
-
-  if (currentSelection) {
-    expandedYears.add(currentSelection.year);
-  }
-
-  renderSidebar();
-  syncSelectionDependentSettingsUi();
+  syncSelectionLinkedUi({ forceSidebarRender: true });
 }
 
 async function selectMonth(year, month) {
@@ -4946,16 +5057,12 @@ async function selectMonth(year, month) {
     return;
   }
 
-  currentSelection = { year, month };
-  expandedYears.add(year);
+  setCurrentSelectionValue({ year, month });
 
   allCurrentMonthPhotos = photos;
   applyCurrentPhotoFilter();
 
-  if (!syncSidebarSelectionState()) {
-    renderSidebar();
-  }
-  syncSelectionDependentSettingsUi();
+  syncSelectionLinkedUi();
   stopScrollToTopAnimation();
   scrollGalleryViewToTop({ animated: false });
   renderMonthGallery({ resetProgressive: true });
@@ -4976,20 +5083,24 @@ async function handleImportResult(result, modeLabel) {
     showToast(`${modeLabel}: ${result.failedCount}件失敗しました`);
   }
 
+  await restoreSidebarAndMonthSelection({
+    preferredSelection: result.selectedMonth || null,
+  });
+}
+
+async function queueWorldMetadataSyncForResult(result) {
+  await startBackgroundWorldMetadataSync(result?.worldMetadataTargets);
+}
+
+async function restoreSidebarAndMonthSelection({
+  preferredSelection = null,
+  fallbackSelection = null,
+} = {}) {
   await refreshSidebar();
-
-  if (result.selectedMonth) {
-    await selectMonth(result.selectedMonth.year, result.selectedMonth.month);
-    return;
-  }
-
-  const latestMonth = await window.electronAPI.getLatestMonth();
-
-  if (latestMonth) {
-    await selectMonth(latestMonth.year, latestMonth.month);
-  } else {
-    clearMainContent();
-  }
+  await restoreMonthViewAfterDataChange({
+    preferredSelection,
+    fallbackSelection,
+  });
 }
 
 async function startBackgroundWorldMetadataSync(targets) {
@@ -5019,9 +5130,7 @@ async function startBackgroundWorldMetadataSync(targets) {
   }
 }
 
-async function handleTrackedFoldersRefreshResult(result, fallbackSelection) {
-  importStatus.textContent = buildTrackedFoldersRefreshMessage(result);
-
+function showTrackedFoldersRefreshResultToast(result) {
   if (!result || result.canceled) {
     return;
   }
@@ -5038,37 +5147,95 @@ async function handleTrackedFoldersRefreshResult(result, fallbackSelection) {
 
   if (result.failedCount > 0) {
     showToast(`更新: ${result.failedCount}件失敗しました`);
-  } else if (result.missingFolderPaths?.length > 0) {
+    return;
+  }
+
+  if (result.missingFolderPaths?.length > 0) {
     showToast(`見つからないフォルダが${result.missingFolderPaths.length}件あります`);
-  } else if (!result.emptyRefresh && (result.importedCount || 0) > 0) {
+    return;
+  }
+
+  if (!result.emptyRefresh && (result.importedCount || 0) > 0) {
     showToast('追跡フォルダを更新しました');
-  } else {
-    showToast('追跡フォルダを確認しました');
+    return;
+  }
+
+  showToast('追跡フォルダを確認しました');
+}
+
+async function handleTrackedFoldersRefreshResult(result, fallbackSelection) {
+  importStatus.textContent = buildTrackedFoldersRefreshMessage(result);
+
+  if (!result || result.canceled) {
+    return;
+  }
+
+  showTrackedFoldersRefreshResultToast(result);
+
+  if (result.ok === false || result.noTrackedFolders) {
+    return;
   }
 
   if (result.emptyRefresh) {
     return;
   }
 
-  await refreshSidebar();
+  await restoreSidebarAndMonthSelection({
+    preferredSelection: result.selectedMonth || null,
+    fallbackSelection,
+  });
+}
 
-  if (result.selectedMonth) {
-    await selectMonth(result.selectedMonth.year, result.selectedMonth.month);
-    return;
+async function runRegenerateThumbnailsFlow(targetYear, targetMonth) {
+  beginForegroundProgressOperation({
+    statusMessage: 'サムネイルを再生成しています...',
+    progressMessage: 'サムネイルを再生成しています...',
+  });
+
+  try {
+    const result = await window.electronAPI.regenerateThumbnails({
+      year: targetYear,
+      month: targetMonth,
+    });
+
+    importStatus.textContent = buildScopedRegenerateThumbnailsMessage(result);
+
+    if (result?.failedCount > 0) {
+      showToast(`サムネイル再生成 ${result.failedCount}件失敗しました`);
+    } else if (result?.ok) {
+      showToast('サムネイル再生成が完了しました');
+    }
+
+    if (currentSelection) {
+      await selectMonth(currentSelection.year, currentSelection.month);
+    }
+  } catch (error) {
+    importStatus.textContent = `サムネイル再生成に失敗しました: ${error.message}`;
+  } finally {
+    setImportUiBusy(false);
+  }
+}
+
+async function runTrackedFoldersRefreshFlow() {
+  const fallbackSelection = currentSelection ? { ...currentSelection } : null;
+  let result = null;
+
+  beginForegroundProgressOperation({
+    statusMessage: '追跡フォルダを更新中...',
+    progressMessage: '追跡フォルダを更新中...',
+  });
+
+  try {
+    result = await window.electronAPI.refreshTrackedFolders();
+    setImportUiBusy(false);
+    await handleTrackedFoldersRefreshResult(result, fallbackSelection);
+  } catch (error) {
+    importStatus.textContent = `更新に失敗しました: ${error.message}`;
+  } finally {
+    setImportUiBusy(false);
   }
 
-  if (fallbackSelection) {
-    await selectMonth(fallbackSelection.year, fallbackSelection.month);
-    return;
-  }
-
-  const latestMonth = await window.electronAPI.getLatestMonth();
-
-  if (latestMonth) {
-    await selectMonth(latestMonth.year, latestMonth.month);
-  } else {
-    clearMainContent();
-  }
+  await queueWorldMetadataSyncForResult(result);
 }
 
 function setImportUiBusy(isBusy) {
@@ -5185,7 +5352,7 @@ async function runImportFlow(modeLabel, startMessage, importRunner) {
     setImportUiBusy(false);
   }
 
-  await startBackgroundWorldMetadataSync(result?.worldMetadataTargets);
+  await queueWorldMetadataSyncForResult(result);
 }
 
 
@@ -5382,15 +5549,7 @@ async function refreshViewAfterDelete(
   }
 
   if (targetSelection) {
-    const monthStillExists = sidebarData.some(
-      (yearEntry) =>
-        yearEntry.year === targetSelection.year &&
-        yearEntry.months.some(
-          (monthEntry) => monthEntry.month === targetSelection.month
-        )
-    );
-
-    if (monthStillExists) {
+    if (hasSidebarMonthSelection(targetSelection)) {
       const isCurrentTarget =
         currentSelection &&
         currentSelection.year === targetSelection.year &&
@@ -5407,22 +5566,17 @@ async function refreshViewAfterDelete(
         return;
       }
 
-      await selectMonth(targetSelection.year, targetSelection.month);
+      await restoreMonthViewAfterDataChange({
+        preferredSelection: targetSelection,
+        clearWhenEmpty: false,
+      });
       return;
     }
   }
 
-  const latestMonth = getLatestSelectionFromSidebarData();
-
-  if (latestMonth) {
-    await selectMonth(latestMonth.year, latestMonth.month);
-    return;
-  }
-
   resetCurrentMonthState();
   clearSelectionState();
-  renderSidebar();
-  clearMainContent();
+  await restoreMonthViewAfterDataChange();
 }
 
 function closePhotoSpecificModalsForDeletedPhotos(photoIds) {
@@ -5898,13 +6052,9 @@ function initializeDragAndDropImport() {
 
 async function initializeApp() {
   await refreshSidebar();
+  const restored = await restoreMonthViewAfterDataChange();
 
-  const latestMonth = await window.electronAPI.getLatestMonth();
-
-  if (latestMonth) {
-    await selectMonth(latestMonth.year, latestMonth.month);
-  } else {
-    clearMainContent();
+  if (!restored) {
     renderSidebar();
   }
 
@@ -5932,34 +6082,7 @@ function bindForegroundActionControls() {
       }
 
       const [targetYear, targetMonth] = selectedMonthValue.split('-').map(Number);
-
-      beginForegroundProgressOperation({
-        statusMessage: 'サムネイルを再生成しています...',
-        progressMessage: 'サムネイルを再生成しています...',
-      });
-
-      try {
-        const result = await window.electronAPI.regenerateThumbnails({
-          year: targetYear,
-          month: targetMonth,
-        });
-
-        importStatus.textContent = buildScopedRegenerateThumbnailsMessage(result);
-
-        if (result?.failedCount > 0) {
-          showToast(`サムネイル再生成 ${result.failedCount}件失敗しました`);
-        } else if (result?.ok) {
-          showToast('サムネイル再生成が完了しました');
-        }
-
-        if (currentSelection) {
-          await selectMonth(currentSelection.year, currentSelection.month);
-        }
-      } catch (error) {
-        importStatus.textContent = `サムネイル再生成に失敗しました: ${error.message}`;
-      } finally {
-        setImportUiBusy(false);
-      }
+      await runRegenerateThumbnailsFlow(targetYear, targetMonth);
     },
     { capture: true }
   );
@@ -5970,27 +6093,7 @@ function bindForegroundActionControls() {
       return;
     }
 
-    const fallbackSelection = currentSelection
-      ? { ...currentSelection }
-      : null;
-    let result = null;
-
-    beginForegroundProgressOperation({
-      statusMessage: '追跡フォルダを更新中...',
-      progressMessage: '追跡フォルダを更新中...',
-    });
-
-    try {
-      result = await window.electronAPI.refreshTrackedFolders();
-      setImportUiBusy(false);
-      await handleTrackedFoldersRefreshResult(result, fallbackSelection);
-    } catch (error) {
-      importStatus.textContent = `更新に失敗しました: ${error.message}`;
-    } finally {
-      setImportUiBusy(false);
-    }
-
-    await startBackgroundWorldMetadataSync(result?.worldMetadataTargets);
+    await runTrackedFoldersRefreshFlow();
   });
 }
 
@@ -6002,8 +6105,7 @@ function bindHeaderFilterControls() {
     }
 
     isFavoriteFilterOnly = !isFavoriteFilterOnly;
-    applyCurrentPhotoFilter();
-    await refreshCurrentMonthWithFilterAnimation();
+    await syncCurrentPhotoFilterPresentation();
   });
 
   orientationFilterButton?.addEventListener('click', (event) => {
@@ -6089,6 +6191,60 @@ function bindHeaderFilterControls() {
   });
 }
 
+async function openCurrentModalWorldUrl() {
+  if (!currentModalPhoto?.worldUrl) {
+    return;
+  }
+
+  const result = await window.electronAPI.openExternalUrl(
+    currentModalPhoto.worldUrl
+  );
+
+  if (!result?.ok) {
+    showToast(`リンクを開けませんでした: ${result?.message || '不明なエラー'}`);
+  }
+}
+
+function handleRecoveredModalFileActionResult(result, failureMessage) {
+  if (result?.photo) {
+    syncSinglePhotoUpdate(result.photo);
+  }
+
+  if (!result?.ok) {
+    showToast(`${failureMessage}: ${result?.message || '不明なエラー'}`);
+  }
+
+  if (result?.recovered) {
+    showToast('画像の保存場所を更新しました');
+  }
+}
+
+async function openCurrentModalOriginalFile() {
+  if (!currentModalPhoto?.filePath) {
+    return;
+  }
+
+  const result = await window.electronAPI.openLocalFile({
+    photoId: currentModalPhoto.id,
+    filePath: currentModalPhoto.filePath,
+  });
+
+  handleRecoveredModalFileActionResult(result, '画像を開けませんでした');
+}
+
+async function openCurrentModalContainingFolder() {
+  if (!currentModalPhoto?.filePath) {
+    return;
+  }
+
+  const result = await window.electronAPI.openContainingFolder({
+    photoId: currentModalPhoto.id,
+    filePath: currentModalPhoto.filePath,
+  });
+
+  handleRecoveredModalFileActionResult(result, '保存先フォルダを開けませんでした');
+}
+
 // Modal-level editors and detail actions are grouped here so photo-specific
 // behavior can be traced without scanning the entire file bottom.
 function bindPhotoAndEditModalControls() {
@@ -6162,80 +6318,19 @@ function bindPhotoAndEditModalControls() {
 
   modalWorldLink?.addEventListener('click', async (event) => {
     event.preventDefault();
-
-    if (!currentModalPhoto?.worldUrl) {
-      return;
-    }
-
-    const result = await window.electronAPI.openExternalUrl(
-      currentModalPhoto.worldUrl
-    );
-
-    if (!result?.ok) {
-      showToast(`リンクを開けませんでした: ${result?.message || '不明なエラー'}`);
-    }
+    await openCurrentModalWorldUrl();
   });
 
   modalOpenWorldButton?.addEventListener('click', async () => {
-    if (!currentModalPhoto?.worldUrl) {
-      return;
-    }
-
-    const result = await window.electronAPI.openExternalUrl(
-      currentModalPhoto.worldUrl
-    );
-
-    if (!result?.ok) {
-      showToast(`リンクを開けませんでした: ${result?.message || '不明なエラー'}`);
-    }
+    await openCurrentModalWorldUrl();
   });
 
   modalOpenOriginalButton?.addEventListener('click', async () => {
-    if (!currentModalPhoto?.filePath) {
-      return;
-    }
-
-    const result = await window.electronAPI.openLocalFile({
-      photoId: currentModalPhoto.id,
-      filePath: currentModalPhoto.filePath,
-    });
-
-    if (result?.photo) {
-      syncSinglePhotoUpdate(result.photo);
-    }
-
-    if (!result?.ok) {
-      showToast(
-        `画像を開けませんでした: ${result?.message || '不明なエラー'}`
-      );
-    }
-    if (result.recovered) {
-      showToast('画像の保存場所を更新しました');
-    }
+    await openCurrentModalOriginalFile();
   });
 
   modalOpenFolderButton?.addEventListener('click', async () => {
-    if (!currentModalPhoto?.filePath) {
-      return;
-    }
-
-    const result = await window.electronAPI.openContainingFolder({
-      photoId: currentModalPhoto.id,
-      filePath: currentModalPhoto.filePath,
-    });
-
-    if (result?.photo) {
-      syncSinglePhotoUpdate(result.photo);
-    }
-
-    if (!result?.ok) {
-      showToast(
-        `保存先フォルダを開けませんでした: ${result?.message || '不明なエラー'}`
-      );
-    }
-    if (result.recovered) {
-      showToast('画像の保存場所を更新しました');
-    }
+    await openCurrentModalContainingFolder();
   });
 
   modalFavoriteButton?.addEventListener('click', async () => {

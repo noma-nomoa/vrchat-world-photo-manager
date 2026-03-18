@@ -1605,6 +1605,163 @@ function findLatestPhotoRecord(photoRecords) {
   return latestRecord;
 }
 
+function buildSelectedMonthFromPhotoRecord(photoRecord) {
+  if (
+    !photoRecord ||
+    !Number.isInteger(photoRecord.year) ||
+    !Number.isInteger(photoRecord.month)
+  ) {
+    return null;
+  }
+
+  return {
+    year: photoRecord.year,
+    month: photoRecord.month,
+  };
+}
+
+// Import and refresh flows share the same summary shape so renderer-side
+// result handling can stay predictable.
+function createImportSummaryResult(overrides = {}) {
+  return {
+    canceled: false,
+    totalSelected: 0,
+    importedCount: 0,
+    newCount: 0,
+    updatedCount: 0,
+    relocatedCount: 0,
+    worldMetadataTargets: [],
+    failedCount: 0,
+    failedFiles: [],
+    selectedMonth: null,
+    ...overrides,
+  };
+}
+
+function createTrackedFolderRefreshResult(overrides = {}) {
+  return {
+    ...createImportSummaryResult(),
+    noTrackedFolders: false,
+    emptyRefresh: false,
+    trackedFolderCount: 0,
+    scannedFolderCount: 0,
+    missingFolderPaths: [],
+    skippedKnownCount: 0,
+    backfilledTrackedFolderCount: 0,
+    ...overrides,
+  };
+}
+
+// File access and path recovery return the same payload shape so open/show
+// callers can share the same success handling.
+function createResolvedPhotoAccessResult(
+  resolvedPhoto,
+  { includeFilePath = false } = {}
+) {
+  const payload = {
+    ok: true,
+    recovered: Boolean(resolvedPhoto?.recovered),
+    photo: resolvedPhoto?.photo || null,
+  };
+
+  if (includeFilePath) {
+    payload.filePath = resolvedPhoto?.filePath || null;
+  }
+
+  return payload;
+}
+
+function createWorldMetadataSyncTarget(target) {
+  const worldId =
+    normalizeWorldId(target?.worldId) ||
+    parseWorldIdFromUrl(target?.worldUrl);
+
+  if (!worldId) {
+    return null;
+  }
+
+  return {
+    worldId,
+    worldUrl: target?.worldUrl || buildWorldUrlFromId(worldId),
+  };
+}
+
+function createMissingAccessiblePhotoFileErrorLegacyCorrupt() {
+  return createMissingAccessiblePhotoFileError();
+
+  return new Error(
+    '画像ファイルが見つかりません。保存先を開いて場所を再確認してください。'
+  );
+
+  return new Error(
+    '画像ファイルが見つかりません。保存先を開いて場所を再確認してください。'
+  );
+}
+
+function getWorldMetadataSyncProgressMessageLegacyCorrupt(phase) {
+  return getWorldMetadataSyncProgressMessage(phase);
+
+  return phase === 'complete'
+    ? 'World情報の自動取得が完了しました'
+    : 'World情報を自動で取得しています...';
+
+  return phase === 'complete'
+    ? 'World情報の自動取得が完了しました'
+    : 'World情報を自動で取得しています...';
+}
+
+function createMissingAccessiblePhotoFileError() {
+  return new Error(
+    '画像ファイルが見つかりません。保存先を開いて場所を再確認してください。'
+  );
+}
+
+function getWorldMetadataSyncProgressMessage(phase) {
+  return phase === 'complete'
+    ? 'World情報の自動取得が完了しました'
+    : 'World情報を自動で取得しています...';
+}
+
+function broadcastQueuedWorldMetadataSyncProgress(phase, processedCount) {
+  const totalCount = processedCount + pendingWorldMetadataSyncTargets.size;
+
+  broadcastWorldMetadataSyncProgress({
+    phase,
+    current: processedCount,
+    total: totalCount,
+    message: getWorldMetadataSyncProgressMessage(phase),
+  });
+}
+
+function queueWorldMetadataSyncTarget(target) {
+  const normalizedTarget = createWorldMetadataSyncTarget(target);
+
+  if (
+    !normalizedTarget ||
+    activeWorldMetadataSyncWorldId === normalizedTarget.worldId
+  ) {
+    return false;
+  }
+
+  if (pendingWorldMetadataSyncTargets.has(normalizedTarget.worldId)) {
+    const existingTarget = pendingWorldMetadataSyncTargets.get(
+      normalizedTarget.worldId
+    );
+
+    if (!existingTarget.worldUrl && normalizedTarget.worldUrl) {
+      existingTarget.worldUrl = normalizedTarget.worldUrl;
+    }
+
+    return false;
+  }
+
+  pendingWorldMetadataSyncTargets.set(
+    normalizedTarget.worldId,
+    normalizedTarget
+  );
+  return true;
+}
+
 async function collectImageFilesFromDirectory(dirPath) {
   const results = [];
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
@@ -1916,9 +2073,31 @@ async function ensureAccessiblePhotoFile(payload) {
     };
   }
 
+  throw createMissingAccessiblePhotoFileError();
+
   throw new Error(
     '元画像が見つかりません。更新ボタンまたは再取り込みで保存場所を同期してください'
   );
+}
+
+// Disk actions all share the same recovery flow: recover the moved file if
+// needed, verify the final path exists, then run the specific shell action.
+async function withAccessiblePhotoFile(payload, action) {
+  const resolvedPhoto = await ensureAccessiblePhotoFile(payload);
+  const filePath = resolvedPhoto.filePath;
+
+  if (typeof filePath !== 'string' || filePath.trim().length === 0) {
+    throw createMissingAccessiblePhotoFileError();
+  }
+
+  if (typeof filePath !== 'string' || filePath.trim().length === 0) {
+    throw new Error('ファイルパスが不正です');
+  }
+
+  await fs.access(filePath);
+  await action(filePath);
+
+  return createResolvedPhotoAccessResult(resolvedPhoto);
 }
 
 async function collectNewFilesFromTrackedFolders(
@@ -2020,56 +2199,32 @@ async function refreshTrackedFolderImports(
   }
 
   if (trackedFolderPaths.length === 0) {
-    return {
-      canceled: false,
+    return createTrackedFolderRefreshResult({
       noTrackedFolders: true,
-      trackedFolderCount: 0,
-      scannedFolderCount: 0,
-      missingFolderPaths: [],
-      skippedKnownCount: 0,
-      backfilledTrackedFolderCount: 0,
-      totalSelected: 0,
-      importedCount: 0,
-      newCount: 0,
-      updatedCount: 0,
-      failedCount: 0,
-      failedFiles: [],
-      selectedMonth: null,
-    };
+    });
   }
 
   if (newFilePaths.length === 0) {
-    return {
-      canceled: false,
-      noTrackedFolders: false,
+    return createTrackedFolderRefreshResult({
       emptyRefresh: true,
       trackedFolderCount: trackedFolderPaths.length,
       scannedFolderCount: scannedFolderPaths.length,
       missingFolderPaths,
       skippedKnownCount,
       backfilledTrackedFolderCount,
-      totalSelected: 0,
-      importedCount: 0,
-      newCount: 0,
-      updatedCount: 0,
-      failedCount: 0,
-      failedFiles: [],
-      selectedMonth: null,
-    };
+    });
   }
 
   const importResult = await importManyFiles(newFilePaths, progressReporter);
 
-  return {
+  return createTrackedFolderRefreshResult({
     ...importResult,
-    noTrackedFolders: false,
-    emptyRefresh: false,
     trackedFolderCount: trackedFolderPaths.length,
     scannedFolderCount: scannedFolderPaths.length,
     missingFolderPaths,
     skippedKnownCount,
     backfilledTrackedFolderCount,
-  };
+  });
 }
 
 async function importManyFiles(filePaths, progressReporter = null) {
@@ -2202,8 +2357,7 @@ async function importManyFiles(filePaths, progressReporter = null) {
     message: '取り込みが完了しました',
   });
 
-  return {
-    canceled: false,
+  return createImportSummaryResult({
     totalSelected: uniquePaths.length,
     importedCount: photoRecords.length,
     newCount,
@@ -2212,13 +2366,8 @@ async function importManyFiles(filePaths, progressReporter = null) {
     worldMetadataTargets: buildWorldMetadataSyncTargetsFromPhotoRecords(photoRecords),
     failedCount: failedFiles.length,
     failedFiles,
-    selectedMonth: latestRow
-      ? {
-          year: latestRow.year,
-          month: latestRow.month,
-        }
-      : null,
-  };
+    selectedMonth: buildSelectedMonthFromPhotoRecord(latestRow),
+  });
 }
 
 function delay(ms) {
@@ -2233,26 +2382,24 @@ function buildWorldMetadataSyncTargetsFromPhotoRecords(photoRecords) {
   const targets = new Map();
 
   for (const photoRecord of Array.isArray(photoRecords) ? photoRecords : []) {
-    const worldId =
-      normalizeWorldId(photoRecord?.worldId) ||
-      parseWorldIdFromUrl(photoRecord?.worldUrl);
+    const syncTarget = createWorldMetadataSyncTarget({
+      worldId: photoRecord?.worldId,
+      worldUrl: photoRecord?.worldUrl,
+    });
 
-    if (!worldId) {
+    if (!syncTarget) {
       continue;
     }
 
-    if (!targets.has(worldId)) {
-      targets.set(worldId, {
-        worldId,
-        worldUrl: photoRecord?.worldUrl || buildWorldUrlFromId(worldId),
-      });
+    if (!targets.has(syncTarget.worldId)) {
+      targets.set(syncTarget.worldId, syncTarget);
       continue;
     }
 
-    const existingTarget = targets.get(worldId);
+    const existingTarget = targets.get(syncTarget.worldId);
 
-    if (!existingTarget.worldUrl && photoRecord?.worldUrl) {
-      existingTarget.worldUrl = photoRecord.worldUrl;
+    if (!existingTarget.worldUrl && syncTarget.worldUrl) {
+      existingTarget.worldUrl = syncTarget.worldUrl;
     }
   }
 
@@ -2323,18 +2470,16 @@ function broadcastWorldMetadataUpdated(rows) {
 }
 
 async function syncOfficialWorldMetadataForTarget(target) {
-  const worldId =
-    normalizeWorldId(target?.worldId) ||
-    parseWorldIdFromUrl(target?.worldUrl);
+  const normalizedTarget = createWorldMetadataSyncTarget(target);
 
-  if (!worldId) {
+  if (!normalizedTarget) {
     return {
       didFetch: false,
       updatedRows: [],
     };
   }
 
-  const worldUrl = target?.worldUrl || buildWorldUrlFromId(worldId);
+  const { worldId, worldUrl } = normalizedTarget;
   let metadataRow = photoDb.getWorldMetadataByWorldId(worldId);
   let didFetch = false;
 
@@ -2366,7 +2511,11 @@ async function syncOfficialWorldMetadataForTarget(target) {
   };
 }
 
-async function runQueuedWorldMetadataSync() {
+function getQueuedWorldMetadataSyncCount() {
+  return pendingWorldMetadataSyncTargets.size + (isWorldMetadataSyncRunning ? 1 : 0);
+}
+
+async function runQueuedWorldMetadataSyncInternal() {
   if (isWorldMetadataSyncRunning) {
     return;
   }
@@ -2376,7 +2525,56 @@ async function runQueuedWorldMetadataSync() {
 
   try {
     while (pendingWorldMetadataSyncTargets.size > 0) {
-      const totalCount = processedCount + pendingWorldMetadataSyncTargets.size;
+      const [worldId, target] =
+        pendingWorldMetadataSyncTargets.entries().next().value;
+
+      pendingWorldMetadataSyncTargets.delete(worldId);
+      activeWorldMetadataSyncWorldId = worldId;
+      broadcastQueuedWorldMetadataSyncProgress('process', processedCount);
+
+      let result = { updatedRows: [] };
+
+      try {
+        result = await syncOfficialWorldMetadataForTarget(target);
+      } catch (error) {
+        console.warn(
+          '[world-metadata-sync] Failed to sync official world metadata',
+          target,
+          error
+        );
+      }
+
+      if (result.updatedRows.length > 0) {
+        broadcastWorldMetadataUpdated(result.updatedRows);
+      }
+
+      processedCount += 1;
+      broadcastQueuedWorldMetadataSyncProgress(
+        pendingWorldMetadataSyncTargets.size > 0 ? 'process' : 'complete',
+        processedCount
+      );
+    }
+  } finally {
+    isWorldMetadataSyncRunning = false;
+    activeWorldMetadataSyncWorldId = null;
+  }
+}
+
+// World metadata sync runs as a deduplicated queue keyed by worldId so imports
+// can stay fast while official data is fetched in the background.
+// Legacy fallback retained only as an encoding-safe quarantine block.
+async function runQueuedWorldMetadataSyncLegacy() {
+  return runQueuedWorldMetadataSyncInternal();
+
+  if (isWorldMetadataSyncRunning) {
+    return;
+  }
+
+  isWorldMetadataSyncRunning = true;
+  let processedCount = 0;
+
+  try {
+    while (pendingWorldMetadataSyncTargets.size > 0) {
       const [worldId, target] =
         pendingWorldMetadataSyncTargets.entries().next().value;
 
@@ -2390,7 +2588,17 @@ async function runQueuedWorldMetadataSync() {
         message: 'World情報を自動で同期しています...',
       });
 
-      const result = await syncOfficialWorldMetadataForTarget(target);
+      let result = { updatedRows: [] };
+
+      try {
+        result = await syncOfficialWorldMetadataForTarget(target);
+      } catch (error) {
+        console.warn(
+          '[world-metadata-sync] Failed to sync official world metadata',
+          target,
+          error
+        );
+      }
 
       if (result.updatedRows.length > 0) {
         broadcastWorldMetadataUpdated(result.updatedRows);
@@ -2414,35 +2622,19 @@ async function runQueuedWorldMetadataSync() {
   }
 }
 
+async function runQueuedWorldMetadataSync() {
+  return runQueuedWorldMetadataSyncInternal();
+}
+
 function enqueueWorldMetadataSyncTargets(targets, webContents) {
   addWorldMetadataSyncSubscriber(webContents);
 
   let queuedCount = 0;
 
   for (const target of Array.isArray(targets) ? targets : []) {
-    const worldId =
-      normalizeWorldId(target?.worldId) ||
-      parseWorldIdFromUrl(target?.worldUrl);
-
-    if (!worldId || activeWorldMetadataSyncWorldId === worldId) {
-      continue;
+    if (queueWorldMetadataSyncTarget(target)) {
+      queuedCount += 1;
     }
-
-    if (pendingWorldMetadataSyncTargets.has(worldId)) {
-      const existingTarget = pendingWorldMetadataSyncTargets.get(worldId);
-
-      if (!existingTarget.worldUrl && target?.worldUrl) {
-        existingTarget.worldUrl = target.worldUrl;
-      }
-
-      continue;
-    }
-
-    pendingWorldMetadataSyncTargets.set(worldId, {
-      worldId,
-      worldUrl: target?.worldUrl || buildWorldUrlFromId(worldId),
-    });
-    queuedCount += 1;
   }
 
   if (queuedCount > 0) {
@@ -2452,9 +2644,12 @@ function enqueueWorldMetadataSyncTargets(targets, webContents) {
   return {
     ok: true,
     queuedCount,
-    pendingCount:
-      pendingWorldMetadataSyncTargets.size + (isWorldMetadataSyncRunning ? 1 : 0),
+    pendingCount: getQueuedWorldMetadataSyncCount(),
   };
+}
+
+function enqueueNormalizedWorldMetadataSyncTargets(targets, webContents) {
+  return enqueueWorldMetadataSyncTargets(targets, webContents);
 }
 
 async function expandDroppedPathsToImportTargets(droppedPaths) {
@@ -2779,7 +2974,13 @@ async function rereadWorldInfoFromPhotoId(photoId, options = {}) {
   return saved;
 }
 
-async function openLocalFileOnDisk(filePath) {
+// Legacy wrappers retained only as encoding-safe quarantine blocks.
+async function openLocalFileOnDiskLegacy(filePath) {
+  // Legacy wrapper kept for compatibility with older call sites. The shared
+  // payload-based helper is now the canonical path recovery flow.
+  return openRecoveredLocalFileOnDisk(filePath);
+  /*
+
   const resolvedPhoto = await ensureAccessiblePhotoFile(filePath);
   filePath = resolvedPhoto.filePath;
 
@@ -2795,14 +2996,16 @@ async function openLocalFileOnDisk(filePath) {
     throw new Error(openResult);
   }
 
-  return {
-    ok: true,
-    recovered: resolvedPhoto.recovered,
-    photo: resolvedPhoto.photo,
-  };
+  return createResolvedPhotoAccessResult(resolvedPhoto);
+  */
 }
 
-async function openContainingFolderOnDisk(filePath) {
+async function openContainingFolderOnDiskLegacy(filePath) {
+  // Legacy wrapper kept for compatibility with older call sites. The shared
+  // payload-based helper is now the canonical path recovery flow.
+  return openRecoveredContainingFolderOnDisk(filePath);
+  /*
+
   const resolvedPhoto = await ensureAccessiblePhotoFile(filePath);
   filePath = resolvedPhoto.filePath;
 
@@ -2813,11 +3016,32 @@ async function openContainingFolderOnDisk(filePath) {
   await fs.access(filePath);
   shell.showItemInFolder(filePath);
 
-  return {
-    ok: true,
-    recovered: resolvedPhoto.recovered,
-    photo: resolvedPhoto.photo,
-  };
+  return createResolvedPhotoAccessResult(resolvedPhoto);
+  */
+}
+
+async function openLocalFileOnDisk(filePath) {
+  return openRecoveredLocalFileOnDisk(filePath);
+}
+
+async function openContainingFolderOnDisk(filePath) {
+  return openRecoveredContainingFolderOnDisk(filePath);
+}
+
+async function openRecoveredLocalFileOnDisk(payload) {
+  return withAccessiblePhotoFile(payload, async (resolvedFilePath) => {
+    const openResult = await shell.openPath(resolvedFilePath);
+
+    if (openResult) {
+      throw new Error(openResult);
+    }
+  });
+}
+
+async function openRecoveredContainingFolderOnDisk(payload) {
+  return withAccessiblePhotoFile(payload, async (resolvedFilePath) => {
+    shell.showItemInFolder(resolvedFilePath);
+  });
 }
 
 function createProcessingProgressReporter(webContents, operation) {
@@ -3043,7 +3267,10 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('start-world-metadata-sync', async (event, payload) => {
     try {
-      return enqueueWorldMetadataSyncTargets(payload?.targets, event.sender);
+      return enqueueNormalizedWorldMetadataSyncTargets(
+        payload?.targets,
+        event.sender
+      );
     } catch (error) {
       return {
         ok: false,
@@ -3164,23 +3391,10 @@ app.whenReady().then(async () => {
 
       return await refreshTrackedFolderImports(folderPaths, progressReporter);
     } catch (error) {
-      return {
+      return createTrackedFolderRefreshResult({
         ok: false,
         message: error.message,
-        noTrackedFolders: false,
-        emptyRefresh: false,
-        trackedFolderCount: 0,
-        scannedFolderCount: 0,
-        missingFolderPaths: [],
-        skippedKnownCount: 0,
-        totalSelected: 0,
-        importedCount: 0,
-        newCount: 0,
-        updatedCount: 0,
-        failedCount: 0,
-        failedFiles: [],
-        selectedMonth: null,
-      };
+      });
     }
   });
 
@@ -3308,12 +3522,9 @@ app.whenReady().then(async () => {
     try {
       const resolvedPhoto = await ensureAccessiblePhotoFile(payload);
 
-      return {
-        ok: true,
-        recovered: resolvedPhoto.recovered,
-        photo: resolvedPhoto.photo,
-        filePath: resolvedPhoto.filePath,
-      };
+      return createResolvedPhotoAccessResult(resolvedPhoto, {
+        includeFilePath: true,
+      });
     } catch (error) {
       return {
         ok: false,
@@ -3324,7 +3535,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('open-local-file', async (_event, filePath) => {
     try {
-      return await openLocalFileOnDisk(filePath);
+      return await openRecoveredLocalFileOnDisk(filePath);
     } catch (error) {
       return {
         ok: false,
@@ -3335,7 +3546,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('open-containing-folder', async (_event, filePath) => {
     try {
-      return await openContainingFolderOnDisk(filePath);
+      return await openRecoveredContainingFolderOnDisk(filePath);
     } catch (error) {
       return {
         ok: false,
