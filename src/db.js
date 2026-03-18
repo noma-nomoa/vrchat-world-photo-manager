@@ -320,6 +320,13 @@ function initDatabase(dbPath) {
     ORDER BY taken_at_timestamp DESC, id DESC
   `);
 
+  const getPhotosByYearStmt = db.prepare(`
+    SELECT *
+    FROM photos
+    WHERE year = ?
+    ORDER BY taken_at_timestamp DESC, id DESC
+  `);
+
   const getAllPhotosStmt = db.prepare(`
     SELECT id, file_path, file_hash, thumbnail_path, year, month
     FROM photos
@@ -770,6 +777,10 @@ function initDatabase(dbPath) {
     return getPhotosByMonthStmt.all(year, month);
   }
 
+  function getPhotosByYear(year) {
+    return getPhotosByYearStmt.all(year);
+  }
+
   function getAllPhotos() {
     return getAllPhotosStmt.all();
   }
@@ -1127,6 +1138,7 @@ function initDatabase(dbPath) {
     getSidebarTree,
     getLatestMonth,
     getPhotosByMonth,
+    getPhotosByYear,
     getAllPhotos,
     getPhotosByWorldId,
     getTrackedFolders,

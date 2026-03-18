@@ -330,6 +330,16 @@ body[data-theme="light"] .theme-select option {
   background: var(--surface-soft-2);
 }
 
+.year-button.active {
+  background: rgba(79, 140, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(79, 140, 255, 0.34);
+}
+
+.year-button.active .year-toggle,
+.year-button.active .year-count {
+  color: var(--accent-soft);
+}
+
 .year-left {
   display: flex;
   align-items: center;

@@ -317,6 +317,94 @@ function pad2(value) {
   return String(value).padStart(2, '0');
 }
 
+// Sidebar selection can now point at either a specific month or a whole year.
+// Keep the shape normalized so render, restore, and maintenance code can all
+// branch on the same mode field instead of inferring intent ad hoc.
+function createMonthSelection(year, month) {
+  return {
+    mode: 'month',
+    year,
+    month,
+  };
+}
+
+function createYearSelection(year) {
+  return {
+    mode: 'year',
+    year,
+    month: null,
+  };
+}
+
+function normalizeSelection(selection) {
+  const normalizedYear = Number(selection?.year);
+  const hasExplicitMonth =
+    selection &&
+    selection.month !== null &&
+    selection.month !== undefined &&
+    String(selection.month).trim() !== '';
+  const normalizedMonth = hasExplicitMonth ? Number(selection?.month) : null;
+
+  if (!Number.isInteger(normalizedYear)) {
+    return null;
+  }
+
+  if (Number.isInteger(normalizedMonth)) {
+    return createMonthSelection(normalizedYear, normalizedMonth);
+  }
+
+  return createYearSelection(normalizedYear);
+}
+
+function isMonthSelection(selection = currentSelection) {
+  return normalizeSelection(selection)?.mode === 'month';
+}
+
+function isYearSelection(selection = currentSelection) {
+  return normalizeSelection(selection)?.mode === 'year';
+}
+
+function isSameSelection(leftSelection, rightSelection) {
+  const left = normalizeSelection(leftSelection);
+  const right = normalizeSelection(rightSelection);
+
+  if (!left || !right) {
+    return false;
+  }
+
+  return (
+    left.mode === right.mode &&
+    left.year === right.year &&
+    left.month === right.month
+  );
+}
+
+function getSelectionLabelText(selection = currentSelection) {
+  const normalizedSelection = normalizeSelection(selection);
+
+  if (!normalizedSelection) {
+    return '写真一覧';
+  }
+
+  if (normalizedSelection.mode === 'year') {
+    return `${normalizedSelection.year}年`;
+  }
+
+  return `${normalizedSelection.year}年${normalizedSelection.month}月`;
+}
+
+function getDefaultSelectionEmptyMessage(selection = currentSelection) {
+  const normalizedSelection = normalizeSelection(selection);
+
+  if (!normalizedSelection) {
+    return '表示する年または月を選択してください';
+  }
+
+  return normalizedSelection.mode === 'year'
+    ? 'この年の写真はまだありません'
+    : 'この月の写真はまだありません';
+}
+
 function setText(el, value, fallback = '未取得') {
   if (!el) {
     return;
@@ -645,7 +733,7 @@ function renderRegenerateThumbnailMonthOptions() {
 
   const monthOptions = getSidebarMonthOptions();
   const preferredValue =
-    currentSelection &&
+    isMonthSelection(currentSelection) &&
     monthOptions.some(
       (option) =>
         option.year === currentSelection.year &&
@@ -1345,15 +1433,19 @@ function getPhotoOrientationTier(photo) {
   const width = Number(photo.imageWidth);
   const height = Number(photo.imageHeight);
 
-  if (!Number.isFinite(width) || !Number.isFinite(height)) {
-    return null;
+  if (Number.isFinite(width) && Number.isFinite(height)) {
+    if (width === height) {
+      return 'square';
+    }
+
+    return width > height ? 'landscape' : 'portrait';
   }
 
-  if (width === height) {
-    return 'square';
+  if (photo.orientationTier) {
+    return photo.orientationTier;
   }
 
-  return width > height ? 'landscape' : 'portrait';
+  return null;
 }
 
 function photoMatchesCurrentFilters(photo) {
@@ -1457,7 +1549,7 @@ function buildFilteredEmptyMessage() {
   const filterLabels = getActivePhotoFilterSummaryParts();
 
   if (filterLabels.length === 0) {
-    return getDefaultMonthGalleryEmptyMessage();
+    return getDefaultSelectionEmptyMessage();
   }
 
   return `${filterLabels.join(' / ')} に一致する写真はありません`;
@@ -1791,6 +1883,9 @@ function getLatestKnownPhotoById(photoId) {
   );
 }
 
+// Small UI-only helpers keep modal/card refresh logic readable: collection
+// updates happen first, then the current month gallery decides whether a local
+// card swap is enough or a full rerender is safer.
 function isPhotoVisibleAfterCurrentFilters(photoId) {
   return currentPhotos.some((photo) => photo.id === photoId);
 }
@@ -2083,12 +2178,18 @@ function syncSidebarSelectionState() {
 
   for (const yearBlock of sidebarTree.querySelectorAll('.year-block')) {
     const year = Number(yearBlock.dataset.year);
+    const yearButton = yearBlock.querySelector('.year-button');
     const toggle = yearBlock.querySelector('.year-toggle');
     const monthList = yearBlock.querySelector('.month-list');
     const isExpanded = expandedYears.has(year);
+    const isActiveYear =
+      Number.isFinite(year) &&
+      isYearSelection(currentSelection) &&
+      currentSelection.year === year;
 
     hasSidebarEntries = true;
     monthList?.classList.toggle('hidden', !isExpanded);
+    yearButton?.classList.toggle('active', Boolean(isActiveYear));
 
     if (toggle) {
       toggle.textContent = isExpanded ? '▾' : '▸';
@@ -2099,7 +2200,7 @@ function syncSidebarSelectionState() {
       const isActive =
         Number.isFinite(year) &&
         Number.isFinite(month) &&
-        currentSelection &&
+        isMonthSelection(currentSelection) &&
         currentSelection.year === year &&
         currentSelection.month === month;
 
@@ -2111,10 +2212,10 @@ function syncSidebarSelectionState() {
 }
 
 function setCurrentSelectionValue(selection) {
-  currentSelection = selection;
+  currentSelection = normalizeSelection(selection);
 
-  if (selection?.year) {
-    expandedYears.add(selection.year);
+  if (currentSelection?.year) {
+    expandedYears.add(currentSelection.year);
   }
 }
 
@@ -2143,8 +2244,11 @@ function syncSelectionLinkedUi({ forceSidebarRender = false } = {}) {
 }
 
 function applySidebarDeletionLocally(targetSelection, removedCount) {
+  const normalizedSelection = normalizeSelection(targetSelection);
+
   if (
-    !targetSelection ||
+    !normalizedSelection ||
+    normalizedSelection.mode !== 'month' ||
     !Number.isFinite(removedCount) ||
     removedCount <= 0 ||
     sidebarData.length === 0
@@ -2156,13 +2260,13 @@ function applySidebarDeletionLocally(targetSelection, removedCount) {
 
   sidebarData = sidebarData
     .map((yearEntry) => {
-      if (yearEntry.year !== targetSelection.year) {
+      if (yearEntry.year !== normalizedSelection.year) {
         return yearEntry;
       }
 
       const nextMonths = yearEntry.months
         .map((monthEntry) => {
-          if (monthEntry.month !== targetSelection.month) {
+          if (monthEntry.month !== normalizedSelection.month) {
             return monthEntry;
           }
 
@@ -2198,49 +2302,62 @@ function getLatestSelectionFromSidebarData() {
     return null;
   }
 
-  return {
-    year: latestYearEntry.year,
-    month: latestMonthEntry.month,
-  };
+  return createMonthSelection(latestYearEntry.year, latestMonthEntry.month);
 }
 
-function hasSidebarMonthSelection(selection) {
-  if (
-    !selection ||
-    !Number.isInteger(selection.year) ||
-    !Number.isInteger(selection.month)
-  ) {
+// Sidebar restoration now supports both "year" and "month" selections.
+function hasSidebarSelection(selection) {
+  const normalizedSelection = normalizeSelection(selection);
+
+  if (!normalizedSelection) {
     return false;
   }
 
-  return sidebarData.some(
-    (yearEntry) =>
-      yearEntry.year === selection.year &&
-      yearEntry.months.some((monthEntry) => monthEntry.month === selection.month)
+  const matchingYearEntry = sidebarData.find(
+    (yearEntry) => yearEntry.year === normalizedSelection.year
+  );
+
+  if (!matchingYearEntry) {
+    return false;
+  }
+
+  if (normalizedSelection.mode === 'year') {
+    return true;
+  }
+
+  return matchingYearEntry.months.some(
+    (monthEntry) => monthEntry.month === normalizedSelection.month
   );
 }
 
-async function selectSidebarMonthIfAvailable(selection) {
-  if (!hasSidebarMonthSelection(selection)) {
+async function selectSidebarSelectionIfAvailable(selection) {
+  const normalizedSelection = normalizeSelection(selection);
+
+  if (!hasSidebarSelection(normalizedSelection)) {
     return false;
   }
 
-  await selectMonth(selection.year, selection.month);
+  if (normalizedSelection.mode === 'year') {
+    await selectYear(normalizedSelection.year);
+  } else {
+    await selectMonth(normalizedSelection.year, normalizedSelection.month);
+  }
+
   return true;
 }
 
-// Data-changing operations often need to restore the same month, fall back to
-// a caller-provided month, or finally show the latest available month.
+// Data-changing operations often need to restore the same selection, fall back
+// to a caller-provided selection, or finally show the latest available month.
 async function restoreMonthViewAfterDataChange({
   preferredSelection = null,
   fallbackSelection = null,
   clearWhenEmpty = true,
 } = {}) {
-  if (await selectSidebarMonthIfAvailable(preferredSelection)) {
+  if (await selectSidebarSelectionIfAvailable(preferredSelection)) {
     return true;
   }
 
-  if (await selectSidebarMonthIfAvailable(fallbackSelection)) {
+  if (await selectSidebarSelectionIfAvailable(fallbackSelection)) {
     return true;
   }
 
@@ -2651,30 +2768,6 @@ function renderPhotoLabelEditorSelectedList() {
     },
     placeholder: 'ラベルはまだ設定されていません',
   });
-}
-
-function setPhotoLabelNewFormOpenLegacy(isOpen) {
-  isPhotoLabelNewFormOpen = Boolean(isOpen);
-
-  if (photoLabelNewForm) {
-    photoLabelNewForm.hidden = !isPhotoLabelNewFormOpen;
-  }
-
-  if (photoLabelNewToggleButton) {
-    photoLabelNewToggleButton.textContent = isPhotoLabelNewFormOpen
-      ? '新規追加を閉じる'
-      : '新規追加';
-  }
-}
-
-function resetPhotoLabelNewFormLegacy() {
-  if (photoLabelNewNameInput) {
-    photoLabelNewNameInput.value = '';
-  }
-
-  if (photoLabelNewColorInput) {
-    photoLabelNewColorInput.value = '#6D5EF6';
-  }
 }
 
 function normalizePhotoLabelColorHex(colorHex) {
@@ -3447,10 +3540,7 @@ function renderTrackedFolderList() {
 // sidebar state so destructive actions stay predictable during testing.
 function syncSettingsMaintenanceUi() {
   if (deleteCurrentMonthRegistrationsButton) {
-    const hasSelection =
-      Number.isInteger(currentSelection?.year) &&
-      Number.isInteger(currentSelection?.month) &&
-      sidebarData.length > 0;
+    const hasSelection = isMonthSelection(currentSelection) && sidebarData.length > 0;
 
     deleteCurrentMonthRegistrationsButton.disabled = isImporting || !hasSelection;
     deleteCurrentMonthRegistrationsButton.setAttribute(
@@ -4145,7 +4235,10 @@ function clearMainContent() {
   setAnimatedMonthCountText('0枚', { animate: false });
   monthGalleryList.innerHTML = '';
   monthGalleryEmpty.style.display = 'block';
-  monthGalleryEmpty.textContent = getDefaultMonthGalleryEmptyMessage();
+  monthGalleryEmpty.textContent =
+    sidebarData.length > 0
+      ? getDefaultSelectionEmptyMessage()
+      : getDefaultMonthGalleryEmptyMessage();
   resetMonthGalleryRenderState();
   clearSelectionState();
   syncFavoriteFilterUi();
@@ -4335,6 +4428,7 @@ function getMonthGalleryRenderKey() {
   }
 
   return [
+    currentSelection.mode || 'month',
     currentSelection.year,
     currentSelection.month,
     isFavoriteFilterOnly ? 'fav' : 'all',
@@ -4550,14 +4644,12 @@ function renderMonthGallery({ resetProgressive = false } = {}) {
   if (!currentSelection) {
     resetMonthGalleryRenderState();
     clearMainContent();
-    monthGalleryEmpty.textContent = '表示する月を選択してください';
+    monthGalleryEmpty.textContent = getDefaultSelectionEmptyMessage();
     return;
   }
 
-  setAnimatedMonthLabelText(
-    `${currentSelection.year}年${currentSelection.month}月`
-  );
-  // This is the canonical render path for month view state:
+  setAnimatedMonthLabelText(getSelectionLabelText());
+  // This is the canonical render path for the active selection view:
   // header count, empty state, and filter button text are all synchronized here.
   syncFavoriteFilterUi();
 
@@ -4567,7 +4659,7 @@ function renderMonthGallery({ resetProgressive = false } = {}) {
     monthGalleryEmpty.textContent =
       allCurrentMonthPhotos.length > 0 && isAnyPhotoFilterActive()
         ? buildFilteredEmptyMessage()
-        : 'この月の写真はまだありません';
+        : getDefaultSelectionEmptyMessage();
 
     return;
   }
@@ -4974,13 +5066,20 @@ function renderSidebar() {
     yearButton.appendChild(yearLeft);
     yearButton.appendChild(yearCount);
 
-    yearButton.addEventListener('click', () => {
+    toggle.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
       if (expandedYears.has(yearEntry.year)) {
         expandedYears.delete(yearEntry.year);
       } else {
         expandedYears.add(yearEntry.year);
       }
       renderSidebar();
+    });
+
+    yearButton.addEventListener('click', async () => {
+      await selectYear(yearEntry.year);
     });
 
     const monthList = document.createElement('div');
@@ -5033,14 +5132,16 @@ async function refreshSidebar() {
   syncSelectionLinkedUi({ forceSidebarRender: true });
 }
 
-async function selectMonth(year, month) {
+// Month/year switching shares the same fetch -> selection -> render pipeline.
+// Only the fetcher and resulting normalized selection differ.
+async function selectPhotoScope(fetchPhotos, nextSelection) {
   const requestId = ++monthSelectionRequestId;
   clearMonthHeaderAnimationState();
   const monthSwitchOverlay = createMonthSwitchOverlay({
     includeHeader: false,
     viewportFixed: true,
   });
-  const photosPromise = window.electronAPI.getPhotosByMonth(year, month);
+  const photosPromise = fetchPhotos();
   let photos;
 
   try {
@@ -5057,7 +5158,7 @@ async function selectMonth(year, month) {
     return;
   }
 
-  setCurrentSelectionValue({ year, month });
+  setCurrentSelectionValue(nextSelection);
 
   allCurrentMonthPhotos = photos;
   applyCurrentPhotoFilter();
@@ -5072,6 +5173,38 @@ async function selectMonth(year, month) {
   });
 }
 
+// Year selection reuses the same gallery/filter pipeline as month selection,
+// but fetches a broader photo set and updates the header label accordingly.
+async function selectYear(year) {
+  await selectPhotoScope(
+    () => window.electronAPI.getPhotosByYear(year),
+    createYearSelection(year)
+  );
+}
+
+async function selectMonth(year, month) {
+  await selectPhotoScope(
+    () => window.electronAPI.getPhotosByMonth(year, month),
+    createMonthSelection(year, month)
+  );
+}
+
+async function selectCurrentSelection(selection = currentSelection) {
+  const normalizedSelection = normalizeSelection(selection);
+
+  if (!normalizedSelection) {
+    return false;
+  }
+
+  if (normalizedSelection.mode === 'year') {
+    await selectYear(normalizedSelection.year);
+  } else {
+    await selectMonth(normalizedSelection.year, normalizedSelection.month);
+  }
+
+  return true;
+}
+
 async function handleImportResult(result, modeLabel) {
   importStatus.textContent = buildImportStatusMessage(result, modeLabel);
 
@@ -5083,13 +5216,21 @@ async function handleImportResult(result, modeLabel) {
     showToast(`${modeLabel}: ${result.failedCount}件失敗しました`);
   }
 
-  await restoreSidebarAndMonthSelection({
-    preferredSelection: result.selectedMonth || null,
-  });
+  await restorePhotoDataSelectionFromResult(result);
 }
 
 async function queueWorldMetadataSyncForResult(result) {
   await startBackgroundWorldMetadataSync(result?.worldMetadataTargets);
+}
+
+async function restorePhotoDataSelectionFromResult(
+  result,
+  fallbackSelection = null
+) {
+  await restoreSidebarAndMonthSelection({
+    preferredSelection: result?.selectedMonth || null,
+    fallbackSelection,
+  });
 }
 
 async function restoreSidebarAndMonthSelection({
@@ -5180,60 +5321,44 @@ async function handleTrackedFoldersRefreshResult(result, fallbackSelection) {
     return;
   }
 
-  await restoreSidebarAndMonthSelection({
-    preferredSelection: result.selectedMonth || null,
-    fallbackSelection,
-  });
+  await restorePhotoDataSelectionFromResult(result, fallbackSelection);
 }
 
 async function runRegenerateThumbnailsFlow(targetYear, targetMonth) {
-  beginForegroundProgressOperation({
+  await runForegroundAsyncAction({
     statusMessage: 'サムネイルを再生成しています...',
     progressMessage: 'サムネイルを再生成しています...',
+    run: () =>
+      window.electronAPI.regenerateThumbnails({
+        year: targetYear,
+        month: targetMonth,
+      }),
+    handleResult: async (result) => {
+      importStatus.textContent = buildScopedRegenerateThumbnailsMessage(result);
+
+      if (result?.failedCount > 0) {
+        showToast(`サムネイル再生成 ${result.failedCount}件失敗しました`);
+      } else if (result?.ok) {
+        showToast('サムネイル再生成が完了しました');
+      }
+
+      await selectCurrentSelection();
+    },
+    buildErrorStatus: (message) => `サムネイル再生成に失敗しました: ${message}`,
   });
-
-  try {
-    const result = await window.electronAPI.regenerateThumbnails({
-      year: targetYear,
-      month: targetMonth,
-    });
-
-    importStatus.textContent = buildScopedRegenerateThumbnailsMessage(result);
-
-    if (result?.failedCount > 0) {
-      showToast(`サムネイル再生成 ${result.failedCount}件失敗しました`);
-    } else if (result?.ok) {
-      showToast('サムネイル再生成が完了しました');
-    }
-
-    if (currentSelection) {
-      await selectMonth(currentSelection.year, currentSelection.month);
-    }
-  } catch (error) {
-    importStatus.textContent = `サムネイル再生成に失敗しました: ${error.message}`;
-  } finally {
-    setImportUiBusy(false);
-  }
 }
 
 async function runTrackedFoldersRefreshFlow() {
   const fallbackSelection = currentSelection ? { ...currentSelection } : null;
-  let result = null;
-
-  beginForegroundProgressOperation({
+  const result = await runForegroundAsyncAction({
     statusMessage: '追跡フォルダを更新中...',
     progressMessage: '追跡フォルダを更新中...',
+    run: () => window.electronAPI.refreshTrackedFolders(),
+    handleResult: (currentResult) =>
+      handleTrackedFoldersRefreshResult(currentResult, fallbackSelection),
+    buildErrorStatus: (message) => `更新に失敗しました: ${message}`,
+    releaseBusyBeforeHandleResult: true,
   });
-
-  try {
-    result = await window.electronAPI.refreshTrackedFolders();
-    setImportUiBusy(false);
-    await handleTrackedFoldersRefreshResult(result, fallbackSelection);
-  } catch (error) {
-    importStatus.textContent = `更新に失敗しました: ${error.message}`;
-  } finally {
-    setImportUiBusy(false);
-  }
 
   await queueWorldMetadataSyncForResult(result);
 }
@@ -5329,28 +5454,69 @@ function beginForegroundProgressOperation({
   }
 }
 
-
-async function runImportFlow(modeLabel, startMessage, importRunner) {
+async function runForegroundAsyncAction({
+  guardMessage,
+  statusMessage,
+  progressMessage = '',
+  showProgress = true,
+  run,
+  handleResult = null,
+  buildErrorStatus,
+  releaseBusyBeforeHandleResult = false,
+}) {
   if (isImporting) {
-    showToast('取り込み中です。処理が終わってから次の取り込みを開始してください');
-    return;
+    if (guardMessage) {
+      showToast(guardMessage);
+    }
+    return null;
   }
 
   let result = null;
+  let didReleaseBusyEarly = false;
 
   beginForegroundProgressOperation({
-    statusMessage: startMessage,
-    progressMessage: startMessage,
+    statusMessage,
+    progressMessage,
+    showProgress,
   });
 
   try {
-    result = await importRunner();
-    await handleImportResult(result, modeLabel);
+    result = await run();
+
+    if (releaseBusyBeforeHandleResult) {
+      setImportUiBusy(false);
+      didReleaseBusyEarly = true;
+    }
+
+    if (typeof handleResult === 'function') {
+      await handleResult(result);
+    }
+
+    return result;
   } catch (error) {
-    importStatus.textContent = `取り込みに失敗しました: ${error.message}`;
+    const message = error instanceof Error ? error.message : String(error);
+    importStatus.textContent =
+      typeof buildErrorStatus === 'function'
+        ? buildErrorStatus(message)
+        : message;
+    return null;
   } finally {
-    setImportUiBusy(false);
+    if (!didReleaseBusyEarly) {
+      setImportUiBusy(false);
+    }
   }
+}
+
+
+async function runImportFlow(modeLabel, startMessage, importRunner) {
+  const result = await runForegroundAsyncAction({
+    guardMessage: '取り込み中です。処理が終わってから次の取り込みを開始してください',
+    statusMessage: startMessage,
+    progressMessage: startMessage,
+    run: importRunner,
+    handleResult: (currentResult) => handleImportResult(currentResult, modeLabel),
+    buildErrorStatus: (message) => `取り込みに失敗しました: ${message}`,
+  });
 
   await queueWorldMetadataSyncForResult(result);
 }
@@ -5549,11 +5715,8 @@ async function refreshViewAfterDelete(
   }
 
   if (targetSelection) {
-    if (hasSidebarMonthSelection(targetSelection)) {
-      const isCurrentTarget =
-        currentSelection &&
-        currentSelection.year === targetSelection.year &&
-        currentSelection.month === targetSelection.month;
+    if (hasSidebarSelection(targetSelection)) {
+      const isCurrentTarget = isSameSelection(currentSelection, targetSelection);
 
       if (preferLocalRender && isCurrentTarget) {
         const removedLocally = removeRenderedPhotoCards(removedPhotoIds);
@@ -5683,8 +5846,7 @@ async function deleteCurrentMonthRegistrationsFromSettings() {
   await runSettingsMaintenanceAction({
     isBlocked: () =>
       isImporting ||
-      !Number.isInteger(currentSelection?.year) ||
-      !Number.isInteger(currentSelection?.month),
+      !isMonthSelection(currentSelection),
     confirmOptions: {
       title: '表示中の月を削除',
       message: `${targetSelection.year}年${targetSelection.month}月の登録を削除します。元画像ファイル自体は削除しません。続行しますか？`,

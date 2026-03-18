@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('remove-tracked-folder', folderPath),
   getPhotosByMonth: (year, month) =>
     ipcRenderer.invoke('get-photos-by-month', year, month),
+  getPhotosByYear: (year) => ipcRenderer.invoke('get-photos-by-year', year),
   getWorldMetadata: (worldId) => ipcRenderer.invoke('get-world-metadata', worldId),
   getLabelCatalog: () => ipcRenderer.invoke('get-label-catalog'),
   getPhotoLabels: (photoId) => ipcRenderer.invoke('get-photo-labels', photoId),

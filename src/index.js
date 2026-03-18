@@ -1027,6 +1027,55 @@ function ensurePhotoResolutionMetadata(row) {
   };
 }
 
+async function derivePhotoOrientationTierFromStoredAssets(row) {
+  const thumbnailPath =
+    typeof row?.thumbnail_path === 'string' ? row.thumbnail_path.trim() : '';
+
+  if (thumbnailPath && (await pathExists(thumbnailPath))) {
+    const thumbnailMetadata = extractImageMetadataFromPath(thumbnailPath);
+
+    if (thumbnailMetadata.orientationTier) {
+      return thumbnailMetadata.orientationTier;
+    }
+  }
+
+  const filePath = typeof row?.file_path === 'string' ? row.file_path.trim() : '';
+
+  if (filePath && (await pathExists(filePath))) {
+    const imageMetadata = extractImageMetadataFromPath(filePath);
+
+    if (imageMetadata.orientationTier) {
+      return imageMetadata.orientationTier;
+    }
+  }
+
+  return null;
+}
+
+async function ensurePhotoOrientationMetadata(row) {
+  if (!row || !Number.isInteger(row.id)) {
+    return row;
+  }
+
+  const actualOrientationTier = await derivePhotoOrientationTierFromStoredAssets(row);
+
+  if (!actualOrientationTier || row.orientation_tier === actualOrientationTier) {
+    return row;
+  }
+
+  photoDb.updateImageMetadata(row.id, {
+    imageWidth: row.image_width,
+    imageHeight: row.image_height,
+    resolutionTier: row.resolution_tier,
+    orientationTier: actualOrientationTier,
+  });
+
+  return {
+    ...row,
+    orientation_tier: actualOrientationTier,
+  };
+}
+
 async function pathExists(targetPath) {
   if (typeof targetPath !== 'string' || targetPath.trim().length === 0) {
     return false;
@@ -1425,6 +1474,15 @@ function attachPhotoLabelsToRows(rows) {
   }));
 }
 
+async function prepareRowsForRenderer(rows) {
+  const normalizedRows = Array.isArray(rows) ? rows : [];
+  const rowsWithAccurateOrientation = await Promise.all(
+    normalizedRows.map((row) => ensurePhotoOrientationMetadata(row))
+  );
+
+  return attachPhotoLabelsToRows(rowsWithAccurateOrientation);
+}
+
 function toRendererWorldMetadata(row) {
   if (!row) {
     return null;
@@ -1507,12 +1565,22 @@ async function buildPhotoRecord(filePath) {
     extractTakenAtFromTags(tags || {}) ||
     (await fs.stat(filePath)).mtime;
   const worldInfo = extractWorldInfo(tags, fileBuffer, rawWorldInfo);
-  const resolvedImageDetails = imageDetailsFromFileName || {
-    imageWidth: imageDetails.imageWidth,
-    imageHeight: imageDetails.imageHeight,
-    resolutionTier: imageDetails.resolutionTier,
-    orientationTier: imageDetails.orientationTier,
-  };
+  const resolvedImageDetails = imageDetailsFromFileName
+    ? {
+        imageWidth: imageDetailsFromFileName.imageWidth,
+        imageHeight: imageDetailsFromFileName.imageHeight,
+        resolutionTier: imageDetailsFromFileName.resolutionTier,
+        // Keep width / height filename-first for speed, but prefer the decoded
+        // image orientation so portrait captures filter correctly.
+        orientationTier:
+          imageDetails.orientationTier || imageDetailsFromFileName.orientationTier,
+      }
+    : {
+        imageWidth: imageDetails.imageWidth,
+        imageHeight: imageDetails.imageHeight,
+        resolutionTier: imageDetails.resolutionTier,
+        orientationTier: imageDetails.orientationTier,
+      };
   const nowIso = new Date().toISOString();
   const thumbnailPath = await thumbnailPathPromise;
 
@@ -1686,6 +1754,10 @@ function createWorldMetadataSyncTarget(target) {
   };
 }
 
+// NOTE:
+// The next two *LegacyCorrupt helpers exist only because this file previously
+// went through an encoding-corruption incident. Active code paths delegate to
+// the clean implementations further below.
 function createMissingAccessiblePhotoFileErrorLegacyCorrupt() {
   return createMissingAccessiblePhotoFileError();
 
@@ -2074,24 +2146,17 @@ async function ensureAccessiblePhotoFile(payload) {
   }
 
   throw createMissingAccessiblePhotoFileError();
-
-  throw new Error(
-    '元画像が見つかりません。更新ボタンまたは再取り込みで保存場所を同期してください'
-  );
 }
 
 // Disk actions all share the same recovery flow: recover the moved file if
 // needed, verify the final path exists, then run the specific shell action.
+// This keeps "open image", "open folder", and future shell actions aligned.
 async function withAccessiblePhotoFile(payload, action) {
   const resolvedPhoto = await ensureAccessiblePhotoFile(payload);
   const filePath = resolvedPhoto.filePath;
 
   if (typeof filePath !== 'string' || filePath.trim().length === 0) {
     throw createMissingAccessiblePhotoFileError();
-  }
-
-  if (typeof filePath !== 'string' || filePath.trim().length === 0) {
-    throw new Error('ファイルパスが不正です');
   }
 
   await fs.access(filePath);
@@ -2515,6 +2580,36 @@ function getQueuedWorldMetadataSyncCount() {
   return pendingWorldMetadataSyncTargets.size + (isWorldMetadataSyncRunning ? 1 : 0);
 }
 
+function dequeueNextWorldMetadataSyncTarget() {
+  if (pendingWorldMetadataSyncTargets.size === 0) {
+    return null;
+  }
+
+  const [worldId, target] = pendingWorldMetadataSyncTargets.entries().next().value;
+  pendingWorldMetadataSyncTargets.delete(worldId);
+  activeWorldMetadataSyncWorldId = worldId;
+
+  return { worldId, target };
+}
+
+async function processQueuedWorldMetadataSyncTarget(target) {
+  try {
+    const result = await syncOfficialWorldMetadataForTarget(target);
+
+    if (result.updatedRows.length > 0) {
+      broadcastWorldMetadataUpdated(result.updatedRows);
+    }
+  } catch (error) {
+    console.warn(
+      '[world-metadata-sync] Failed to sync official world metadata',
+      target,
+      error
+    );
+  }
+}
+
+// Active world metadata processing flows through this clean queue runner.
+// The legacy runner below only remains as an encoding-safe quarantine block.
 async function runQueuedWorldMetadataSyncInternal() {
   if (isWorldMetadataSyncRunning) {
     return;
@@ -2525,28 +2620,14 @@ async function runQueuedWorldMetadataSyncInternal() {
 
   try {
     while (pendingWorldMetadataSyncTargets.size > 0) {
-      const [worldId, target] =
-        pendingWorldMetadataSyncTargets.entries().next().value;
+      const nextTarget = dequeueNextWorldMetadataSyncTarget();
 
-      pendingWorldMetadataSyncTargets.delete(worldId);
-      activeWorldMetadataSyncWorldId = worldId;
+      if (!nextTarget) {
+        break;
+      }
+
       broadcastQueuedWorldMetadataSyncProgress('process', processedCount);
-
-      let result = { updatedRows: [] };
-
-      try {
-        result = await syncOfficialWorldMetadataForTarget(target);
-      } catch (error) {
-        console.warn(
-          '[world-metadata-sync] Failed to sync official world metadata',
-          target,
-          error
-        );
-      }
-
-      if (result.updatedRows.length > 0) {
-        broadcastWorldMetadataUpdated(result.updatedRows);
-      }
+      await processQueuedWorldMetadataSyncTarget(nextTarget.target);
 
       processedCount += 1;
       broadcastQueuedWorldMetadataSyncProgress(
@@ -2566,6 +2647,8 @@ async function runQueuedWorldMetadataSyncInternal() {
 async function runQueuedWorldMetadataSyncLegacy() {
   return runQueuedWorldMetadataSyncInternal();
 
+  // Intentionally unreachable: preserved only so the mojibake block can be
+  // compared against the clean implementation during a later UTF-8 cleanup.
   if (isWorldMetadataSyncRunning) {
     return;
   }
@@ -2975,10 +3058,12 @@ async function rereadWorldInfoFromPhotoId(photoId, options = {}) {
 }
 
 // Legacy wrappers retained only as encoding-safe quarantine blocks.
+// Active IPC handlers use the clean wrappers defined after these functions.
 async function openLocalFileOnDiskLegacy(filePath) {
   // Legacy wrapper kept for compatibility with older call sites. The shared
   // payload-based helper is now the canonical path recovery flow.
   return openRecoveredLocalFileOnDisk(filePath);
+
   /*
 
   const resolvedPhoto = await ensureAccessiblePhotoFile(filePath);
@@ -3004,6 +3089,7 @@ async function openContainingFolderOnDiskLegacy(filePath) {
   // Legacy wrapper kept for compatibility with older call sites. The shared
   // payload-based helper is now the canonical path recovery flow.
   return openRecoveredContainingFolderOnDisk(filePath);
+
   /*
 
   const resolvedPhoto = await ensureAccessiblePhotoFile(filePath);
@@ -3249,7 +3335,12 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle('get-photos-by-month', async (_event, year, month) => {
-    const rows = attachPhotoLabelsToRows(photoDb.getPhotosByMonth(year, month));
+    const rows = await prepareRowsForRenderer(photoDb.getPhotosByMonth(year, month));
+    return rows.map(toRendererPhoto);
+  });
+
+  ipcMain.handle('get-photos-by-year', async (_event, year) => {
+    const rows = await prepareRowsForRenderer(photoDb.getPhotosByYear(year));
     return rows.map(toRendererPhoto);
   });
 
