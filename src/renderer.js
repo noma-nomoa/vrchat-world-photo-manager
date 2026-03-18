@@ -20,6 +20,7 @@ const processingProgressTrack = processingProgress?.querySelector(
   '.processing-progress-track'
 );
 
+// Main layout surfaces for sidebar, month header, and gallery content.
 const sidebarTree = document.getElementById('sidebar-tree');
 const currentMonthLabel = document.getElementById('current-month-label');
 const currentMonthCount = document.getElementById('current-month-count');
@@ -30,6 +31,7 @@ const dropOverlay = document.getElementById('drop-overlay');
 const topStickyShell = document.querySelector('.top-sticky-shell');
 const sidebar = document.querySelector('.sidebar');
 
+// Header filter controls.
 const favoriteFilterButton = document.getElementById('favorite-filter-btn');
 const orientationFilterButton = document.getElementById(
   'orientation-filter-btn'
@@ -63,6 +65,7 @@ const worldNameFilterClearButton = document.getElementById(
   'world-name-filter-clear-btn'
 );
 
+// Photo detail modal and its primary content areas.
 const imageModal = document.getElementById('image-modal');
 const imageModalBackdrop = document.getElementById('image-modal-backdrop');
 const imageModalClose = document.getElementById('image-modal-close');
@@ -99,6 +102,7 @@ const modalFavoriteIcon = document.getElementById('modal-favorite-icon');
 const worldNameEditorActions = document.querySelector('.world-name-editor-actions');
 const modalDangerActions = document.querySelector('.modal-danger-actions');
 
+// World name / URL edit modal.
 const openWorldNameEditButton = document.getElementById(
   'open-world-name-edit-btn'
 );
@@ -116,6 +120,7 @@ const rereadWorldNameButton = document.getElementById(
 );
 const worldNameSaveStatus = document.getElementById('world-name-save-status');
 
+// Settings modal, tracked folders, and maintenance actions.
 const settingsModal = document.getElementById('settings-modal');
 const settingsModalBackdrop = document.getElementById(
   'settings-modal-backdrop'
@@ -147,6 +152,7 @@ const fontOptionButtons = Array.from(
   document.querySelectorAll('[data-font-option]')
 );
 
+// Shared confirm modal and toast feedback.
 const confirmModal = document.getElementById('confirm-modal');
 const confirmModalBackdrop = document.getElementById(
   'confirm-modal-backdrop'
@@ -169,10 +175,12 @@ const themeToggleIcon = document.getElementById('theme-toggle-icon');
 const THEME_STORAGE_KEY = 'vrchat-world-photo-manager-theme';
 const FONT_STORAGE_KEY = 'vrchat-world-photo-manager-font';
 
+// Batch selection controls for the current month view.
 const selectionModeButton = document.getElementById('selection-mode-btn');
 const bulkFavoriteButton = document.getElementById('bulk-favorite-btn');
 const bulkDeleteButton = document.getElementById('bulk-delete-btn');
 
+// Sidebar/month/gallery state for the active selection.
 let sidebarData = [];
 let currentSelection = null;
 let currentPhotos = [];
@@ -228,12 +236,14 @@ let isTrackedFolderAccordionOpen = false;
 let isFavoriteFilterOnly = false;
 let activeOrientationFilter = 'all';
 let isOrientationFilterMenuOpen = false;
+let orientationFilterMenuCloseTimer = null;
 let activePhotoLabelFilters = [];
 let photoLabelFilterMode = 'or';
 let isPhotoLabelFilterMenuOpen = false;
 let photoLabelFilterMenuCloseTimer = null;
 let activeWorldNameFilter = '';
 let isWorldNameFilterMenuOpen = false;
+let worldNameFilterMenuCloseTimer = null;
 let worldNameFilterInputTimer = null;
 let isSelectionMode = false;
 const selectedPhotoIds = new Set();
@@ -241,6 +251,7 @@ let isImporting = false;
 let isWorldMetadataSyncing = false;
 let worldMetadataSyncResetTimer = null;
 
+// Expanded tree state and transient UI timers/overlays.
 const expandedYears = new Set();
 
 let toastTimer = null;
@@ -553,23 +564,7 @@ function applyWorldMetadataUpdated(payload = {}) {
   if (updatedPhotos.length === 0) {
     return;
   }
-
-  let nextModalPhoto = null;
-
-  for (const photo of updatedPhotos) {
-    updatePhotoInCurrentCollections(photo);
-    replaceRenderedPhotoCard(photo);
-
-    if (currentModalPhoto?.id === photo.id) {
-      nextModalPhoto = photo;
-    }
-  }
-
-  syncFavoriteFilterUi();
-
-  if (nextModalPhoto) {
-    showImageModalPhoto(nextModalPhoto);
-  }
+  syncBatchPhotoUpdates(updatedPhotos);
 }
 
 function buildImportStatusMessage(result, modeLabel) {
@@ -889,9 +884,20 @@ function getOrientationFilterMeta(filterValue) {
 function setOrientationFilterMenuOpen(isOpen) {
   const nextOpen = Boolean(isOpen) && !isImporting && Boolean(currentSelection);
   isOrientationFilterMenuOpen = nextOpen;
-
-  orientationFilterDropdown?.classList.toggle('is-open', nextOpen);
-  orientationFilterButton?.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+  setAnimatedDropdownOpenState({
+    dropdown: orientationFilterDropdown,
+    button: orientationFilterButton,
+    menu: orientationFilterMenu,
+    isOpen: nextOpen,
+    closeTimerRef: {
+      get current() {
+        return orientationFilterMenuCloseTimer;
+      },
+      set current(value) {
+        orientationFilterMenuCloseTimer = value;
+      },
+    },
+  });
 }
 
 function closeOrientationFilterMenu() {
@@ -1142,9 +1148,20 @@ function clearWorldNameFilterInputTimer() {
 function setWorldNameFilterMenuOpen(isOpen) {
   const nextOpen = Boolean(isOpen) && !isImporting && Boolean(currentSelection);
   isWorldNameFilterMenuOpen = nextOpen;
-
-  worldNameFilterDropdown?.classList.toggle('is-open', nextOpen);
-  worldNameFilterButton?.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+  setAnimatedDropdownOpenState({
+    dropdown: worldNameFilterDropdown,
+    button: worldNameFilterButton,
+    menu: worldNameFilterMenu,
+    isOpen: nextOpen,
+    closeTimerRef: {
+      get current() {
+        return worldNameFilterMenuCloseTimer;
+      },
+      set current(value) {
+        worldNameFilterMenuCloseTimer = value;
+      },
+    },
+  });
 
   if (!nextOpen) {
     clearWorldNameFilterInputTimer();
@@ -1159,6 +1176,55 @@ function setWorldNameFilterMenuOpen(isOpen) {
 
 function closeWorldNameFilterMenu() {
   setWorldNameFilterMenuOpen(false);
+}
+
+function getManagedDropdownClosers() {
+  return [
+    {
+      isOpen: () => isOrientationFilterMenuOpen,
+      dropdown: orientationFilterDropdown,
+      close: closeOrientationFilterMenu,
+    },
+    {
+      isOpen: () => isPhotoLabelFilterMenuOpen,
+      dropdown: photoLabelFilterDropdown,
+      close: closePhotoLabelFilterMenu,
+    },
+    {
+      isOpen: () => isWorldNameFilterMenuOpen,
+      dropdown: worldNameFilterDropdown,
+      close: closeWorldNameFilterMenu,
+    },
+    {
+      isOpen: () => isRegenerateThumbnailMonthMenuOpen,
+      dropdown: regenerateThumbnailMonthDropdown,
+      close: closeRegenerateThumbnailMonthMenu,
+    },
+    {
+      isOpen: () => isPhotoLabelCatalogMenuOpen,
+      dropdown: photoLabelCatalogDropdown,
+      close: () => setPhotoLabelCatalogMenuOpen(false),
+    },
+  ];
+}
+
+function closeManagedDropdownsFromOutsideClick(target) {
+  for (const entry of getManagedDropdownClosers()) {
+    if (entry.isOpen() && entry.dropdown && !entry.dropdown.contains(target)) {
+      entry.close();
+    }
+  }
+}
+
+function closeManagedDropdownFromEscape() {
+  for (const entry of getManagedDropdownClosers()) {
+    if (entry.isOpen()) {
+      entry.close();
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function isAnyPhotoFilterActive() {
@@ -1245,6 +1311,37 @@ function photoMatchesCurrentFilters(photo) {
   return true;
 }
 
+function getDefaultMonthGalleryEmptyMessage() {
+  return 'まだ写真がありません。画像 / フォルダをドラッグ&ドロップするか、設定から取り込めます';
+}
+
+// Keep all count / empty-state filter summaries driven by the same label list.
+function getActivePhotoFilterSummaryParts() {
+  const filterLabels = [];
+
+  if (isFavoriteFilterOnly) {
+    filterLabels.push('お気に入り');
+  }
+
+  if (activeOrientationFilter !== 'all') {
+    filterLabels.push(getOrientationFilterMeta(activeOrientationFilter).shortLabel);
+  }
+
+  if (activePhotoLabelFilters.length > 0) {
+    filterLabels.push(
+      getSelectedPhotoLabelFilterText({
+        includePrefix: true,
+      })
+    );
+  }
+
+  if (activeWorldNameFilter) {
+    filterLabels.push(getWorldNameFilterSummaryText({ includePrefix: true }));
+  }
+
+  return filterLabels;
+}
+
 function buildCurrentMonthCountText() {
   if (!currentSelection) {
     return '0枚';
@@ -1254,56 +1351,16 @@ function buildCurrentMonthCountText() {
     return `${allCurrentMonthPhotos.length}枚`;
   }
 
-  const filterLabels = [];
-
-  if (isFavoriteFilterOnly) {
-    filterLabels.push('お気に入り');
-  }
-
-  if (activeOrientationFilter !== 'all') {
-    filterLabels.push(getOrientationFilterMeta(activeOrientationFilter).shortLabel);
-  }
-
-  if (activePhotoLabelFilters.length > 0) {
-    filterLabels.push(
-      getSelectedPhotoLabelFilterText({
-        includePrefix: true,
-      })
-    );
-  }
-
-  if (activeWorldNameFilter) {
-    filterLabels.push(getWorldNameFilterSummaryText({ includePrefix: true }));
-  }
+  const filterLabels = getActivePhotoFilterSummaryParts();
 
   return `${currentPhotos.length}枚（${filterLabels.join(' / ')}） / 全${allCurrentMonthPhotos.length}枚`;
 }
 
 function buildFilteredEmptyMessage() {
-  const filterLabels = [];
-
-  if (isFavoriteFilterOnly) {
-    filterLabels.push('お気に入り');
-  }
-
-  if (activeOrientationFilter !== 'all') {
-    filterLabels.push(getOrientationFilterMeta(activeOrientationFilter).shortLabel);
-  }
-
-  if (activePhotoLabelFilters.length > 0) {
-    filterLabels.push(
-      getSelectedPhotoLabelFilterText({
-        includePrefix: true,
-      })
-    );
-  }
-
-  if (activeWorldNameFilter) {
-    filterLabels.push(getWorldNameFilterSummaryText({ includePrefix: true }));
-  }
+  const filterLabels = getActivePhotoFilterSummaryParts();
 
   if (filterLabels.length === 0) {
-    return 'まだ写真がありません。画像 / フォルダをドラッグ&ドロップするか、設定から取り込めます';
+    return getDefaultMonthGalleryEmptyMessage();
   }
 
   return `${filterLabels.join(' / ')} に一致する写真はありません`;
@@ -1417,7 +1474,7 @@ function syncFavoriteFilterUi() {
     monthGalleryEmpty.textContent =
       allCurrentMonthPhotos.length > 0 && currentPhotos.length === 0
         ? buildFilteredEmptyMessage()
-        : 'まだ写真がありません。画像 / フォルダをドラッグ&ドロップするか、設定から取り込めます';
+        : getDefaultMonthGalleryEmptyMessage();
   }
 }
 
@@ -1638,6 +1695,96 @@ function updatePhotoInCurrentCollections(updatedPhoto) {
     photo.id === updatedPhoto.id ? updatedPhoto : photo
   );
   applyCurrentPhotoFilter();
+}
+
+// Single-photo updates from modal actions should keep collections, cards, and
+// the open modal in sync without each caller repeating the same flow.
+function syncSinglePhotoUpdate(updatedPhoto, { refreshModal = true } = {}) {
+  if (!updatedPhoto) {
+    return null;
+  }
+
+  updatePhotoInCurrentCollections(updatedPhoto);
+
+  const isVisibleAfterFilters = currentPhotos.some(
+    (photo) => photo.id === updatedPhoto.id
+  );
+  let rerenderedMonthGallery = false;
+
+  if (!isVisibleAfterFilters && isAnyPhotoFilterActive()) {
+    if (!removeRenderedPhotoCards([updatedPhoto.id])) {
+      renderMonthGallery({ resetProgressive: true });
+      rerenderedMonthGallery = true;
+    }
+  } else if (!replaceRenderedPhotoCard(updatedPhoto) && currentSelection) {
+    renderMonthGallery({ resetProgressive: true });
+    rerenderedMonthGallery = true;
+  }
+
+  if (!rerenderedMonthGallery) {
+    syncFavoriteFilterUi();
+  }
+
+  const resolvedPhoto = getLatestKnownPhotoById(updatedPhoto.id) || updatedPhoto;
+
+  if (refreshModal && currentModalPhoto?.id === updatedPhoto.id) {
+    showImageModalPhoto(resolvedPhoto);
+  }
+
+  return resolvedPhoto;
+}
+
+function syncBatchPhotoUpdates(updatedPhotos, { refreshModal = true } = {}) {
+  const normalizedUpdates = (Array.isArray(updatedPhotos) ? updatedPhotos : []).filter(
+    (photo) => Number.isInteger(photo?.id)
+  );
+
+  if (normalizedUpdates.length === 0) {
+    return null;
+  }
+
+  const updatedPhotoMap = new Map(
+    normalizedUpdates.map((photo) => [photo.id, photo])
+  );
+
+  allCurrentMonthPhotos = allCurrentMonthPhotos.map(
+    (photo) => updatedPhotoMap.get(photo.id) || photo
+  );
+  applyCurrentPhotoFilter();
+
+  let rerenderedMonthGallery = false;
+
+  for (const photo of normalizedUpdates) {
+    const isVisibleAfterFilters = currentPhotos.some(
+      (currentPhoto) => currentPhoto.id === photo.id
+    );
+
+    if (!isVisibleAfterFilters && isAnyPhotoFilterActive()) {
+      rerenderedMonthGallery = true;
+      break;
+    }
+
+    if (!replaceRenderedPhotoCard(photo) && currentSelection) {
+      rerenderedMonthGallery = true;
+      break;
+    }
+  }
+
+  if (rerenderedMonthGallery && currentSelection) {
+    renderMonthGallery({ resetProgressive: true });
+  } else {
+    syncFavoriteFilterUi();
+  }
+
+  const nextModalPhoto = currentModalPhoto
+    ? getLatestKnownPhotoById(currentModalPhoto.id)
+    : null;
+
+  if (refreshModal && nextModalPhoto) {
+    showImageModalPhoto(nextModalPhoto);
+  }
+
+  return nextModalPhoto;
 }
 
 function clearThumbnailCacheInCurrentCollections() {
@@ -2452,6 +2599,12 @@ function clearSubModalAnimationTimer(modal) {
   subModalAnimationTimers.delete(modal);
 }
 
+// Keep sub-modal close wiring consistent across settings, confirm, and edit dialogs.
+function bindSubModalCloseTriggers(backdrop, closeButton, closeHandler) {
+  backdrop?.addEventListener('click', closeHandler);
+  closeButton?.addEventListener('click', closeHandler);
+}
+
 function openSubModalElement(modal) {
   if (!modal) {
     return;
@@ -2476,7 +2629,7 @@ function closeSubModalElement(modal, { onClosed } = {}) {
   modal.classList.remove('is-open');
   modal.classList.add('is-closing');
 
-  const finalizeClose = () => {
+  const finalizeSubModalClose = () => {
     modal.classList.remove('is-closing');
     modal.classList.add('hidden');
     subModalAnimationTimers.delete(modal);
@@ -2487,11 +2640,11 @@ function closeSubModalElement(modal, { onClosed } = {}) {
   };
 
   if (prefersReducedMotion) {
-    finalizeClose();
+    finalizeSubModalClose();
     return;
   }
 
-  const timer = setTimeout(finalizeClose, SUB_MODAL_ANIMATION_MS);
+  const timer = setTimeout(finalizeSubModalClose, SUB_MODAL_ANIMATION_MS);
   subModalAnimationTimers.set(modal, timer);
 }
 
@@ -2956,7 +3109,7 @@ function closeImageModal() {
   modalPhotoLabelsRequestId += 1;
   modalImageRecoveryRequestId += 1;
 
-  const finalizeClose = () => {
+  const finalizeImageModalClose = () => {
     if (imageModalSwitchTimer) {
       clearTimeout(imageModalSwitchTimer);
       imageModalSwitchTimer = null;
@@ -2982,11 +3135,14 @@ function closeImageModal() {
   };
 
   if (prefersReducedMotion) {
-    finalizeClose();
+    finalizeImageModalClose();
     return;
   }
 
-  imageModalAnimationTimer = setTimeout(finalizeClose, IMAGE_MODAL_ANIMATION_MS);
+  imageModalAnimationTimer = setTimeout(
+    finalizeImageModalClose,
+    IMAGE_MODAL_ANIMATION_MS
+  );
 }
 
 function openWorldNameEditModal() {
@@ -3549,15 +3705,11 @@ function initializePhotoLabelUi() {
     void openPhotoLabelModal();
   });
 
-  photoLabelBackdrop?.addEventListener('click', closePhotoLabelModal);
-  photoLabelClose?.addEventListener('click', closePhotoLabelModal);
-  photoLabelModal?.addEventListener('click', (event) => {
-    if (event.target.closest('.sub-modal-close') === photoLabelClose) {
-      event.preventDefault();
-      event.stopPropagation();
-      closePhotoLabelModal();
-    }
-  });
+  bindSubModalCloseTriggers(
+    photoLabelBackdrop,
+    photoLabelClose,
+    closePhotoLabelModal
+  );
 
   photoLabelCatalogButton?.addEventListener('click', (event) => {
     event.preventDefault();
@@ -3833,8 +3985,7 @@ async function openSettingsModal() {
   initializeTrackedFolderAccordion();
   await loadTrackedFoldersForSettings();
   syncTrackedFolderAccordionState();
-  renderRegenerateThumbnailMonthOptions();
-  syncSettingsMaintenanceUi();
+  syncSelectionDependentSettingsUi();
 
   if (settingsModalBody) {
     settingsModalBody.scrollTop = 0;
@@ -3854,20 +4005,28 @@ function closeSettingsModal() {
   });
 }
 
-function clearMainContent() {
+function syncSelectionDependentSettingsUi() {
+  renderRegenerateThumbnailMonthOptions();
+  syncSettingsMaintenanceUi();
+}
+
+function resetCurrentMonthState() {
   currentSelection = null;
+  currentPhotos = [];
+  allCurrentMonthPhotos = [];
+}
+
+function clearMainContent() {
+  resetCurrentMonthState();
   setAnimatedMonthLabelText('写真一覧', { animate: false });
   setAnimatedMonthCountText('0枚', { animate: false });
   monthGalleryList.innerHTML = '';
   monthGalleryEmpty.style.display = 'block';
-  monthGalleryEmpty.textContent =
-    'まだ写真がありません。画像 / フォルダをドラッグ&ドロップするか、設定から取り込めます';
+  monthGalleryEmpty.textContent = getDefaultMonthGalleryEmptyMessage();
   resetMonthGalleryRenderState();
-  currentPhotos = [];
-  allCurrentMonthPhotos = [];
   clearSelectionState();
   syncFavoriteFilterUi();
-  syncSettingsMaintenanceUi();
+  syncSelectionDependentSettingsUi();
 }
 
 function createPhotoCard(item) {
@@ -4275,6 +4434,8 @@ function renderMonthGallery({ resetProgressive = false } = {}) {
   setAnimatedMonthLabelText(
     `${currentSelection.year}年${currentSelection.month}月`
   );
+  // This is the canonical render path for month view state:
+  // header count, empty state, and filter button text are all synchronized here.
   syncFavoriteFilterUi();
 
   if (currentPhotos.length === 0) {
@@ -4758,8 +4919,7 @@ async function refreshSidebar() {
   }
 
   renderSidebar();
-  renderRegenerateThumbnailMonthOptions();
-  syncSettingsMaintenanceUi();
+  syncSelectionDependentSettingsUi();
 }
 
 async function selectMonth(year, month) {
@@ -4795,12 +4955,10 @@ async function selectMonth(year, month) {
   if (!syncSidebarSelectionState()) {
     renderSidebar();
   }
-  renderRegenerateThumbnailMonthOptions();
-  syncSettingsMaintenanceUi();
+  syncSelectionDependentSettingsUi();
   stopScrollToTopAnimation();
   scrollGalleryViewToTop({ animated: false });
   renderMonthGallery({ resetProgressive: true });
-  syncFavoriteFilterUi();
   playMonthSwitchAnimation({ includeHeader: false });
   requestAnimationFrame(() => {
     fadeOutMonthSwitchOverlay(monthSwitchOverlay);
@@ -4988,6 +5146,22 @@ function setImportUiBusy(isBusy) {
   }
 }
 
+// Foreground operations share the same initial status/progress presentation.
+function beginForegroundProgressOperation({
+  statusMessage,
+  progressMessage = '',
+  showProgress = true,
+}) {
+  setImportUiBusy(true);
+  importStatus.textContent = statusMessage;
+
+  if (showProgress) {
+    updateProcessingProgress({
+      message: progressMessage || statusMessage,
+    });
+  }
+}
+
 
 async function runImportFlow(modeLabel, startMessage, importRunner) {
   if (isImporting) {
@@ -4997,10 +5171,9 @@ async function runImportFlow(modeLabel, startMessage, importRunner) {
 
   let result = null;
 
-  setImportUiBusy(true);
-  importStatus.textContent = startMessage;
-  updateProcessingProgress({
-    message: startMessage,
+  beginForegroundProgressOperation({
+    statusMessage: startMessage,
+    progressMessage: startMessage,
   });
 
   try {
@@ -5041,14 +5214,7 @@ async function saveManualWorldEditForm({
     return;
   }
 
-  updatePhotoInCurrentCollections(result.photo);
-  replaceRenderedPhotoCard(result.photo);
-  syncFavoriteFilterUi();
-
-  const updatedPhoto =
-    currentPhotos.find((photo) => photo.id === result.photo.id) || result.photo;
-
-  showImageModalPhoto(updatedPhoto);
+  syncSinglePhotoUpdate(result.photo);
   closeWorldNameEditModal();
   showToast('World設定を保存しました');
 }
@@ -5078,19 +5244,13 @@ async function savePhotoMemo() {
       }`;
     }
 
-    if (modalPhotoMemoSaveButton) {
-      modalPhotoMemoSaveButton.disabled = false;
-    }
-    return;
+  if (modalPhotoMemoSaveButton) {
+    modalPhotoMemoSaveButton.disabled = false;
+  }
+  return;
   }
 
-  updatePhotoInCurrentCollections(result.photo);
-  replaceRenderedPhotoCard(result.photo);
-
-  const updatedPhoto =
-    currentPhotos.find((photo) => photo.id === result.photo.id) || result.photo;
-
-  showImageModalPhoto(updatedPhoto);
+  syncSinglePhotoUpdate(result.photo);
 
   if (modalPhotoMemoStatus) {
     modalPhotoMemoStatus.textContent = '保存しました';
@@ -5118,15 +5278,7 @@ async function rereadWorldName() {
     return;
   }
 
-  updatePhotoInCurrentCollections(result.photo);
-  replaceRenderedPhotoCard(result.photo);
-  syncFavoriteFilterUi();
-
-  const updatedPhoto =
-    currentPhotos.find((photo) => photo.id === result.photo.id) || result.photo;
-
-  showImageModalPhoto(updatedPhoto);
-
+  syncSinglePhotoUpdate(result.photo);
   closeWorldNameEditModal();
   showToast('World情報を再読み込みしました');
 }
@@ -5204,7 +5356,6 @@ async function toggleSelectedFavorites() {
   applyCurrentPhotoFilter();
   clearSelectionState();
   renderMonthGallery({ resetProgressive: true });
-  syncFavoriteFilterUi();
 
   showToast(
     nextValue
@@ -5250,9 +5401,9 @@ async function refreshViewAfterDelete(
 
         if (!removedLocally) {
           renderMonthGallery({ resetProgressive: true });
+        } else {
+          syncFavoriteFilterUi();
         }
-
-        syncFavoriteFilterUi();
         return;
       }
 
@@ -5268,9 +5419,7 @@ async function refreshViewAfterDelete(
     return;
   }
 
-  currentSelection = null;
-  currentPhotos = [];
-  allCurrentMonthPhotos = [];
+  resetCurrentMonthState();
   clearSelectionState();
   renderSidebar();
   clearMainContent();
@@ -5295,247 +5444,256 @@ function closePhotoSpecificModalsForDeletedPhotos(photoIds) {
   closeImageModal();
 }
 
+// Maintenance actions share the same confirm / busy / toast flow, so keep the
+// shell logic centralized and let each action only describe its own work.
+async function runSettingsMaintenanceAction({
+  isBlocked,
+  confirmOptions,
+  busyStatus,
+  progressMessage = '',
+  run,
+  onSuccess,
+  buildSuccessStatus,
+  buildSuccessToast,
+  buildErrorStatus,
+  buildErrorToast,
+}) {
+  if (typeof isBlocked === 'function' && isBlocked()) {
+    return null;
+  }
+
+  const confirmed = await openConfirmModal(confirmOptions);
+
+  if (!confirmed) {
+    return null;
+  }
+
+  beginForegroundProgressOperation({
+    statusMessage: busyStatus,
+    progressMessage,
+    showProgress: Boolean(progressMessage),
+  });
+
+  try {
+    const result = await run();
+
+    if (!result?.ok) {
+      throw new Error(result?.message || '処理に失敗しました');
+    }
+
+    if (typeof onSuccess === 'function') {
+      await onSuccess(result);
+    }
+
+    if (typeof buildSuccessStatus === 'function') {
+      importStatus.textContent = buildSuccessStatus(result);
+    }
+
+    if (typeof buildSuccessToast === 'function') {
+      const successToast = buildSuccessToast(result);
+
+      if (successToast) {
+        showToast(successToast);
+      }
+    }
+
+    return result;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : String(error || '不明なエラー');
+
+    if (typeof buildErrorStatus === 'function') {
+      importStatus.textContent = buildErrorStatus(message);
+    }
+
+    if (typeof buildErrorToast === 'function') {
+      const errorToast = buildErrorToast(message);
+
+      if (errorToast) {
+        showToast(errorToast);
+      }
+    }
+
+    return null;
+  } finally {
+    setImportUiBusy(false);
+    syncSettingsMaintenanceUi();
+  }
+}
+
 // These maintenance actions intentionally reuse the normal delete / refresh
 // flows so verification work exercises the same data paths as day-to-day use.
 async function deleteCurrentMonthRegistrationsFromSettings() {
-  if (
-    isImporting ||
-    !Number.isInteger(currentSelection?.year) ||
-    !Number.isInteger(currentSelection?.month)
-  ) {
-    return;
-  }
-
   const targetSelection = { ...currentSelection };
-  const confirmed = await openConfirmModal({
-    title: '表示中の月を削除',
-    message: `${targetSelection.year}年${targetSelection.month}月の登録を削除します。元画像ファイル自体は削除しません。続行しますか？`,
-    confirmText: '削除する',
-  });
 
-  if (!confirmed) {
-    return;
-  }
+  await runSettingsMaintenanceAction({
+    isBlocked: () =>
+      isImporting ||
+      !Number.isInteger(currentSelection?.year) ||
+      !Number.isInteger(currentSelection?.month),
+    confirmOptions: {
+      title: '表示中の月を削除',
+      message: `${targetSelection.year}年${targetSelection.month}月の登録を削除します。元画像ファイル自体は削除しません。続行しますか？`,
+      confirmText: '削除する',
+    },
+    busyStatus: `${targetSelection.year}年${targetSelection.month}月の登録を削除中...`,
+    run: () => window.electronAPI.deletePhotosByMonth(targetSelection),
+    onSuccess: async (result) => {
+      const deletedIds = Array.isArray(result.deletedPhotoIds)
+        ? result.deletedPhotoIds
+        : [];
+      const deletedCount = Number(result.deletedCount) || deletedIds.length;
 
-  setImportUiBusy(true);
-  importStatus.textContent = `${targetSelection.year}年${targetSelection.month}月の登録を削除中...`;
+      closePhotoSpecificModalsForDeletedPhotos(deletedIds);
+      removePhotosFromCurrentCollections(deletedIds);
 
-  try {
-    const result = await window.electronAPI.deletePhotosByMonth(targetSelection);
+      await refreshViewAfterDelete(targetSelection, {
+        preferLocalRender: deletedCount > 0,
+        preferLocalSidebarUpdate: deletedCount > 0,
+        removedPhotoIds: deletedIds,
+        removedCount: deletedCount,
+      });
+    },
+    buildSuccessStatus: (result) => {
+      const deletedIds = Array.isArray(result.deletedPhotoIds)
+        ? result.deletedPhotoIds
+        : [];
+      const deletedCount = Number(result.deletedCount) || deletedIds.length;
+      const failedCount = Number(result.failedCount) || 0;
 
-    if (!result?.ok) {
-      throw new Error(result?.message || '削除に失敗しました');
-    }
-
-    const deletedIds = Array.isArray(result.deletedPhotoIds)
-      ? result.deletedPhotoIds
-      : [];
-    const deletedCount = Number(result.deletedCount) || deletedIds.length;
-    const failedCount = Number(result.failedCount) || 0;
-
-    closePhotoSpecificModalsForDeletedPhotos(deletedIds);
-    removePhotosFromCurrentCollections(deletedIds);
-
-    await refreshViewAfterDelete(targetSelection, {
-      preferLocalRender: deletedCount > 0,
-      preferLocalSidebarUpdate: deletedCount > 0,
-      removedPhotoIds: deletedIds,
-      removedCount: deletedCount,
-    });
-
-    importStatus.textContent =
-      failedCount > 0
+      return failedCount > 0
         ? `${targetSelection.year}年${targetSelection.month}月: ${deletedCount}件削除 / 失敗 ${failedCount}件`
         : `${targetSelection.year}年${targetSelection.month}月: ${deletedCount}件削除`;
-
-    if (failedCount > 0) {
-      showToast(`月削除: ${failedCount}件失敗しました`);
-    } else {
-      showToast('表示中の月の登録を削除しました');
-    }
-  } catch (error) {
-    importStatus.textContent = `月削除に失敗しました: ${error.message}`;
-    showToast(`月削除に失敗しました: ${error.message}`);
-  } finally {
-    setImportUiBusy(false);
-    syncSettingsMaintenanceUi();
-  }
+    },
+    buildSuccessToast: (result) => {
+      const failedCount = Number(result.failedCount) || 0;
+      return failedCount > 0
+        ? `月削除: ${failedCount}件失敗しました`
+        : '表示中の月の登録を削除しました';
+    },
+    buildErrorStatus: (message) => `月削除に失敗しました: ${message}`,
+    buildErrorToast: (message) => `月削除に失敗しました: ${message}`,
+  });
 }
 
 async function deleteAllRegistrationsFromSettings() {
-  if (isImporting || sidebarData.length === 0) {
-    return;
-  }
-
   const targetSelection = currentSelection ? { ...currentSelection } : null;
-  const confirmed = await openConfirmModal({
-    title: '全登録を削除',
-    message:
-      'すべての登録を削除します。元画像ファイル自体は削除しません。続行しますか？',
-    confirmText: '削除する',
-  });
 
-  if (!confirmed) {
-    return;
-  }
+  await runSettingsMaintenanceAction({
+    isBlocked: () => isImporting || sidebarData.length === 0,
+    confirmOptions: {
+      title: '全登録を削除',
+      message:
+        'すべての登録を削除します。元画像ファイル自体は削除しません。続行しますか？',
+      confirmText: '削除する',
+    },
+    busyStatus: 'すべての登録を削除中...',
+    run: () => window.electronAPI.deleteAllPhotos(),
+    onSuccess: async (result) => {
+      const deletedIds = Array.isArray(result.deletedPhotoIds)
+        ? result.deletedPhotoIds
+        : [];
+      const deletedCount = Number(result.deletedCount) || deletedIds.length;
 
-  setImportUiBusy(true);
-  importStatus.textContent = 'すべての登録を削除中...';
+      closePhotoSpecificModalsForDeletedPhotos(deletedIds);
+      removePhotosFromCurrentCollections(deletedIds);
 
-  try {
-    const result = await window.electronAPI.deleteAllPhotos();
+      await refreshViewAfterDelete(targetSelection, {
+        preferLocalRender: false,
+        preferLocalSidebarUpdate: false,
+        removedPhotoIds: deletedIds,
+        removedCount: deletedCount,
+      });
+    },
+    buildSuccessStatus: (result) => {
+      const deletedIds = Array.isArray(result.deletedPhotoIds)
+        ? result.deletedPhotoIds
+        : [];
+      const deletedCount = Number(result.deletedCount) || deletedIds.length;
+      const failedCount = Number(result.failedCount) || 0;
 
-    if (!result?.ok) {
-      throw new Error(result?.message || '削除に失敗しました');
-    }
-
-    const deletedIds = Array.isArray(result.deletedPhotoIds)
-      ? result.deletedPhotoIds
-      : [];
-    const deletedCount = Number(result.deletedCount) || deletedIds.length;
-    const failedCount = Number(result.failedCount) || 0;
-
-    closePhotoSpecificModalsForDeletedPhotos(deletedIds);
-    removePhotosFromCurrentCollections(deletedIds);
-
-    await refreshViewAfterDelete(targetSelection, {
-      preferLocalRender: false,
-      preferLocalSidebarUpdate: false,
-      removedPhotoIds: deletedIds,
-      removedCount: deletedCount,
-    });
-
-    importStatus.textContent =
-      failedCount > 0
+      return failedCount > 0
         ? `全登録削除: ${deletedCount}件削除 / 失敗 ${failedCount}件`
         : `全登録削除: ${deletedCount}件削除`;
-
-    if (failedCount > 0) {
-      showToast(`全登録削除: ${failedCount}件失敗しました`);
-    } else {
-      showToast('すべての登録を削除しました');
-    }
-  } catch (error) {
-    importStatus.textContent = `全登録削除に失敗しました: ${error.message}`;
-    showToast(`全登録削除に失敗しました: ${error.message}`);
-  } finally {
-    setImportUiBusy(false);
-    syncSettingsMaintenanceUi();
-  }
+    },
+    buildSuccessToast: (result) => {
+      const failedCount = Number(result.failedCount) || 0;
+      return failedCount > 0
+        ? `全登録削除: ${failedCount}件失敗しました`
+        : 'すべての登録を削除しました';
+    },
+    buildErrorStatus: (message) => `全登録削除に失敗しました: ${message}`,
+    buildErrorToast: (message) => `全登録削除に失敗しました: ${message}`,
+  });
 }
 
 async function clearThumbnailCacheFromSettings() {
-  if (isImporting || sidebarData.length === 0) {
-    return;
-  }
+  await runSettingsMaintenanceAction({
+    isBlocked: () => isImporting || sidebarData.length === 0,
+    confirmOptions: {
+      title: 'サムネイルキャッシュ全削除',
+      message:
+        '管理しているサムネイルキャッシュをすべて削除します。元画像ファイルと登録データ自体は削除しません。続行しますか？',
+      confirmText: '削除する',
+    },
+    busyStatus: 'サムネイルキャッシュを削除中...',
+    progressMessage: 'サムネイルキャッシュを削除しています...',
+    run: () => window.electronAPI.clearThumbnailCache(),
+    onSuccess: async () => {
+      clearThumbnailCacheInCurrentCollections();
 
-  const confirmed = await openConfirmModal({
-    title: 'サムネイルキャッシュ全削除',
-    message:
-      '管理しているサムネイルキャッシュをすべて削除します。元画像ファイルと登録データ自体は削除しません。続行しますか？',
-    confirmText: '削除する',
+      if (currentSelection) {
+        renderMonthGallery({ resetProgressive: true });
+      }
+    },
+    buildSuccessStatus: (result) =>
+      `サムネイルキャッシュ削除: ${result.clearedCount || 0}件`,
+    buildSuccessToast: () => 'サムネイルキャッシュを削除しました',
+    buildErrorStatus: (message) =>
+      `サムネイルキャッシュ削除に失敗しました: ${message}`,
+    buildErrorToast: (message) =>
+      `サムネイルキャッシュ削除に失敗しました: ${message}`,
   });
-
-  if (!confirmed) {
-    return;
-  }
-
-  setImportUiBusy(true);
-  importStatus.textContent = 'サムネイルキャッシュを削除中...';
-
-  updateProcessingProgress({
-    message: 'サムネイルキャッシュを削除しています...',
-  });
-
-  try {
-    const result = await window.electronAPI.clearThumbnailCache();
-
-    if (!result?.ok) {
-      throw new Error(result?.message || '削除に失敗しました');
-    }
-
-    clearThumbnailCacheInCurrentCollections();
-
-    if (currentSelection) {
-      renderMonthGallery({ resetProgressive: true });
-      syncFavoriteFilterUi();
-    }
-
-    importStatus.textContent = `サムネイルキャッシュ削除: ${result.clearedCount || 0}件`;
-    showToast('サムネイルキャッシュを削除しました');
-  } catch (error) {
-    importStatus.textContent = `サムネイルキャッシュ削除に失敗しました: ${error.message}`;
-    showToast(`サムネイルキャッシュ削除に失敗しました: ${error.message}`);
-  } finally {
-    setImportUiBusy(false);
-    syncSettingsMaintenanceUi();
-  }
 }
 
 async function resetDatabaseFromSettings() {
-  if (
-    isImporting ||
-    (sidebarData.length === 0 && trackedFolders.length === 0) ||
-    !window.electronAPI.resetDatabase
-  ) {
-    return;
-  }
+  await runSettingsMaintenanceAction({
+    isBlocked: () =>
+      isImporting ||
+      (sidebarData.length === 0 && trackedFolders.length === 0) ||
+      !window.electronAPI.resetDatabase,
+    confirmOptions: {
+      title: 'DBを初期化',
+      message:
+        '登録データ、ラベル、メモ、ワールドキャッシュ、更新対象フォルダ、サムネイルキャッシュをすべて初期化します。元画像ファイル自体は削除しません。続行しますか？',
+      confirmText: '初期化する',
+    },
+    busyStatus: 'DBを初期化中...',
+    progressMessage: 'アプリデータを初期化しています...',
+    run: () => window.electronAPI.resetDatabase(),
+    onSuccess: async () => {
+      closePhotoLabelModal();
+      closeWorldNameEditModal();
+      closeImageModal();
 
-  const confirmed = await openConfirmModal({
-    title: 'DBを初期化',
-    message:
-      '登録データ、ラベル、メモ、ワールドキャッシュ、更新対象フォルダ、サムネイルキャッシュをすべて初期化します。元画像ファイル自体は削除しません。続行しますか？',
-    confirmText: '初期化する',
-  });
-
-  if (!confirmed) {
-    return;
-  }
-
-  setImportUiBusy(true);
-  importStatus.textContent = 'DBを初期化中...';
-
-  updateProcessingProgress({
-    message: 'アプリデータを初期化しています...',
-  });
-
-  try {
-    const result = await window.electronAPI.resetDatabase();
-
-    if (!result?.ok) {
-      throw new Error(result?.message || '初期化に失敗しました');
-    }
-
-    closePhotoLabelModal();
-    closeWorldNameEditModal();
-    closeImageModal();
-
-    sidebarData = [];
-    trackedFolders = [];
-    currentSelection = null;
-    currentPhotos = [];
-    allCurrentMonthPhotos = [];
-    expandedYears.clear();
-    clearSelectionState();
-    renderSidebar();
-    clearMainContent();
-    renderTrackedFolderList();
-    renderRegenerateThumbnailMonthOptions();
-
-    importStatus.textContent =
+      sidebarData = [];
+      trackedFolders = [];
+      resetCurrentMonthState();
+      expandedYears.clear();
+      clearSelectionState();
+      renderSidebar();
+      clearMainContent();
+      renderTrackedFolderList();
+    },
+    buildSuccessStatus: (result) =>
       `DB初期化: 写真 ${result.photoCount || 0}件 / ` +
       `フォルダ ${result.trackedFolderCount || 0}件 / ` +
       `キャッシュ ${result.worldCacheCount || 0}件 / ` +
-      `ラベル ${result.tagCount || 0}件`;
-
-    showToast('DBを初期化しました');
-  } catch (error) {
-    importStatus.textContent = `DB初期化に失敗しました: ${error.message}`;
-    showToast(`DB初期化に失敗しました: ${error.message}`);
-  } finally {
-    setImportUiBusy(false);
-    syncSettingsMaintenanceUi();
-  }
+      `ラベル ${result.tagCount || 0}件`,
+    buildSuccessToast: () => 'DBを初期化しました',
+    buildErrorStatus: (message) => `DB初期化に失敗しました: ${message}`,
+    buildErrorToast: (message) => `DB初期化に失敗しました: ${message}`,
+  });
 }
 
 function hasDraggedFiles(dataTransfer) {
@@ -5753,735 +5911,702 @@ async function initializeApp() {
   syncFavoriteFilterUi();
 }
 
+// Toolbar and maintenance actions that kick off foreground work.
+function bindForegroundActionControls() {
+  regenerateThumbnailsButton?.addEventListener(
+    'click',
+    async (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
 
-regenerateThumbnailsButton?.addEventListener(
-  'click',
-  async (event) => {
-    event.preventDefault();
-    event.stopImmediatePropagation();
+      if (isImporting) {
+        showToast('再生成中です。処理が終わってから実行してください');
+        return;
+      }
 
+      const selectedMonthValue = regenerateThumbnailMonthSelect?.value || '';
+
+      if (!/^\d{4}-\d{2}$/.test(selectedMonthValue)) {
+        showToast('再生成する月を選択してください');
+        return;
+      }
+
+      const [targetYear, targetMonth] = selectedMonthValue.split('-').map(Number);
+
+      beginForegroundProgressOperation({
+        statusMessage: 'サムネイルを再生成しています...',
+        progressMessage: 'サムネイルを再生成しています...',
+      });
+
+      try {
+        const result = await window.electronAPI.regenerateThumbnails({
+          year: targetYear,
+          month: targetMonth,
+        });
+
+        importStatus.textContent = buildScopedRegenerateThumbnailsMessage(result);
+
+        if (result?.failedCount > 0) {
+          showToast(`サムネイル再生成 ${result.failedCount}件失敗しました`);
+        } else if (result?.ok) {
+          showToast('サムネイル再生成が完了しました');
+        }
+
+        if (currentSelection) {
+          await selectMonth(currentSelection.year, currentSelection.month);
+        }
+      } catch (error) {
+        importStatus.textContent = `サムネイル再生成に失敗しました: ${error.message}`;
+      } finally {
+        setImportUiBusy(false);
+      }
+    },
+    { capture: true }
+  );
+
+  refreshTrackedFoldersButton?.addEventListener('click', async () => {
     if (isImporting) {
-      showToast('再生成中です。処理が終わってから実行してください');
+      showToast('別の処理中です。完了してから更新してください');
       return;
     }
 
-    const selectedMonthValue = regenerateThumbnailMonthSelect?.value || '';
+    const fallbackSelection = currentSelection
+      ? { ...currentSelection }
+      : null;
+    let result = null;
 
-    if (!/^\d{4}-\d{2}$/.test(selectedMonthValue)) {
-      showToast('再生成する月を選択してください');
-      return;
-    }
-
-    const [targetYear, targetMonth] = selectedMonthValue.split('-').map(Number);
-
-    setImportUiBusy(true);
-    importStatus.textContent = 'サムネイルを再生成しています...';
-
-    updateProcessingProgress({
-      message: 'サムネイルを再生成しています...',
+    beginForegroundProgressOperation({
+      statusMessage: '追跡フォルダを更新中...',
+      progressMessage: '追跡フォルダを更新中...',
     });
 
     try {
-      const result = await window.electronAPI.regenerateThumbnails({
-        year: targetYear,
-        month: targetMonth,
-      });
-
-      importStatus.textContent = buildScopedRegenerateThumbnailsMessage(result);
-
-      if (result?.failedCount > 0) {
-        showToast(`サムネイル再生成 ${result.failedCount}件失敗しました`);
-      } else if (result?.ok) {
-        showToast('サムネイル再生成が完了しました');
-      }
-
-      if (currentSelection) {
-        await selectMonth(currentSelection.year, currentSelection.month);
-      }
+      result = await window.electronAPI.refreshTrackedFolders();
+      setImportUiBusy(false);
+      await handleTrackedFoldersRefreshResult(result, fallbackSelection);
     } catch (error) {
-      importStatus.textContent = `サムネイル再生成に失敗しました: ${error.message}`;
+      importStatus.textContent = `更新に失敗しました: ${error.message}`;
     } finally {
       setImportUiBusy(false);
     }
-  },
-  { capture: true }
-);
 
-refreshTrackedFoldersButton?.addEventListener('click', async () => {
-  if (isImporting) {
-    showToast('別の処理中です。完了してから更新してください');
-    return;
-  }
-
-  const fallbackSelection = currentSelection
-    ? { ...currentSelection }
-    : null;
-  let result = null;
-
-  setImportUiBusy(true);
-  importStatus.textContent = '追跡フォルダを更新中...';
-
-  updateProcessingProgress({
-    message: '追跡フォルダを更新中...',
-  });
-
-  try {
-    result = await window.electronAPI.refreshTrackedFolders();
-    setImportUiBusy(false);
-    await handleTrackedFoldersRefreshResult(result, fallbackSelection);
-  } catch (error) {
-    importStatus.textContent = `更新に失敗しました: ${error.message}`;
-  } finally {
-    setImportUiBusy(false);
-  }
-
-  await startBackgroundWorldMetadataSync(result?.worldMetadataTargets);
-});
-
-favoriteFilterButton?.addEventListener('click', async () => {
-  if (!currentSelection) {
-    return;
-  }
-
-  isFavoriteFilterOnly = !isFavoriteFilterOnly;
-  applyCurrentPhotoFilter();
-  await refreshCurrentMonthWithFilterAnimation();
-});
-
-orientationFilterButton?.addEventListener('click', (event) => {
-  event.stopPropagation();
-
-  if (!currentSelection || isImporting) {
-    return;
-  }
-
-  setOrientationFilterMenuOpen(!isOrientationFilterMenuOpen);
-});
-
-photoLabelFilterButton?.addEventListener('click', (event) => {
-  event.stopPropagation();
-
-  if (!currentSelection || isImporting) {
-    return;
-  }
-
-  setPhotoLabelFilterMenuOpen(!isPhotoLabelFilterMenuOpen);
-});
-
-worldNameFilterButton?.addEventListener('click', (event) => {
-  event.stopPropagation();
-
-  if (!currentSelection || isImporting) {
-    return;
-  }
-
-  setWorldNameFilterMenuOpen(!isWorldNameFilterMenuOpen);
-});
-
-for (const item of orientationFilterItems) {
-  item.addEventListener('click', async (event) => {
-    event.stopPropagation();
-    await setOrientationFilter(item.dataset.orientationFilter || 'all');
+    await startBackgroundWorldMetadataSync(result?.worldMetadataTargets);
   });
 }
 
-photoLabelFilterMenu?.addEventListener('click', async (event) => {
-  const modeTarget = event.target.closest('[data-photo-label-filter-mode]');
-
-  if (modeTarget) {
-    event.stopPropagation();
-    await setPhotoLabelFilterMode(modeTarget.dataset.photoLabelFilterMode || 'or');
-    return;
-  }
-
-  const target = event.target.closest('[data-photo-label-filter]');
-
-  if (!target) {
-    return;
-  }
-
-  event.stopPropagation();
-  await togglePhotoLabelFilter(target.dataset.photoLabelFilter || '');
-});
-
-document.addEventListener('click', (event) => {
-  if (
-    isOrientationFilterMenuOpen &&
-    orientationFilterDropdown &&
-    !orientationFilterDropdown.contains(event.target)
-  ) {
-    closeOrientationFilterMenu();
-  }
-});
-
-document.addEventListener('click', (event) => {
-  if (
-    isPhotoLabelFilterMenuOpen &&
-    photoLabelFilterDropdown &&
-    !photoLabelFilterDropdown.contains(event.target)
-  ) {
-    closePhotoLabelFilterMenu();
-  }
-});
-
-document.addEventListener('click', (event) => {
-  if (
-    isWorldNameFilterMenuOpen &&
-    worldNameFilterDropdown &&
-    !worldNameFilterDropdown.contains(event.target)
-  ) {
-    closeWorldNameFilterMenu();
-  }
-});
-
-document.addEventListener('click', (event) => {
-  if (
-    isRegenerateThumbnailMonthMenuOpen &&
-    regenerateThumbnailMonthDropdown &&
-    !regenerateThumbnailMonthDropdown.contains(event.target)
-  ) {
-    closeRegenerateThumbnailMonthMenu();
-  }
-});
-
-document.addEventListener('click', (event) => {
-  if (
-    isPhotoLabelCatalogMenuOpen &&
-    photoLabelCatalogDropdown &&
-    !photoLabelCatalogDropdown.contains(event.target)
-  ) {
-    setPhotoLabelCatalogMenuOpen(false);
-  }
-});
-
-document.addEventListener('keydown', (event) => {
-  if (event.key !== 'Escape') {
-    return;
-  }
-
-  if (isOrientationFilterMenuOpen) {
-    closeOrientationFilterMenu();
-    return;
-  }
-
-  if (isPhotoLabelFilterMenuOpen) {
-    closePhotoLabelFilterMenu();
-    return;
-  }
-
-  if (isWorldNameFilterMenuOpen) {
-    closeWorldNameFilterMenu();
-    return;
-  }
-
-  if (isRegenerateThumbnailMonthMenuOpen) {
-    closeRegenerateThumbnailMonthMenu();
-    return;
-  }
-
-  if (isPhotoLabelCatalogMenuOpen) {
-    setPhotoLabelCatalogMenuOpen(false);
-    return;
-  }
-
-  if (confirmModal && !confirmModal.classList.contains('hidden')) {
-    closeConfirmModal(false);
-    return;
-  }
-
-  if (worldNameEditModal && !worldNameEditModal.classList.contains('hidden')) {
-    closeWorldNameEditModal();
-    return;
-  }
-
-  if (photoLabelModal && !photoLabelModal.classList.contains('hidden')) {
-    closePhotoLabelModal();
-    return;
-  }
-
-  if (settingsModal && !settingsModal.classList.contains('hidden')) {
-    closeSettingsModal();
-    return;
-  }
-
-  if (imageModal && !imageModal.classList.contains('hidden')) {
-    closeImageModal();
-  }
-});
-
-document.addEventListener('keydown', (event) => {
-  if (
-    !imageModal ||
-    imageModal.classList.contains('hidden') ||
-    worldNameEditModal?.classList.contains('hidden') === false ||
-    photoLabelModal?.classList.contains('hidden') === false
-  ) {
-    return;
-  }
-
-  if (event.key === 'ArrowLeft') {
-    event.preventDefault();
-    stepImageModalPhoto(-1);
-  }
-
-  if (event.key === 'ArrowRight') {
-    event.preventDefault();
-    stepImageModalPhoto(1);
-  }
-});
-
-saveWorldNameButton?.addEventListener('click', async () => {
-  await saveManualWorldEditForm({
-    worldNameManual: modalWorldNameInput?.value || '',
-    worldUrl: modalWorldUrlInput?.value || '',
-  });
-});
-
-modalWorldNameInput?.addEventListener('input', () => {
-  worldNameSaveStatus.textContent = '';
-});
-
-modalWorldUrlInput?.addEventListener('input', () => {
-  worldNameSaveStatus.textContent = '';
-});
-
-modalPhotoMemoSaveButton?.addEventListener('click', async () => {
-  await savePhotoMemo();
-});
-
-modalPhotoMemoInput?.addEventListener('input', () => {
-  resizeModalPhotoMemoInput();
-
-  if (modalPhotoMemoStatus) {
-    modalPhotoMemoStatus.textContent = '';
-  }
-});
-
-modalPhotoMemoInput?.addEventListener('keydown', async (event) => {
-  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-    event.preventDefault();
-    await savePhotoMemo();
-  }
-});
-
-clearWorldNameButton?.addEventListener('click', async () => {
-  await saveManualWorldEditForm({
-    worldNameManual: '',
-    worldUrl: currentModalPhoto?.worldUrl || '',
-  });
-});
-
-rereadWorldNameButton?.addEventListener('click', async () => {
-  await rereadWorldName();
-});
-
-openWorldNameEditButton?.addEventListener('click', () => {
-  openWorldNameEditModal();
-});
-
-worldNameEditBackdrop?.addEventListener('click', closeWorldNameEditModal);
-worldNameEditClose?.addEventListener('click', closeWorldNameEditModal);
-
-settingsButton?.addEventListener('click', async () => {
-  if (isImporting) {
-    return;
-  }
-
-  await openSettingsModal();
-});
-
-settingsModalBackdrop?.addEventListener('click', closeSettingsModal);
-settingsModalClose?.addEventListener('click', closeSettingsModal);
-settingsModalContent?.addEventListener('wheel', handleSettingsModalWheel, {
-  passive: false,
-});
-imageModalContent?.addEventListener('wheel', handleImageModalWheel, {
-  passive: false,
-});
-
-worldNameFilterInput?.addEventListener('input', (event) => {
-  scheduleWorldNameFilterApply(event.target.value);
-});
-
-worldNameFilterInput?.addEventListener('keydown', async (event) => {
-  if (event.key !== 'Enter') {
-    return;
-  }
-
-  event.preventDefault();
-  clearWorldNameFilterInputTimer();
-  await applyWorldNameFilter(event.currentTarget.value);
-});
-
-worldNameFilterClearButton?.addEventListener('click', async (event) => {
-  event.stopPropagation();
-
-  if (worldNameFilterInput) {
-    worldNameFilterInput.value = '';
-    worldNameFilterInput.focus({ preventScroll: true });
-  }
-
-  clearWorldNameFilterInputTimer();
-  await applyWorldNameFilter('');
-});
-
-addTrackedFolderButton?.addEventListener('click', async () => {
-  const result = await window.electronAPI.addTrackedFolder();
-
-  if (!result?.ok) {
-    showToast(`フォルダの追加に失敗しました: ${result?.message || '不明なエラー'}`);
-    return;
-  }
-
-  trackedFolders = Array.isArray(result.folders) ? result.folders : trackedFolders;
-  renderTrackedFolderList();
-
-  if (!result.canceled && result.folder?.folder_path) {
-    showToast('更新対象フォルダを追加しました');
-  }
-});
-
-trackedFolderList?.addEventListener('click', async (event) => {
-  const removeButton = event.target.closest('[data-tracked-folder-path]');
-
-  if (!removeButton) {
-    return;
-  }
-
-  const folderPath = removeButton.dataset.trackedFolderPath;
-
-  if (!folderPath) {
-    return;
-  }
-
-  const confirmed = await openConfirmModal({
-    title: '更新対象フォルダを削除',
-    message:
-      'このフォルダを更新対象一覧から外します。登録済みの写真データ自体は削除されません。続行しますか？',
-    confirmText: '削除する',
-  });
-
-  if (!confirmed) {
-    return;
-  }
-
-  const result = await window.electronAPI.removeTrackedFolder(folderPath);
-
-  if (!result?.ok) {
-    showToast(`フォルダの削除に失敗しました: ${result?.message || '不明なエラー'}`);
-    return;
-  }
-
-  trackedFolders = Array.isArray(result.folders) ? result.folders : trackedFolders;
-  renderTrackedFolderList();
-  showToast('更新対象フォルダを削除しました');
-});
-
-deleteCurrentMonthRegistrationsButton?.addEventListener('click', async () => {
-  await deleteCurrentMonthRegistrationsFromSettings();
-});
-
-deleteAllRegistrationsButton?.addEventListener('click', async () => {
-  await deleteAllRegistrationsFromSettings();
-});
-
-clearThumbnailCacheButton?.addEventListener('click', async () => {
-  await clearThumbnailCacheFromSettings();
-});
-
-resetDatabaseButton?.addEventListener('click', async () => {
-  await resetDatabaseFromSettings();
-});
-
-imageModalBackdrop?.addEventListener('click', closeImageModal);
-imageModalClose?.addEventListener('click', closeImageModal);
-
-confirmModalBackdrop?.addEventListener('click', () => {
-  closeConfirmModal(false);
-});
-
-confirmModalClose?.addEventListener('click', () => {
-  closeConfirmModal(false);
-});
-
-confirmModalCancelButton?.addEventListener('click', () => {
-  closeConfirmModal(false);
-});
-
-confirmModalConfirmButton?.addEventListener('click', () => {
-  closeConfirmModal(true);
-});
-
-modalWorldLink?.addEventListener('click', async (event) => {
-  event.preventDefault();
-
-  if (!currentModalPhoto?.worldUrl) {
-    return;
-  }
-
-  const result = await window.electronAPI.openExternalUrl(
-    currentModalPhoto.worldUrl
-  );
-
-  if (!result?.ok) {
-    showToast(`リンクを開けませんでした: ${result?.message || '不明なエラー'}`);
-  }
-});
-
-modalOpenWorldButton?.addEventListener('click', async () => {
-  if (!currentModalPhoto?.worldUrl) {
-    return;
-  }
-
-  const result = await window.electronAPI.openExternalUrl(
-    currentModalPhoto.worldUrl
-  );
-
-  if (!result?.ok) {
-    showToast(`リンクを開けませんでした: ${result?.message || '不明なエラー'}`);
-  }
-});
-
-modalOpenOriginalButton?.addEventListener('click', async () => {
-  if (!currentModalPhoto?.filePath) {
-    return;
-  }
-
-  const result = await window.electronAPI.openLocalFile(
-    {
-      photoId: currentModalPhoto.id,
-      filePath: currentModalPhoto.filePath,
-    }
-  );
-
-  if (result?.photo) {
-    updatePhotoInCurrentCollections(result.photo);
-    replaceRenderedPhotoCard(result.photo);
-    showImageModalPhoto(
-      currentPhotos.find((photo) => photo.id === result.photo.id) || result.photo
-    );
-  }
-
-  if (!result?.ok) {
-    showToast(
-      `画像を開けませんでした: ${result?.message || '不明なエラー'}`
-    );
-  }
-  if (result.recovered) {
-    showToast('画像の保存場所を更新しました');
-  }
-});
-
-modalOpenFolderButton?.addEventListener('click', async () => {
-  if (!currentModalPhoto?.filePath) {
-    return;
-  }
-
-  const result = await window.electronAPI.openContainingFolder(
-    {
-      photoId: currentModalPhoto.id,
-      filePath: currentModalPhoto.filePath,
-    }
-  );
-
-  if (result?.photo) {
-    updatePhotoInCurrentCollections(result.photo);
-    replaceRenderedPhotoCard(result.photo);
-    showImageModalPhoto(
-      currentPhotos.find((photo) => photo.id === result.photo.id) || result.photo
-    );
-  }
-
-  if (!result?.ok) {
-    showToast(
-      `保存先フォルダを開けませんでした: ${result?.message || '不明なエラー'}`
-    );
-  }
-  if (result.recovered) {
-    showToast('画像の保存場所を更新しました');
-  }
-});
-
-modalFavoriteButton?.addEventListener('click', async () => {
-  if (!currentModalPhoto?.id) {
-    return;
-  }
-
-  await toggleFavorite(currentModalPhoto.id, !currentModalPhoto.isFavorite);
-});
-
-modalDeletePhotoButton?.addEventListener('click', async () => {
-  if (isImporting) {
-    showToast('処理中です。完了してから実行してください');
-    return;
-  }
-
-  if (!currentModalPhoto?.id) {
-    return;
-  }
-
-  const confirmed = await openConfirmModal({
-    title: '登録を削除',
-    message:
-      'この画像の登録を削除します。元画像ファイル自体は削除しません。続行しますか？',
-    confirmText: '削除する',
-  });
-
-  if (!confirmed) {
-    return;
-  }
-
-  const targetSelection = currentSelection ? { ...currentSelection } : null;
-
-  try {
-    const deleteTargetId = currentModalPhoto.id;
-    const result = await window.electronAPI.deletePhoto(deleteTargetId);
-
-    if (!result?.ok) {
-      showToast(`削除に失敗しました: ${result?.message || '不明なエラー'}`);
+// Header filters stay interactive while month content changes underneath them.
+function bindHeaderFilterControls() {
+  favoriteFilterButton?.addEventListener('click', async () => {
+    if (!currentSelection) {
       return;
     }
 
-    closeWorldNameEditModal();
-    closeImageModal();
-
-    removePhotoFromCurrentCollections(deleteTargetId);
-    await refreshViewAfterDelete(targetSelection, {
-      preferLocalRender: true,
-      preferLocalSidebarUpdate: true,
-      removedPhotoIds: [deleteTargetId],
-      removedCount: 1,
-    });
-
-    showToast('登録を削除しました');
-  } catch (error) {
-    showToast(`削除に失敗しました: ${error.message}`);
-  }
-});
-
-selectionModeButton?.addEventListener('click', () => {
-  if (!currentSelection) {
-    return;
-  }
-
-  if (isSelectionMode) {
-    clearSelectionState();
-  } else {
-    isSelectionMode = true;
-    selectedPhotoIds.clear();
-    syncSelectionUi();
-  }
-  syncRenderedSelectionState();
-});
-
-bulkFavoriteButton?.addEventListener('click', async () => {
-  await toggleSelectedFavorites();
-});
-
-bulkDeleteButton?.addEventListener('click', async () => {
-  if (!isSelectionMode || selectedPhotoIds.size === 0) {
-    return;
-  }
-
-  const confirmed = await openConfirmModal({
-    title: '選択した登録を削除',
-    message: `選択した${selectedPhotoIds.size} 件の登録を削除します。元画像ファイル自体は削除しません。続行しますか？`,
-    confirmText: '削除する',
+    isFavoriteFilterOnly = !isFavoriteFilterOnly;
+    applyCurrentPhotoFilter();
+    await refreshCurrentMonthWithFilterAnimation();
   });
 
-  if (!confirmed) {
-    return;
+  orientationFilterButton?.addEventListener('click', (event) => {
+    event.stopPropagation();
+
+    if (!currentSelection || isImporting) {
+      return;
+    }
+
+    setOrientationFilterMenuOpen(!isOrientationFilterMenuOpen);
+  });
+
+  photoLabelFilterButton?.addEventListener('click', (event) => {
+    event.stopPropagation();
+
+    if (!currentSelection || isImporting) {
+      return;
+    }
+
+    setPhotoLabelFilterMenuOpen(!isPhotoLabelFilterMenuOpen);
+  });
+
+  worldNameFilterButton?.addEventListener('click', (event) => {
+    event.stopPropagation();
+
+    if (!currentSelection || isImporting) {
+      return;
+    }
+
+    setWorldNameFilterMenuOpen(!isWorldNameFilterMenuOpen);
+  });
+
+  for (const item of orientationFilterItems) {
+    item.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      await setOrientationFilter(item.dataset.orientationFilter || 'all');
+    });
   }
 
-  const targetIds = [...selectedPhotoIds];
-  const targetSelection = currentSelection ? { ...currentSelection } : null;
+  photoLabelFilterMenu?.addEventListener('click', async (event) => {
+    const modeTarget = event.target.closest('[data-photo-label-filter-mode]');
 
-  setImportUiBusy(true);
-  importStatus.textContent = '選択した登録を削除中...';
+    if (modeTarget) {
+      event.stopPropagation();
+      await setPhotoLabelFilterMode(modeTarget.dataset.photoLabelFilterMode || 'or');
+      return;
+    }
 
-  try {
-    const result = await window.electronAPI.deletePhotos(targetIds);
+    const target = event.target.closest('[data-photo-label-filter]');
+
+    if (!target) {
+      return;
+    }
+
+    event.stopPropagation();
+    await togglePhotoLabelFilter(target.dataset.photoLabelFilter || '');
+  });
+
+  worldNameFilterInput?.addEventListener('input', (event) => {
+    scheduleWorldNameFilterApply(event.target.value);
+  });
+
+  worldNameFilterInput?.addEventListener('keydown', async (event) => {
+    if (event.key !== 'Enter') {
+      return;
+    }
+
+    event.preventDefault();
+    clearWorldNameFilterInputTimer();
+    await applyWorldNameFilter(event.currentTarget.value);
+  });
+
+  worldNameFilterClearButton?.addEventListener('click', async (event) => {
+    event.stopPropagation();
+
+    if (worldNameFilterInput) {
+      worldNameFilterInput.value = '';
+      worldNameFilterInput.focus({ preventScroll: true });
+    }
+
+    clearWorldNameFilterInputTimer();
+    await applyWorldNameFilter('');
+  });
+}
+
+// Modal-level editors and detail actions are grouped here so photo-specific
+// behavior can be traced without scanning the entire file bottom.
+function bindPhotoAndEditModalControls() {
+  saveWorldNameButton?.addEventListener('click', async () => {
+    await saveManualWorldEditForm({
+      worldNameManual: modalWorldNameInput?.value || '',
+      worldUrl: modalWorldUrlInput?.value || '',
+    });
+  });
+
+  modalWorldNameInput?.addEventListener('input', () => {
+    worldNameSaveStatus.textContent = '';
+  });
+
+  modalWorldUrlInput?.addEventListener('input', () => {
+    worldNameSaveStatus.textContent = '';
+  });
+
+  modalPhotoMemoSaveButton?.addEventListener('click', async () => {
+    await savePhotoMemo();
+  });
+
+  modalPhotoMemoInput?.addEventListener('input', () => {
+    resizeModalPhotoMemoInput();
+
+    if (modalPhotoMemoStatus) {
+      modalPhotoMemoStatus.textContent = '';
+    }
+  });
+
+  modalPhotoMemoInput?.addEventListener('keydown', async (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      await savePhotoMemo();
+    }
+  });
+
+  clearWorldNameButton?.addEventListener('click', async () => {
+    await saveManualWorldEditForm({
+      worldNameManual: '',
+      worldUrl: currentModalPhoto?.worldUrl || '',
+    });
+  });
+
+  rereadWorldNameButton?.addEventListener('click', async () => {
+    await rereadWorldName();
+  });
+
+  openWorldNameEditButton?.addEventListener('click', () => {
+    openWorldNameEditModal();
+  });
+
+  bindSubModalCloseTriggers(
+    worldNameEditBackdrop,
+    worldNameEditClose,
+    closeWorldNameEditModal
+  );
+
+  bindSubModalCloseTriggers(imageModalBackdrop, imageModalClose, closeImageModal);
+  bindSubModalCloseTriggers(confirmModalBackdrop, confirmModalClose, () => {
+    closeConfirmModal(false);
+  });
+
+  confirmModalCancelButton?.addEventListener('click', () => {
+    closeConfirmModal(false);
+  });
+
+  confirmModalConfirmButton?.addEventListener('click', () => {
+    closeConfirmModal(true);
+  });
+
+  modalWorldLink?.addEventListener('click', async (event) => {
+    event.preventDefault();
+
+    if (!currentModalPhoto?.worldUrl) {
+      return;
+    }
+
+    const result = await window.electronAPI.openExternalUrl(
+      currentModalPhoto.worldUrl
+    );
 
     if (!result?.ok) {
-      throw new Error(result?.message || '削除に失敗しました');
+      showToast(`リンクを開けませんでした: ${result?.message || '不明なエラー'}`);
+    }
+  });
+
+  modalOpenWorldButton?.addEventListener('click', async () => {
+    if (!currentModalPhoto?.worldUrl) {
+      return;
     }
 
-    const deletedIds = Array.isArray(result.deletedPhotoIds)
-      ? result.deletedPhotoIds
-      : [];
-    const deletedCount = deletedIds.length;
-    const failedCount = Number(result.failedCount) || 0;
+    const result = await window.electronAPI.openExternalUrl(
+      currentModalPhoto.worldUrl
+    );
 
-    removePhotosFromCurrentCollections(deletedIds);
+    if (!result?.ok) {
+      showToast(`リンクを開けませんでした: ${result?.message || '不明なエラー'}`);
+    }
+  });
 
-    clearSelectionState();
-    await refreshViewAfterDelete(targetSelection, {
-      preferLocalRender: deletedCount > 0,
-      preferLocalSidebarUpdate: deletedCount > 0,
-      removedPhotoIds: deletedIds,
-      removedCount: deletedCount,
+  modalOpenOriginalButton?.addEventListener('click', async () => {
+    if (!currentModalPhoto?.filePath) {
+      return;
+    }
+
+    const result = await window.electronAPI.openLocalFile({
+      photoId: currentModalPhoto.id,
+      filePath: currentModalPhoto.filePath,
     });
 
-    importStatus.textContent =
-      failedCount > 0
-        ? `選択削除: ${deletedCount}件削除 / 失敗 ${failedCount}件`
-        : `選択削除: ${deletedCount}件削除`;
-
-    if (failedCount > 0) {
-      showToast(`選択削除: ${failedCount}件失敗しました`);
-    } else {
-      showToast('選択した登録を削除しました');
+    if (result?.photo) {
+      syncSinglePhotoUpdate(result.photo);
     }
-  } catch (error) {
-    importStatus.textContent = `選択削除に失敗しました: ${error.message}`;
-    showToast(`選択削除に失敗しました: ${error.message}`);
-  } finally {
-    setImportUiBusy(false);
-    syncSelectionUi();
-  }
-});
 
-themeToggleButton?.addEventListener('click', () => {
-  toggleTheme();
-});
-
-fontOptionButtons.forEach((button) => {
-  button.addEventListener('click', () => {
-    applyFontPreference(button.dataset.fontOption || 'standard');
+    if (!result?.ok) {
+      showToast(
+        `画像を開けませんでした: ${result?.message || '不明なエラー'}`
+      );
+    }
+    if (result.recovered) {
+      showToast('画像の保存場所を更新しました');
+    }
   });
-});
 
-// Foreground progress bars belong to explicit import/refresh/maintenance
-// actions. Late IPC events should not reopen the bar after the UI is idle.
-window.electronAPI.onProcessingProgress?.((payload) => {
-  if (payload?.operation === 'world-metadata-sync') {
-    handleWorldMetadataSyncProgress(payload);
-    return;
-  }
+  modalOpenFolderButton?.addEventListener('click', async () => {
+    if (!currentModalPhoto?.filePath) {
+      return;
+    }
 
-  if (!isImporting) {
-    return;
-  }
+    const result = await window.electronAPI.openContainingFolder({
+      photoId: currentModalPhoto.id,
+      filePath: currentModalPhoto.filePath,
+    });
 
-  updateProcessingProgress(payload);
-});
+    if (result?.photo) {
+      syncSinglePhotoUpdate(result.photo);
+    }
 
-window.electronAPI.onWorldMetadataUpdated?.((payload) => {
-  applyWorldMetadataUpdated(payload);
-});
+    if (!result?.ok) {
+      showToast(
+        `保存先フォルダを開けませんでした: ${result?.message || '不明なエラー'}`
+      );
+    }
+    if (result.recovered) {
+      showToast('画像の保存場所を更新しました');
+    }
+  });
 
-initializeTheme();
-initializeFontPreference();
-initializeImageModalUi();
-initializeWorldNameEditUi();
-initializePhotoLabelUi();
-initializeModalCloseIcons();
-document.addEventListener('click', handleDelegatedSubModalClose, true);
-initializeTrackedFolderAccordion();
-initializeTopToolbarLayout();
-initializeDragAndDropImport();
-initializeProgressiveMonthGalleryLoading();
-initializeScrollToTopAnimationInterrupts();
+  modalFavoriteButton?.addEventListener('click', async () => {
+    if (!currentModalPhoto?.id) {
+      return;
+    }
+
+    await toggleFavorite(currentModalPhoto.id, !currentModalPhoto.isFavorite);
+  });
+
+  modalDeletePhotoButton?.addEventListener('click', async () => {
+    if (isImporting) {
+      showToast('処理中です。完了してから実行してください');
+      return;
+    }
+
+    if (!currentModalPhoto?.id) {
+      return;
+    }
+
+    const confirmed = await openConfirmModal({
+      title: '登録を削除',
+      message:
+        'この画像の登録を削除します。元画像ファイル自体は削除しません。続行しますか？',
+      confirmText: '削除する',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    const targetSelection = currentSelection ? { ...currentSelection } : null;
+
+    try {
+      const deleteTargetId = currentModalPhoto.id;
+      const result = await window.electronAPI.deletePhoto(deleteTargetId);
+
+      if (!result?.ok) {
+        showToast(`削除に失敗しました: ${result?.message || '不明なエラー'}`);
+        return;
+      }
+
+      closeWorldNameEditModal();
+      closeImageModal();
+
+      removePhotoFromCurrentCollections(deleteTargetId);
+      await refreshViewAfterDelete(targetSelection, {
+        preferLocalRender: true,
+        preferLocalSidebarUpdate: true,
+        removedPhotoIds: [deleteTargetId],
+        removedCount: 1,
+      });
+
+      showToast('登録を削除しました');
+    } catch (error) {
+      showToast(`削除に失敗しました: ${error.message}`);
+    }
+  });
+
+  imageModalContent?.addEventListener('wheel', handleImageModalWheel, {
+    passive: false,
+  });
+}
+
+// Settings modal keeps folder management and destructive maintenance together.
+function bindSettingsModalControls() {
+  settingsButton?.addEventListener('click', async () => {
+    if (isImporting) {
+      return;
+    }
+
+    await openSettingsModal();
+  });
+
+  bindSubModalCloseTriggers(
+    settingsModalBackdrop,
+    settingsModalClose,
+    closeSettingsModal
+  );
+  settingsModalContent?.addEventListener('wheel', handleSettingsModalWheel, {
+    passive: false,
+  });
+
+  addTrackedFolderButton?.addEventListener('click', async () => {
+    const result = await window.electronAPI.addTrackedFolder();
+
+    if (!result?.ok) {
+      showToast(
+        `フォルダの追加に失敗しました: ${result?.message || '不明なエラー'}`
+      );
+      return;
+    }
+
+    trackedFolders = Array.isArray(result.folders) ? result.folders : trackedFolders;
+    renderTrackedFolderList();
+
+    if (!result.canceled && result.folder?.folder_path) {
+      showToast('更新対象フォルダを追加しました');
+    }
+  });
+
+  trackedFolderList?.addEventListener('click', async (event) => {
+    const removeButton = event.target.closest('[data-tracked-folder-path]');
+
+    if (!removeButton) {
+      return;
+    }
+
+    const folderPath = removeButton.dataset.trackedFolderPath;
+
+    if (!folderPath) {
+      return;
+    }
+
+    const confirmed = await openConfirmModal({
+      title: '更新対象フォルダを削除',
+      message:
+        'このフォルダを更新対象一覧から外します。登録済みの写真データ自体は削除されません。続行しますか？',
+      confirmText: '削除する',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    const result = await window.electronAPI.removeTrackedFolder(folderPath);
+
+    if (!result?.ok) {
+      showToast(
+        `フォルダの削除に失敗しました: ${result?.message || '不明なエラー'}`
+      );
+      return;
+    }
+
+    trackedFolders = Array.isArray(result.folders) ? result.folders : trackedFolders;
+    renderTrackedFolderList();
+    showToast('更新対象フォルダを削除しました');
+  });
+
+  deleteCurrentMonthRegistrationsButton?.addEventListener('click', async () => {
+    await deleteCurrentMonthRegistrationsFromSettings();
+  });
+
+  deleteAllRegistrationsButton?.addEventListener('click', async () => {
+    await deleteAllRegistrationsFromSettings();
+  });
+
+  clearThumbnailCacheButton?.addEventListener('click', async () => {
+    await clearThumbnailCacheFromSettings();
+  });
+
+  resetDatabaseButton?.addEventListener('click', async () => {
+    await resetDatabaseFromSettings();
+  });
+}
+
+// Batch actions live in the page header and operate on current month selection.
+function bindSelectionControls() {
+  selectionModeButton?.addEventListener('click', () => {
+    if (!currentSelection) {
+      return;
+    }
+
+    if (isSelectionMode) {
+      clearSelectionState();
+    } else {
+      isSelectionMode = true;
+      selectedPhotoIds.clear();
+      syncSelectionUi();
+    }
+    syncRenderedSelectionState();
+  });
+
+  bulkFavoriteButton?.addEventListener('click', async () => {
+    await toggleSelectedFavorites();
+  });
+
+  bulkDeleteButton?.addEventListener('click', async () => {
+    if (!isSelectionMode || selectedPhotoIds.size === 0) {
+      return;
+    }
+
+    const confirmed = await openConfirmModal({
+      title: '選択した登録を削除',
+      message: `選択した${selectedPhotoIds.size} 件の登録を削除します。元画像ファイル自体は削除しません。続行しますか？`,
+      confirmText: '削除する',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    const targetIds = [...selectedPhotoIds];
+    const targetSelection = currentSelection ? { ...currentSelection } : null;
+
+    setImportUiBusy(true);
+    importStatus.textContent = '選択した登録を削除中...';
+
+    try {
+      const result = await window.electronAPI.deletePhotos(targetIds);
+
+      if (!result?.ok) {
+        throw new Error(result?.message || '削除に失敗しました');
+      }
+
+      const deletedIds = Array.isArray(result.deletedPhotoIds)
+        ? result.deletedPhotoIds
+        : [];
+      const deletedCount = deletedIds.length;
+      const failedCount = Number(result.failedCount) || 0;
+
+      removePhotosFromCurrentCollections(deletedIds);
+
+      clearSelectionState();
+      await refreshViewAfterDelete(targetSelection, {
+        preferLocalRender: deletedCount > 0,
+        preferLocalSidebarUpdate: deletedCount > 0,
+        removedPhotoIds: deletedIds,
+        removedCount: deletedCount,
+      });
+
+      importStatus.textContent =
+        failedCount > 0
+          ? `選択削除: ${deletedCount}件削除 / 失敗 ${failedCount}件`
+          : `選択削除: ${deletedCount}件削除`;
+
+      if (failedCount > 0) {
+        showToast(`選択削除: ${failedCount}件失敗しました`);
+      } else {
+        showToast('選択した登録を削除しました');
+      }
+    } catch (error) {
+      importStatus.textContent = `選択削除に失敗しました: ${error.message}`;
+      showToast(`選択削除に失敗しました: ${error.message}`);
+    } finally {
+      setImportUiBusy(false);
+      syncSelectionUi();
+    }
+  });
+}
+
+// Theme and font preferences are lightweight local UI settings.
+function bindAppearanceControls() {
+  themeToggleButton?.addEventListener('click', () => {
+    toggleTheme();
+  });
+
+  fontOptionButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      applyFontPreference(button.dataset.fontOption || 'standard');
+    });
+  });
+}
+
+// Global document listeners keep dropdowns and modal keyboard behavior
+// consistent across the whole app surface.
+function bindGlobalDocumentInteractions() {
+  document.addEventListener('click', (event) => {
+    closeManagedDropdownsFromOutsideClick(event.target);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') {
+      return;
+    }
+
+    if (closeManagedDropdownFromEscape()) {
+      return;
+    }
+
+    if (confirmModal && !confirmModal.classList.contains('hidden')) {
+      closeConfirmModal(false);
+      return;
+    }
+
+    if (worldNameEditModal && !worldNameEditModal.classList.contains('hidden')) {
+      closeWorldNameEditModal();
+      return;
+    }
+
+    if (photoLabelModal && !photoLabelModal.classList.contains('hidden')) {
+      closePhotoLabelModal();
+      return;
+    }
+
+    if (settingsModal && !settingsModal.classList.contains('hidden')) {
+      closeSettingsModal();
+      return;
+    }
+
+    if (imageModal && !imageModal.classList.contains('hidden')) {
+      closeImageModal();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (
+      !imageModal ||
+      imageModal.classList.contains('hidden') ||
+      worldNameEditModal?.classList.contains('hidden') === false ||
+      photoLabelModal?.classList.contains('hidden') === false
+    ) {
+      return;
+    }
+
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      stepImageModalPhoto(-1);
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      stepImageModalPhoto(1);
+    }
+  });
+
+  document.addEventListener('click', handleDelegatedSubModalClose, true);
+}
+
+// IPC listeners are registered once so late events only touch their dedicated
+// UI surfaces.
+function bindIpcEventListeners() {
+  // Foreground progress bars belong to explicit import/refresh/maintenance
+  // actions. Late IPC events should not reopen the bar after the UI is idle.
+  window.electronAPI.onProcessingProgress?.((payload) => {
+    if (payload?.operation === 'world-metadata-sync') {
+      handleWorldMetadataSyncProgress(payload);
+      return;
+    }
+
+    if (!isImporting) {
+      return;
+    }
+
+    updateProcessingProgress(payload);
+  });
+
+  window.electronAPI.onWorldMetadataUpdated?.((payload) => {
+    applyWorldMetadataUpdated(payload);
+  });
+}
+
+// Boot sequence for renderer-only concerns. Keeping the order explicit makes
+// it easier to reason about future regressions.
+function initializeRendererBindings() {
+  bindForegroundActionControls();
+  bindHeaderFilterControls();
+  bindPhotoAndEditModalControls();
+  bindSettingsModalControls();
+  bindSelectionControls();
+  bindAppearanceControls();
+  bindGlobalDocumentInteractions();
+  bindIpcEventListeners();
+}
+
+function initializeRendererUi() {
+  initializeTheme();
+  initializeFontPreference();
+  initializeImageModalUi();
+  initializeWorldNameEditUi();
+  initializePhotoLabelUi();
+  initializeModalCloseIcons();
+  initializeTrackedFolderAccordion();
+  initializeTopToolbarLayout();
+  initializeDragAndDropImport();
+  initializeProgressiveMonthGalleryLoading();
+  initializeScrollToTopAnimationInterrupts();
+}
+
+initializeRendererUi();
+initializeRendererBindings();
 syncFavoriteFilterUi();
 initializeApp();
 
