@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>VRChat World Photo Manager</title>
+    <link rel="stylesheet" href="./index.css" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1&wght@400&GRAD@0&opsz@24"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500;700&family=M+PLUS+1:wght@400;500;700&family=Sawarabi+Mincho&family=Zen+Maru+Gothic:wght@400;500;700&display=swap"
+    />
+  </head>
+  <body>
+    <div class="app">
+      <div class="top-sticky-shell">
+        <header class="page-header">
+          <div class="page-header-row">
+            <div>
+              <h1>VRChat World Photo Manager（仮）</h1>
+              <p>VRChatで撮影した画像を、ワールド情報つきで管理するアプリ</p>
+            </div>
+
+            <div class="page-header-actions">
+              <button
+                id="settings-btn"
+                class="theme-toggle-btn"
+                type="button"
+                aria-label="設定を開く"
+                title="設定を開く"
+              >
+                <span class="material-symbols-outlined">settings</span>
+              </button>
+
+              <button
+                id="theme-toggle-btn"
+                class="theme-toggle-btn"
+                type="button"
+                aria-label="テーマを切り替える"
+                title="テーマを切り替える"
+              >
+                <span id="theme-toggle-icon" class="material-symbols-outlined">
+                  mode_night
+                </span>
+              </button>
+            </div>
+          </div>
+        </header>
+      
+        <section class="toolbar">
+          <button id="refresh-tracked-folders-btn" type="button">更新</button>
+          <button id="regenerate-thumbnails-btn" type="button">
+            サムネイル再生成
+          </button>
+
+          <div class="toolbar-right">
+            <p id="import-status" class="import-status">
+              まだ取り込みはありません
+            </p>
+            <div id="processing-progress" class="processing-progress" hidden>
+              <div class="processing-progress-header">
+                <span id="processing-progress-label" class="processing-progress-label">
+                  処理を準備中...
+                </span>
+                <span id="processing-progress-value" class="processing-progress-value">
+                  ...
+                </span>
+              </div>
+              <div
+                class="processing-progress-track"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+              >
+                <div id="processing-progress-fill" class="processing-progress-fill"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="app-layout">
+        <aside class="sidebar">
+          <div class="sidebar-header">
+            <h2>年月</h2>
+            <p>年を押すと月が開きます</p>
+          </div>
+
+          <div id="sidebar-tree" class="sidebar-tree"></div>
+        </aside>
+
+        <main class="main-content">
+          <div class="main-header">
+            <div>
+              <h2 id="current-month-label">写真一覧</h2>
+              <p id="current-month-count">0枚</p>
+            </div>
+          
+            <div class="main-header-actions">
+              <button
+                id="favorite-filter-btn"
+                type="button"
+                class="header-filter-button favorite-filter-icon-button"
+                aria-label="お気に入りのみ表示"
+                title="お気に入りのみ表示"
+              >
+                <span class="material-symbols-outlined">star</span>
+              </button>
+
+              <div class="header-dropdown" id="orientation-filter-dropdown">
+                <button
+                  id="orientation-filter-btn"
+                  type="button"
+                  class="header-filter-button orientation-filter-button"
+                  aria-label="向きフィルタ: すべて"
+                  title="向きフィルタ: すべて"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                >
+                  <span id="orientation-filter-label">向き: すべて</span>
+                  <span class="material-symbols-outlined orientation-filter-chevron">
+                    expand_more
+                  </span>
+                </button>
+
+                <div
+                  id="orientation-filter-menu"
+                  class="header-dropdown-menu"
+                  role="menu"
+                  aria-label="向きフィルタ"
+                >
+                  <button
+                    type="button"
+                    class="header-dropdown-item"
+                    data-orientation-filter="all"
+                    role="menuitemradio"
+                    aria-checked="true"
+                  >
+                    <span class="header-dropdown-item-label">すべて</span>
+                    <span class="material-symbols-outlined header-dropdown-check">
+                      check
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    class="header-dropdown-item"
+                    data-orientation-filter="landscape"
+                    role="menuitemradio"
+                    aria-checked="false"
+                  >
+                    <span class="header-dropdown-item-label">横長</span>
+                    <span class="material-symbols-outlined header-dropdown-check">
+                      check
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    class="header-dropdown-item"
+                    data-orientation-filter="portrait"
+                    role="menuitemradio"
+                    aria-checked="false"
+                  >
+                    <span class="header-dropdown-item-label">縦長</span>
+                    <span class="material-symbols-outlined header-dropdown-check">
+                      check
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    class="header-dropdown-item"
+                    data-orientation-filter="square"
+                    role="menuitemradio"
+                    aria-checked="false"
+                  >
+                    <span class="header-dropdown-item-label">正方形</span>
+                    <span class="material-symbols-outlined header-dropdown-check">
+                      check
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="header-dropdown" id="photo-label-filter-dropdown">
+                <button
+                  id="photo-label-filter-btn"
+                  type="button"
+                  class="header-filter-button orientation-filter-button"
+                  aria-label="ラベルフィルタ: すべて"
+                  title="ラベルフィルタ: すべて"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                >
+                  <span id="photo-label-filter-label">ラベル: すべて</span>
+                  <span class="material-symbols-outlined orientation-filter-chevron">
+                    expand_more
+                  </span>
+                </button>
+
+                <div
+                  id="photo-label-filter-menu"
+                  class="header-dropdown-menu"
+                  role="menu"
+                  aria-label="ラベルフィルタ"
+                ></div>
+              </div>
+
+              <div class="header-dropdown" id="world-name-filter-dropdown">
+                <button
+                  id="world-name-filter-btn"
+                  type="button"
+                  class="header-filter-button orientation-filter-button world-name-filter-button"
+                  aria-label="Worldフィルタ: すべて"
+                  title="Worldフィルタ: すべて"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                >
+                  <span
+                    id="world-name-filter-label"
+                    class="world-name-filter-label"
+                  >
+                    World: すべて
+                  </span>
+                  <span class="material-symbols-outlined orientation-filter-chevron">
+                    expand_more
+                  </span>
+                </button>
+
+                <div
+                  id="world-name-filter-menu"
+                  class="header-dropdown-menu world-name-filter-menu"
+                  role="menu"
+                  aria-label="World名フィルタ"
+                >
+                  <div class="header-dropdown-input-panel" role="none">
+                    <input
+                      id="world-name-filter-input"
+                      class="header-dropdown-text-input"
+                      type="text"
+                      placeholder="World名を入力"
+                      autocomplete="off"
+                    />
+                    <button
+                      id="world-name-filter-clear-btn"
+                      type="button"
+                      class="header-dropdown-clear-button"
+                    >
+                      クリア
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <p id="selection-count-badge" class="selection-count-badge hidden" aria-live="polite">
+                0件選択中
+              </p>
+            
+              <button
+                id="selection-mode-btn"
+                type="button"
+                class="header-filter-button"
+              >
+                選択
+              </button>
+
+              <button
+                id="bulk-favorite-btn"
+                type="button"
+                class="header-filter-button bulk-favorite-button"
+                disabled
+                hidden
+              >
+                お気に入り
+              </button>
+            
+              <button
+              id="bulk-delete-btn"
+              type="button"
+              class="header-filter-button danger-outline-button"
+              disabled
+              >
+              削除
+              </button>
+            
+              <p class="drop-hint-always">
+                画像 / フォルダをここへドラッグ＆ドロップ
+              </p>
+            </div>
+          </div>
+
+          <p id="month-gallery-empty" class="gallery-empty">
+            まだ写真がありません
+          </p>
+
+          <div id="month-gallery-list" class="gallery-list"></div>
+        </main>
+      </div>
+    </div>
+
+    <div id="image-modal" class="image-modal hidden">
+      <div
+        class="image-modal-backdrop"
+        id="image-modal-backdrop"
+      ></div>
+
+      <div class="image-modal-content">
+        <button
+          id="image-modal-close"
+          class="image-modal-close"
+          type="button"
+        >
+          ×
+        </button>
+
+        <div class="image-modal-body">
+          <div class="image-modal-image-wrap">
+            <img id="modal-image" alt="拡大画像" />
+          </div>
+
+          <div class="image-modal-info">
+            <div class="modal-world-hero">
+              <div class="modal-world-label">WORLD</div>
+
+              <a
+                id="modal-world-link"
+                class="modal-world-link"
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+              >
+                ワールド名未取得
+              </a>
+
+              <p id="modal-file-name" class="modal-file-name">
+                ファイル名
+              </p>
+            </div>
+
+            <div class="modal-actions">
+              <button id="modal-open-world-btn" type="button" class="primary-link-button">
+                VRChatで開く
+              </button>
+              <button
+                id="modal-open-original-btn"
+                type="button"
+                class="primary-link-button"
+              >
+                元画像を開く
+              </button>
+              <button
+                id="modal-open-folder-btn"
+                type="button"
+                class="primary-link-button"
+              >
+                保存先フォルダを開く
+              </button>
+            </div>
+
+            <div class="modal-meta-list">
+              <div class="modal-meta-item">
+                <span class="modal-meta-label">撮影日時</span>
+                <span id="modal-taken-at" class="modal-meta-value">-</span>
+              </div>
+
+              <div class="modal-meta-item">
+                <span class="modal-meta-label">解像度</span>
+                <span id="modal-resolution-tier" class="modal-meta-value">-</span>
+              </div>
+
+              <div class="modal-meta-item">
+                <span class="modal-meta-label">World ID</span>
+                <span id="modal-world-id" class="modal-meta-value">-</span>
+              </div>
+            </div>
+
+            <div class="modal-world-meta-block">
+              <p class="modal-world-meta-title">Description</p>
+              <p id="modal-world-description" class="modal-world-description">
+                未取得
+              </p>
+            </div>
+
+            <div class="modal-world-meta-block">
+              <p class="modal-world-meta-title">Tag</p>
+              <div id="modal-world-tags" class="modal-world-tags">
+                <span class="modal-world-tag is-placeholder">未取得</span>
+              </div>
+            </div>
+
+            <div class="modal-world-meta-block modal-photo-memo-block">
+              <div class="photo-label-block-header modal-photo-memo-header">
+                <p class="modal-world-meta-title">Memo</p>
+                <button
+                  id="modal-photo-memo-save-btn"
+                  type="button"
+                  class="small-action-button"
+                >
+                  保存
+                </button>
+              </div>
+              <textarea
+                id="modal-photo-memo-input"
+                class="modal-photo-memo-input"
+                rows="1"
+                placeholder="自由にメモを残せます"
+              ></textarea>
+              <p id="modal-photo-memo-status" class="modal-photo-memo-status" aria-live="polite"></p>
+            </div>
+
+            <div class="world-name-row">
+              <p class="world-name-text">
+                <strong>現在の表示名</strong>
+                <span id="modal-world-name">-</span>
+              </p>
+            
+              <div class="world-name-row-actions">
+                <button
+                  id="modal-favorite-btn"
+                  type="button"
+                  class="favorite-toggle-button"
+                  aria-label="お気に入り切り替え"
+                  title="お気に入り切り替え"
+                >
+                  <span id="modal-favorite-icon" class="material-symbols-outlined">
+                    star
+                  </span>
+                </button>
+            
+                <button
+                  id="open-world-name-edit-btn"
+                  type="button"
+                  class="small-action-button"
+                >
+                  編集
+                </button>
+              </div>
+            </div>
+            <div class="modal-danger-actions">
+              <button id="modal-delete-photo-btn" type="button" class="danger-button">
+                この登録を削除
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="world-name-edit-modal" class="sub-modal hidden">
+      <div
+        id="world-name-edit-backdrop"
+        class="sub-modal-backdrop"
+      ></div>
+
+      <div class="sub-modal-content">
+        <button
+          id="world-name-edit-close"
+          class="sub-modal-close"
+          type="button"
+        >
+          ×
+        </button>
+
+        <div class="sub-modal-body">
+          <h3>ワールド名を手動修正</h3>
+          <p class="sub-modal-description">
+            特殊文字などで自動取得名が崩れる場合に、表示名を手動で上書きできます。
+          </p>
+
+          <label for="modal-world-name-input">ワールド名</label>
+          <input
+            id="modal-world-name-input"
+            type="text"
+            placeholder="例: Waiting / 待ち"
+          />
+
+          <label for="modal-world-url-input">World URL</label>
+          <input
+            id="modal-world-url-input"
+            type="text"
+            placeholder="https://vrchat.com/home/world/wrld_..."
+          />
+
+          <div class="world-name-editor-actions">
+            <button id="save-world-name-btn" type="button">保存</button>
+            <button id="clear-world-name-btn" type="button" class="secondary">
+              手動設定を解除
+            </button>
+            <button id="reread-world-name-btn" type="button" class="secondary">
+              再度ワールド名を自動取得
+            </button>
+          </div>
+
+          <p id="world-name-save-status" class="world-name-save-status"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="drop-overlay" class="drop-overlay hidden">
+      <div class="drop-overlay-panel">
+        <p class="drop-overlay-title">ここに画像またはフォルダをドロップ</p>
+        <p class="drop-overlay-text">png / jpg / jpeg / webp に対応</p>
+      </div>
+    </div>
+
+    <div id="settings-modal" class="sub-modal hidden">
+      <div id="settings-modal-backdrop" class="sub-modal-backdrop"></div>
+
+      <div class="sub-modal-content settings-modal-content">
+        <button
+          id="settings-modal-close"
+          class="sub-modal-close"
+          type="button"
+        >
+          ﾃ・
+        </button>
+
+        <div class="sub-modal-body">
+          <h3>設定</h3>
+
+          <div class="settings-section settings-font-section">
+            <div>
+              <p class="settings-section-title">Font</p>
+            </div>
+
+            <div id="font-option-group" class="settings-font-option-group">
+              <button
+                type="button"
+                class="settings-font-option-button"
+                data-font-option="standard"
+              >
+                Standard
+              </button>
+              <button
+                type="button"
+                class="settings-font-option-button"
+                data-font-option="zenmaru"
+              >
+                Zen Maru Gothic
+              </button>
+              <button
+                type="button"
+                class="settings-font-option-button"
+                data-font-option="mplus"
+              >
+                M PLUS
+              </button>
+              <button
+                type="button"
+                class="settings-font-option-button"
+                data-font-option="kiwimaru"
+              >
+                Kiwi Maru
+              </button>
+              <button
+                type="button"
+                class="settings-font-option-button"
+                data-font-option="sawarabimincho"
+              >
+                Sawarabi Mincho
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-section-header">
+              <div>
+                <p class="settings-section-title">更新対象フォルダの設定</p>
+              </div>
+
+              <button
+                id="add-tracked-folder-btn"
+                type="button"
+                class="small-action-button"
+              >
+                フォルダ追加
+              </button>
+            </div>
+
+            <div id="tracked-folder-list" class="tracked-folder-list">
+              <p class="tracked-folder-empty">まだ登録されていません</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="confirm-modal" class="sub-modal hidden">
+      <div id="confirm-modal-backdrop" class="sub-modal-backdrop"></div>
+    
+      <div class="sub-modal-content confirm-modal-content">
+        <button
+          id="confirm-modal-close"
+          class="sub-modal-close"
+          type="button"
+          aria-label="確認モーダルを閉じる"
+        >
+          ×
+        </button>
+    
+        <div class="sub-modal-body">
+          <h3 id="confirm-modal-title">確認</h3>
+          <p id="confirm-modal-message" class="sub-modal-description">
+            この操作を実行しますか？
+          </p>
+    
+          <div class="confirm-modal-actions">
+            <button
+              id="confirm-modal-cancel-btn"
+              type="button"
+              class="secondary"
+            >
+              キャンセル
+            </button>
+            <button
+              id="confirm-modal-confirm-btn"
+              type="button"
+              class="danger-button"
+            >
+              実行する
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>    
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>
