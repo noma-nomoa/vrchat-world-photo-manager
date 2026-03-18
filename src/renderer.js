@@ -1771,13 +1771,15 @@ function getBulkFavoriteTargetValue() {
   return !selectedPhotos.every((photo) => photo.isFavorite);
 }
 
-function syncSelectionUi() {
+function syncSelectionModeButtonState() {
   if (selectionModeButton) {
     selectionModeButton.classList.toggle('is-active', isSelectionMode);
     selectionModeButton.textContent = isSelectionMode ? '選択終了' : '選択';
     selectionModeButton.disabled = isImporting || !currentSelection;
   }
+}
 
+function syncBulkFavoriteButtonState() {
   if (bulkFavoriteButton) {
     const hasSelection = isSelectionMode && selectedPhotoIds.size > 0;
     const nextFavoriteValue = getBulkFavoriteTargetValue();
@@ -1791,14 +1793,18 @@ function syncSelectionUi() {
       hasSelection && !nextFavoriteValue
     );
   }
+}
 
+function syncBulkDeleteButtonState() {
   if (bulkDeleteButton) {
     bulkDeleteButton.disabled =
       isImporting || !isSelectionMode || selectedPhotoIds.size === 0;
 
     bulkDeleteButton.textContent = '削除';
   }
+}
 
+function syncSelectionCountBadgeState() {
   if (selectionCountBadge) {
     const shouldShow =
       Boolean(currentSelection) && isSelectionMode && selectedPhotoIds.size > 0;
@@ -1811,6 +1817,13 @@ function syncSelectionUi() {
       selectionCountBadge.textContent = '0件選択中';
     }
   }
+}
+
+function syncSelectionUi() {
+  syncSelectionModeButtonState();
+  syncBulkFavoriteButtonState();
+  syncBulkDeleteButtonState();
+  syncSelectionCountBadgeState();
 }
 
 function clearSelectionState() {
@@ -2441,13 +2454,8 @@ function populateModal(item) {
       typeof item.memoText === 'string' ? item.memoText : '';
   }
 
-  if (modalPhotoMemoStatus) {
-    modalPhotoMemoStatus.textContent = '';
-  }
-
-  if (modalPhotoMemoSaveButton) {
-    modalPhotoMemoSaveButton.disabled = !item.id;
-  }
+  setModalPhotoMemoStatus('');
+  setModalPhotoMemoSaveButtonBusy(false);
 
   resizeModalPhotoMemoInput();
 }
@@ -3146,7 +3154,9 @@ function clearCurrentModalPhotoState() {
   modalImage.src = '';
   currentModalPhoto = null;
   currentModalPhotoLabels = [];
-  worldNameSaveStatus.textContent = '';
+  setWorldNameEditStatus('');
+  setModalPhotoMemoStatus('');
+  setModalPhotoMemoSaveButtonBusy(false);
 
   if (imageModalInfo) {
     imageModalInfo.scrollTop = 0;
@@ -3461,7 +3471,7 @@ function openWorldNameEditModal() {
     modalWorldUrlInput.value = currentModalPhoto.worldUrl || '';
   }
 
-  worldNameSaveStatus.textContent = '';
+  setWorldNameEditStatus('');
   syncWorldMetadataSyncUi();
   openSubModalElement(worldNameEditModal);
 }
@@ -3469,7 +3479,7 @@ function openWorldNameEditModal() {
 function closeWorldNameEditModal() {
   closeSubModalElement(worldNameEditModal, {
     onClosed: () => {
-      worldNameSaveStatus.textContent = '';
+      setWorldNameEditStatus('');
     },
   });
 }
@@ -3812,6 +3822,31 @@ function initializeWorldNameEditUi() {
       worldNameEditorActions.appendChild(modalDeletePhotoButton);
     }
   }
+}
+
+function setWorldNameEditStatus(message = '') {
+  if (worldNameSaveStatus) {
+    worldNameSaveStatus.textContent = message;
+  }
+}
+
+function setModalPhotoMemoStatus(message = '') {
+  if (modalPhotoMemoStatus) {
+    modalPhotoMemoStatus.textContent = message;
+  }
+}
+
+function setModalPhotoMemoSaveButtonBusy(isBusy) {
+  if (!modalPhotoMemoSaveButton) {
+    return;
+  }
+
+  modalPhotoMemoSaveButton.disabled =
+    Boolean(isBusy) || !Boolean(currentModalPhoto?.id);
+}
+
+function buildActionFailureMessage(actionLabel, result) {
+  return `${actionLabel}: ${result?.message || '不明なエラー'}`;
 }
 
 // Photo labels are configured from the image modal, but the editor itself is
@@ -5219,6 +5254,9 @@ async function handleImportResult(result, modeLabel) {
   await restorePhotoDataSelectionFromResult(result);
 }
 
+// Import / refresh flows all converge here so the same selection-restore rules
+// are used regardless of whether data changed via import, tracked-folder
+// refresh, or another foreground sync path.
 async function queueWorldMetadataSyncForResult(result) {
   await startBackgroundWorldMetadataSync(result?.worldMetadataTargets);
 }
@@ -5271,6 +5309,8 @@ async function startBackgroundWorldMetadataSync(targets) {
   }
 }
 
+// Refresh results have more branches than import results, so toast selection is
+// separated from sidebar/month restoration to keep the main handler readable.
 function showTrackedFoldersRefreshResultToast(result) {
   if (!result || result.canceled) {
     return;
@@ -5363,24 +5403,16 @@ async function runTrackedFoldersRefreshFlow() {
   await queueWorldMetadataSyncForResult(result);
 }
 
-function setImportUiBusy(isBusy) {
-  isImporting = isBusy;
-
-  if (!isBusy) {
-    resetProcessingProgress();
+function setElementDisabledState(element, disabled) {
+  if (element) {
+    element.disabled = Boolean(disabled);
   }
+}
 
-  if (refreshTrackedFoldersButton) {
-    refreshTrackedFoldersButton.disabled = isBusy;
-  }
-
-  if (settingsButton) {
-    settingsButton.disabled = isBusy;
-  }
-
-  if (regenerateThumbnailsButton) {
-    regenerateThumbnailsButton.disabled = isBusy;
-  }
+function syncBusyAffectedPrimaryActions(isBusy) {
+  setElementDisabledState(refreshTrackedFoldersButton, isBusy);
+  setElementDisabledState(settingsButton, isBusy);
+  setElementDisabledState(regenerateThumbnailsButton, isBusy);
 
   if (regenerateThumbnailMonthSelect) {
     regenerateThumbnailMonthSelect.disabled =
@@ -5389,52 +5421,67 @@ function setImportUiBusy(isBusy) {
 
   if (regenerateThumbnailMonthButton) {
     regenerateThumbnailMonthButton.disabled =
-      isBusy || !regenerateThumbnailMonthSelect || regenerateThumbnailMonthSelect.options.length === 0;
+      isBusy ||
+      !regenerateThumbnailMonthSelect ||
+      regenerateThumbnailMonthSelect.options.length === 0;
+  }
+}
+
+function syncBusyAffectedFilterActions(isBusy) {
+  const selectionDependentDisabled = isBusy || !currentSelection;
+
+  setElementDisabledState(favoriteFilterButton, selectionDependentDisabled);
+  setElementDisabledState(orientationFilterButton, selectionDependentDisabled);
+  setElementDisabledState(worldNameFilterButton, selectionDependentDisabled);
+  setElementDisabledState(selectionModeButton, selectionDependentDisabled);
+}
+
+function syncBusyAffectedSelectionActions(isBusy) {
+  setElementDisabledState(
+    bulkFavoriteButton,
+    isBusy || !isSelectionMode || selectedPhotoIds.size === 0
+  );
+  setElementDisabledState(
+    bulkDeleteButton,
+    isBusy || !isSelectionMode || selectedPhotoIds.size === 0
+  );
+}
+
+function syncBusyAffectedMaintenanceActions(isBusy) {
+  setElementDisabledState(
+    clearThumbnailCacheButton,
+    isBusy || sidebarData.length === 0
+  );
+  setElementDisabledState(
+    resetDatabaseButton,
+    isBusy || (sidebarData.length === 0 && trackedFolders.length === 0)
+  );
+}
+
+function closeMenusBlockedByBusyState() {
+  closeOrientationFilterMenu();
+  closeWorldNameFilterMenu();
+  closeRegenerateThumbnailMonthMenu();
+}
+
+function setImportUiBusy(isBusy) {
+  isImporting = isBusy;
+
+  if (!isBusy) {
+    resetProcessingProgress();
   }
 
-  if (favoriteFilterButton) {
-    favoriteFilterButton.disabled = isBusy || !currentSelection;
-  }
-
-  if (orientationFilterButton) {
-    orientationFilterButton.disabled = isBusy || !currentSelection;
-  }
-
-  if (worldNameFilterButton) {
-    worldNameFilterButton.disabled = isBusy || !currentSelection;
-  }
-
-  if (selectionModeButton) {
-    selectionModeButton.disabled = isBusy || !currentSelection;
-  }
-
-  if (bulkFavoriteButton) {
-    bulkFavoriteButton.disabled =
-      isBusy || !isSelectionMode || selectedPhotoIds.size === 0;
-  }
-
-  if (bulkDeleteButton) {
-    bulkDeleteButton.disabled =
-      isBusy || !isSelectionMode || selectedPhotoIds.size === 0;
-  }
-
-  if (clearThumbnailCacheButton) {
-    clearThumbnailCacheButton.disabled = isBusy || sidebarData.length === 0;
-  }
-
-  if (resetDatabaseButton) {
-    resetDatabaseButton.disabled =
-      isBusy || (sidebarData.length === 0 && trackedFolders.length === 0);
-  }
+  syncBusyAffectedPrimaryActions(isBusy);
+  syncBusyAffectedFilterActions(isBusy);
+  syncBusyAffectedSelectionActions(isBusy);
+  syncBusyAffectedMaintenanceActions(isBusy);
 
   if (isBusy && typeof resetDropOverlay === 'function') {
     resetDropOverlay();
   }
 
   if (isBusy) {
-    closeOrientationFilterMenu();
-    closeWorldNameFilterMenu();
-    closeRegenerateThumbnailMonthMenu();
+    closeMenusBlockedByBusyState();
   }
 }
 
@@ -5521,7 +5568,8 @@ async function runImportFlow(modeLabel, startMessage, importRunner) {
   await queueWorldMetadataSyncForResult(result);
 }
 
-
+// Manual world editing stays isolated from the read-only modal so save/reload
+// behavior can evolve without changing the primary photo modal bindings.
 async function saveManualWorldEditForm({
   worldNameManual,
   worldUrl,
@@ -5530,7 +5578,7 @@ async function saveManualWorldEditForm({
     return;
   }
 
-  worldNameSaveStatus.textContent = '保存中...';
+  setWorldNameEditStatus('保存中...');
 
   const result = await window.electronAPI.updateWorldSettings(
     currentModalPhoto.id,
@@ -5541,9 +5589,7 @@ async function saveManualWorldEditForm({
   );
 
   if (!result?.ok) {
-    worldNameSaveStatus.textContent = `保存に失敗しました: ${
-      result?.message || '不明なエラー'
-    }`;
+    setWorldNameEditStatus(buildActionFailureMessage('保存に失敗しました', result));
     return;
   }
 
@@ -5552,18 +5598,15 @@ async function saveManualWorldEditForm({
   showToast('World設定を保存しました');
 }
 
+// Memo saves only touch the currently open photo, but they still go through the
+// shared single-photo sync path so cards, filters, and modal state stay aligned.
 async function savePhotoMemo() {
   if (!currentModalPhoto || !modalPhotoMemoInput) {
     return;
   }
 
-  if (modalPhotoMemoStatus) {
-    modalPhotoMemoStatus.textContent = '保存中...';
-  }
-
-  if (modalPhotoMemoSaveButton) {
-    modalPhotoMemoSaveButton.disabled = true;
-  }
+  setModalPhotoMemoStatus('保存中...');
+  setModalPhotoMemoSaveButtonBusy(true);
 
   const result = await window.electronAPI.updatePhotoMemo(
     currentModalPhoto.id,
@@ -5571,33 +5614,29 @@ async function savePhotoMemo() {
   );
 
   if (!result?.ok) {
-    if (modalPhotoMemoStatus) {
-      modalPhotoMemoStatus.textContent = `保存に失敗しました: ${
-        result?.message || '不明なエラー'
-      }`;
-    }
-
-  if (modalPhotoMemoSaveButton) {
-    modalPhotoMemoSaveButton.disabled = false;
-  }
-  return;
+    setModalPhotoMemoStatus(
+      buildActionFailureMessage('保存に失敗しました', result)
+    );
+    setModalPhotoMemoSaveButtonBusy(false);
+    return;
   }
 
   syncSinglePhotoUpdate(result.photo);
 
-  if (modalPhotoMemoStatus) {
-    modalPhotoMemoStatus.textContent = '保存しました';
-  }
+  setModalPhotoMemoStatus('保存しました');
+  setModalPhotoMemoSaveButtonBusy(false);
 
   showToast('メモを保存しました');
 }
 
+// Manual reload uses the edit modal's current World URL input so users do not
+// need to save first just to test a corrected URL.
 async function rereadWorldName() {
   if (!currentModalPhoto) {
     return;
   }
 
-  worldNameSaveStatus.textContent = '再取得中...';
+  setWorldNameEditStatus('再取得中...');
 
   const result = await window.electronAPI.rereadWorldName({
     photoId: currentModalPhoto.id,
@@ -5605,9 +5644,9 @@ async function rereadWorldName() {
   });
 
   if (!result || !result.ok) {
-    worldNameSaveStatus.textContent = `再取得に失敗しました: ${
-      result?.message || '不明なエラー'
-    }`;
+    setWorldNameEditStatus(
+      buildActionFailureMessage('再取得に失敗しました', result)
+    );
     return;
   }
 
@@ -6407,53 +6446,57 @@ async function openCurrentModalContainingFolder() {
   handleRecoveredModalFileActionResult(result, '保存先フォルダを開けませんでした');
 }
 
-// Modal-level editors and detail actions are grouped here so photo-specific
-// behavior can be traced without scanning the entire file bottom.
-function bindPhotoAndEditModalControls() {
-  saveWorldNameButton?.addEventListener('click', async () => {
-    await saveManualWorldEditForm({
-      worldNameManual: modalWorldNameInput?.value || '',
-      worldUrl: modalWorldUrlInput?.value || '',
-    });
+async function handleSaveWorldSettingsClick() {
+  await saveManualWorldEditForm({
+    worldNameManual: modalWorldNameInput?.value || '',
+    worldUrl: modalWorldUrlInput?.value || '',
   });
+}
 
-  modalWorldNameInput?.addEventListener('input', () => {
-    worldNameSaveStatus.textContent = '';
-  });
+function handleWorldEditFormInput() {
+  setWorldNameEditStatus('');
+}
 
-  modalWorldUrlInput?.addEventListener('input', () => {
-    worldNameSaveStatus.textContent = '';
-  });
+async function handlePhotoMemoSaveClick() {
+  await savePhotoMemo();
+}
 
-  modalPhotoMemoSaveButton?.addEventListener('click', async () => {
+function handlePhotoMemoInput() {
+  resizeModalPhotoMemoInput();
+  setModalPhotoMemoStatus('');
+}
+
+async function handlePhotoMemoKeydown(event) {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+    event.preventDefault();
     await savePhotoMemo();
-  });
+  }
+}
 
-  modalPhotoMemoInput?.addEventListener('input', () => {
-    resizeModalPhotoMemoInput();
-
-    if (modalPhotoMemoStatus) {
-      modalPhotoMemoStatus.textContent = '';
-    }
+async function handleClearWorldNameClick() {
+  await saveManualWorldEditForm({
+    worldNameManual: '',
+    worldUrl: currentModalPhoto?.worldUrl || '',
   });
+}
 
-  modalPhotoMemoInput?.addEventListener('keydown', async (event) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-      event.preventDefault();
-      await savePhotoMemo();
-    }
-  });
+async function handleRereadWorldNameClick() {
+  await rereadWorldName();
+}
 
-  clearWorldNameButton?.addEventListener('click', async () => {
-    await saveManualWorldEditForm({
-      worldNameManual: '',
-      worldUrl: currentModalPhoto?.worldUrl || '',
-    });
-  });
-
-  rereadWorldNameButton?.addEventListener('click', async () => {
-    await rereadWorldName();
-  });
+// Modal-level editors and detail actions are grouped here so photo-specific
+// behavior can be traced without scanning the entire file bottom. The handlers
+// above keep bind-time code declarative while preserving named entry points for
+// future debugging.
+function bindPhotoAndEditModalControls() {
+  saveWorldNameButton?.addEventListener('click', handleSaveWorldSettingsClick);
+  modalWorldNameInput?.addEventListener('input', handleWorldEditFormInput);
+  modalWorldUrlInput?.addEventListener('input', handleWorldEditFormInput);
+  modalPhotoMemoSaveButton?.addEventListener('click', handlePhotoMemoSaveClick);
+  modalPhotoMemoInput?.addEventListener('input', handlePhotoMemoInput);
+  modalPhotoMemoInput?.addEventListener('keydown', handlePhotoMemoKeydown);
+  clearWorldNameButton?.addEventListener('click', handleClearWorldNameClick);
+  rereadWorldNameButton?.addEventListener('click', handleRereadWorldNameClick);
 
   openWorldNameEditButton?.addEventListener('click', () => {
     openWorldNameEditModal();

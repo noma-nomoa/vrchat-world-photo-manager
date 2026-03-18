@@ -1782,13 +1782,43 @@ function getWorldMetadataSyncProgressMessageLegacyCorrupt(phase) {
     : 'World情報を自動で取得しています...';
 }
 
+// Quarantined compatibility helper kept in place because the original
+// mojibake-adjacent block is still preserved below. Active code now calls the
+// *Active helper further down instead of routing through this function.
 function createMissingAccessiblePhotoFileError() {
+  return new Error(
+    '画像ファイルが見つかりません。保存先を開いて場所を再確認してください。'
+  );
+
   return new Error(
     '画像ファイルが見つかりません。保存先を開いて場所を再確認してください。'
   );
 }
 
+// Active progress/status helpers remain separate from the quarantined mojibake
+// block above so queue code can call a single clean entry point.
+// Quarantined compatibility helper kept in place because the original
+// mojibake-adjacent block is still preserved below. Active code now calls the
+// *Active helper further down instead of routing through this function.
 function getWorldMetadataSyncProgressMessage(phase) {
+  return phase === 'complete'
+    ? 'World情報の自動取得が完了しました'
+    : 'World情報を自動で取得しています...';
+
+  return phase === 'complete'
+    ? 'World情報の自動取得が完了しました'
+    : 'World情報を自動で取得しています...';
+}
+
+// Active call sites use these UTF-8-safe helpers. The original function names
+// above remain only because the file still contains quarantined mojibake blocks.
+function createMissingAccessiblePhotoFileErrorActive() {
+  return new Error(
+    '画像ファイルが見つかりません。保存先を開いて場所を再確認してください。'
+  );
+}
+
+function getWorldMetadataSyncProgressMessageActive(phase) {
   return phase === 'complete'
     ? 'World情報の自動取得が完了しました'
     : 'World情報を自動で取得しています...';
@@ -1801,7 +1831,7 @@ function broadcastQueuedWorldMetadataSyncProgress(phase, processedCount) {
     phase,
     current: processedCount,
     total: totalCount,
-    message: getWorldMetadataSyncProgressMessage(phase),
+    message: getWorldMetadataSyncProgressMessageActive(phase),
   });
 }
 
@@ -2145,7 +2175,7 @@ async function ensureAccessiblePhotoFile(payload) {
     };
   }
 
-  throw createMissingAccessiblePhotoFileError();
+  throw createMissingAccessiblePhotoFileErrorActive();
 }
 
 // Disk actions all share the same recovery flow: recover the moved file if
@@ -2156,7 +2186,7 @@ async function withAccessiblePhotoFile(payload, action) {
   const filePath = resolvedPhoto.filePath;
 
   if (typeof filePath !== 'string' || filePath.trim().length === 0) {
-    throw createMissingAccessiblePhotoFileError();
+    throw createMissingAccessiblePhotoFileErrorActive();
   }
 
   await fs.access(filePath);
@@ -2580,6 +2610,8 @@ function getQueuedWorldMetadataSyncCount() {
   return pendingWorldMetadataSyncTargets.size + (isWorldMetadataSyncRunning ? 1 : 0);
 }
 
+// Queue iteration is intentionally split into "dequeue" and "process" so the
+// active sync loop reads as state transitions rather than one large mutation.
 function dequeueNextWorldMetadataSyncTarget() {
   if (pendingWorldMetadataSyncTargets.size === 0) {
     return null;
@@ -2705,11 +2737,19 @@ async function runQueuedWorldMetadataSyncLegacy() {
   }
 }
 
-async function runQueuedWorldMetadataSync() {
+async function runQueuedWorldMetadataSyncActive() {
   return runQueuedWorldMetadataSyncInternal();
 }
 
-function enqueueWorldMetadataSyncTargets(targets, webContents) {
+// Compatibility wrapper retained so older references still route into the
+// clean active runner above while quarantine cleanup continues.
+async function runQueuedWorldMetadataSync() {
+  return runQueuedWorldMetadataSyncActive();
+}
+
+// Renderer requests enter the sync queue through this helper so subscriber
+// registration, dedupe, and queue start stay in one active entry point.
+function startWorldMetadataSyncForSubscriber(targets, webContents) {
   addWorldMetadataSyncSubscriber(webContents);
 
   let queuedCount = 0;
@@ -2721,7 +2761,7 @@ function enqueueWorldMetadataSyncTargets(targets, webContents) {
   }
 
   if (queuedCount > 0) {
-    void runQueuedWorldMetadataSync();
+    void runQueuedWorldMetadataSyncActive();
   }
 
   return {
@@ -2731,10 +2771,8 @@ function enqueueWorldMetadataSyncTargets(targets, webContents) {
   };
 }
 
-function enqueueNormalizedWorldMetadataSyncTargets(targets, webContents) {
-  return enqueueWorldMetadataSyncTargets(targets, webContents);
-}
-
+// Drag-and-drop can mix files and folders, so expand them here before import so
+// the higher-level import flow only deals with normalized image paths.
 async function expandDroppedPathsToImportTargets(droppedPaths) {
   const collected = [];
   const trackedFolderPaths = [];
@@ -3106,12 +3144,22 @@ async function openContainingFolderOnDiskLegacy(filePath) {
   */
 }
 
-async function openLocalFileOnDisk(filePath) {
+async function openLocalFileOnDiskActive(filePath) {
   return openRecoveredLocalFileOnDisk(filePath);
 }
 
-async function openContainingFolderOnDisk(filePath) {
+async function openContainingFolderOnDiskActive(filePath) {
   return openRecoveredContainingFolderOnDisk(filePath);
+}
+
+// Compatibility wrappers retained so any older local call sites still route
+// through the clean payload-aware access helpers.
+async function openLocalFileOnDisk(filePath) {
+  return openLocalFileOnDiskActive(filePath);
+}
+
+async function openContainingFolderOnDisk(filePath) {
+  return openContainingFolderOnDiskActive(filePath);
 }
 
 async function openRecoveredLocalFileOnDisk(payload) {
@@ -3358,7 +3406,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('start-world-metadata-sync', async (event, payload) => {
     try {
-      return enqueueNormalizedWorldMetadataSyncTargets(
+      return startWorldMetadataSyncForSubscriber(
         payload?.targets,
         event.sender
       );
@@ -3626,7 +3674,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('open-local-file', async (_event, filePath) => {
     try {
-      return await openRecoveredLocalFileOnDisk(filePath);
+      return await openLocalFileOnDiskActive(filePath);
     } catch (error) {
       return {
         ok: false,
@@ -3637,7 +3685,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('open-containing-folder', async (_event, filePath) => {
     try {
-      return await openRecoveredContainingFolderOnDisk(filePath);
+      return await openContainingFolderOnDiskActive(filePath);
     } catch (error) {
       return {
         ok: false,
