@@ -3048,6 +3048,8 @@ function renderTrackedFolderList() {
     .join('');
 }
 
+// Settings modal maintenance buttons are enabled or disabled from the current
+// sidebar state so destructive actions stay predictable during testing.
 function syncSettingsMaintenanceUi() {
   if (deleteCurrentMonthRegistrationsButton) {
     const hasSelection =
@@ -3283,170 +3285,8 @@ function initializeWorldNameEditUi() {
   }
 }
 
-function initializePhotoLabelUiLegacy() {
-  if (modalWorldTags && !modalPhotoLabelsBlock) {
-    const referenceBlock = modalWorldTags.closest('.modal-world-meta-block');
-
-    if (referenceBlock?.parentElement) {
-      modalPhotoLabelsBlock = document.createElement('div');
-      modalPhotoLabelsBlock.className = 'modal-world-meta-block modal-photo-label-block';
-
-      const header = document.createElement('div');
-      header.className = 'photo-label-block-header';
-
-      const title = document.createElement('p');
-      title.className = 'modal-world-meta-title';
-      title.textContent = 'Label';
-      header.appendChild(title);
-
-      openPhotoLabelEditorButton = document.createElement('button');
-      openPhotoLabelEditorButton.type = 'button';
-      openPhotoLabelEditorButton.className = 'small-action-button';
-      openPhotoLabelEditorButton.textContent = '設定';
-      header.appendChild(openPhotoLabelEditorButton);
-
-      modalPhotoLabelsList = document.createElement('div');
-      modalPhotoLabelsList.className = 'modal-photo-labels';
-
-      modalPhotoLabelsBlock.appendChild(header);
-      modalPhotoLabelsBlock.appendChild(modalPhotoLabelsList);
-      referenceBlock.insertAdjacentElement('afterend', modalPhotoLabelsBlock);
-      renderModalPhotoLabels();
-    }
-  }
-
-  if (!photoLabelModal) {
-    photoLabelModal = document.createElement('div');
-    photoLabelModal.id = 'photo-label-modal';
-    photoLabelModal.className = 'sub-modal hidden';
-
-    photoLabelBackdrop = document.createElement('div');
-    photoLabelBackdrop.className = 'sub-modal-backdrop';
-    photoLabelModal.appendChild(photoLabelBackdrop);
-
-    const content = document.createElement('div');
-    content.className = 'sub-modal-content photo-label-modal-content';
-    photoLabelModal.appendChild(content);
-
-    photoLabelClose = document.createElement('button');
-    photoLabelClose.type = 'button';
-    photoLabelClose.className = 'sub-modal-close';
-    content.appendChild(photoLabelClose);
-
-    const body = document.createElement('div');
-    body.className = 'sub-modal-body photo-label-modal-body';
-    content.appendChild(body);
-
-    const title = document.createElement('h3');
-    title.textContent = 'Set Labels';
-    body.appendChild(title);
-
-    const description = document.createElement('p');
-    description.className = 'sub-modal-description';
-    description.textContent =
-      '既存ラベルを追加したり、新しいラベルを色付きで作成して写真へ設定できます。';
-    body.appendChild(description);
-
-    const selectedTitle = document.createElement('p');
-    selectedTitle.className = 'photo-label-editor-section-title';
-    selectedTitle.textContent = 'Current Labels';
-    body.appendChild(selectedTitle);
-
-    photoLabelSelectedList = document.createElement('div');
-    photoLabelSelectedList.className = 'photo-label-selected-list';
-    body.appendChild(photoLabelSelectedList);
-
-    const pickerRow = document.createElement('div');
-    pickerRow.className = 'photo-label-picker-row';
-    body.appendChild(pickerRow);
-
-    photoLabelSelect = document.createElement('select');
-    photoLabelSelect.className = 'photo-label-select';
-    pickerRow.appendChild(photoLabelSelect);
-
-    photoLabelAddSelectedButton = document.createElement('button');
-    photoLabelAddSelectedButton.type = 'button';
-    photoLabelAddSelectedButton.className = 'small-action-button';
-    photoLabelAddSelectedButton.textContent = '追加';
-    pickerRow.appendChild(photoLabelAddSelectedButton);
-
-    photoLabelNewToggleButton = document.createElement('button');
-    photoLabelNewToggleButton.type = 'button';
-    photoLabelNewToggleButton.className = 'secondary-toolbar-button photo-label-new-toggle';
-    photoLabelNewToggleButton.textContent = '新規追加';
-    body.appendChild(photoLabelNewToggleButton);
-
-    photoLabelNewForm = document.createElement('div');
-    photoLabelNewForm.className = 'photo-label-new-form';
-    photoLabelNewForm.hidden = true;
-    body.appendChild(photoLabelNewForm);
-
-    photoLabelNewNameInput = document.createElement('input');
-    photoLabelNewNameInput.type = 'text';
-    photoLabelNewNameInput.className = 'photo-label-new-name';
-    photoLabelNewNameInput.placeholder = '新しいラベル名';
-    photoLabelNewForm.appendChild(photoLabelNewNameInput);
-
-    photoLabelNewColorInput = document.createElement('input');
-    photoLabelNewColorInput.type = 'color';
-    photoLabelNewColorInput.className = 'photo-label-new-color';
-    photoLabelNewColorInput.value = '#6D5EF6';
-    photoLabelNewForm.appendChild(photoLabelNewColorInput);
-
-    photoLabelAddNewButton = document.createElement('button');
-    photoLabelAddNewButton.type = 'button';
-    photoLabelAddNewButton.className = 'small-action-button';
-    photoLabelAddNewButton.textContent = 'この内容で追加';
-    photoLabelNewForm.appendChild(photoLabelAddNewButton);
-
-    photoLabelSaveStatus = document.createElement('p');
-    photoLabelSaveStatus.className = 'world-name-save-status photo-label-save-status';
-    body.appendChild(photoLabelSaveStatus);
-
-    const actions = document.createElement('div');
-    actions.className = 'photo-label-editor-actions';
-    body.appendChild(actions);
-
-    photoLabelSaveButton = document.createElement('button');
-    photoLabelSaveButton.type = 'button';
-    photoLabelSaveButton.className = 'primary-link-button photo-label-save-button';
-    photoLabelSaveButton.textContent = '保存';
-    actions.appendChild(photoLabelSaveButton);
-
-    document.body.appendChild(photoLabelModal);
-  }
-
-  openPhotoLabelEditorButton?.addEventListener('click', () => {
-    void openPhotoLabelModal();
-  });
-
-  photoLabelBackdrop?.addEventListener('click', closePhotoLabelModal);
-  photoLabelClose?.addEventListener('click', closePhotoLabelModal);
-
-  photoLabelAddSelectedButton?.addEventListener('click', () => {
-    addSelectedPhotoLabel();
-  });
-
-  photoLabelNewToggleButton?.addEventListener('click', () => {
-    setPhotoLabelNewFormOpen(!isPhotoLabelNewFormOpen);
-  });
-
-  photoLabelAddNewButton?.addEventListener('click', () => {
-    addNewPhotoLabelDraft();
-  });
-
-  photoLabelNewNameInput?.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      addNewPhotoLabelDraft();
-    }
-  });
-
-  photoLabelSaveButton?.addEventListener('click', async () => {
-    await savePhotoLabels();
-  });
-}
-
+// Photo labels are configured from the image modal, but the editor itself is
+// mounted lazily here to keep the static HTML smaller and easier to recover.
 function initializePhotoLabelUi() {
   if (modalWorldTags && !modalPhotoLabelsBlock) {
     const referenceBlock = modalWorldTags.closest('.modal-world-meta-block');
@@ -5336,6 +5176,8 @@ function closePhotoSpecificModalsForDeletedPhotos(photoIds) {
   closeImageModal();
 }
 
+// These maintenance actions intentionally reuse the normal delete / refresh
+// flows so verification work exercises the same data paths as day-to-day use.
 async function deleteCurrentMonthRegistrationsFromSettings() {
   if (
     isImporting ||

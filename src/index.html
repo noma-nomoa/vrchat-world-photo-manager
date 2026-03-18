@@ -299,6 +299,7 @@
       </div>
     </div>
 
+    <!-- Image detail modal -->
     <div id="image-modal" class="image-modal hidden">
       <div
         class="image-modal-backdrop"
@@ -447,6 +448,7 @@
       </div>
     </div>
 
+    <!-- World name / World URL edit modal -->
     <div id="world-name-edit-modal" class="sub-modal hidden">
       <div
         id="world-name-edit-backdrop"
@@ -504,6 +506,7 @@
       </div>
     </div>
 
+    <!-- Settings and maintenance modal -->
     <div id="settings-modal" class="sub-modal hidden">
       <div id="settings-modal-backdrop" class="sub-modal-backdrop"></div>
 
@@ -512,13 +515,13 @@
           id="settings-modal-close"
           class="sub-modal-close"
           type="button"
-        >
-          ﾃ・
-        </button>
+          aria-label="設定モーダルを閉じる"
+        ></button>
 
         <div class="sub-modal-body">
           <h3>設定</h3>
 
+          <!-- Font switch -->
           <div class="settings-section settings-font-section">
             <div>
               <p class="settings-section-title">Font</p>
@@ -563,6 +566,7 @@
             </div>
           </div>
 
+          <!-- Tracked folders -->
           <div class="settings-section">
             <div class="settings-section-header">
               <div>
@@ -582,29 +586,59 @@
               <p class="tracked-folder-empty">まだ登録されていません</p>
             </div>
           </div>
+
+          <!-- Maintenance actions -->
+          <div class="settings-section settings-maintenance-section">
+            <div>
+              <p class="settings-section-title">メンテナンス</p>
+            </div>
+
+            <div class="settings-maintenance-actions">
+              <button
+                id="delete-current-month-registrations-btn"
+                type="button"
+                class="danger-button settings-maintenance-button"
+              >
+                表示中の月を削除
+              </button>
+              <button
+                id="clear-thumbnail-cache-btn"
+                type="button"
+                class="secondary settings-maintenance-button"
+              >
+                サムネイルキャッシュを削除
+              </button>
+              <button
+                id="delete-all-registrations-btn"
+                type="button"
+                class="danger-button settings-maintenance-button"
+              >
+                全登録を削除
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
+    <!-- Shared confirm modal -->
     <div id="confirm-modal" class="sub-modal hidden">
       <div id="confirm-modal-backdrop" class="sub-modal-backdrop"></div>
-    
+
       <div class="sub-modal-content confirm-modal-content">
         <button
           id="confirm-modal-close"
           class="sub-modal-close"
           type="button"
           aria-label="確認モーダルを閉じる"
-        >
-          ×
-        </button>
-    
+        ></button>
+
         <div class="sub-modal-body">
           <h3 id="confirm-modal-title">確認</h3>
           <p id="confirm-modal-message" class="sub-modal-description">
             この操作を実行しますか？
           </p>
-    
+
           <div class="confirm-modal-actions">
             <button
               id="confirm-modal-cancel-btn"
@@ -623,8 +657,7 @@
           </div>
         </div>
       </div>
-    </div>    
-
+    </div>
     <div id="toast" class="toast hidden"></div>
 
     <script src="./renderer.js"></script>
