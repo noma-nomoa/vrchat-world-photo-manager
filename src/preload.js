@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('delete-photos-by-month', payload),
   deleteAllPhotos: () => ipcRenderer.invoke('delete-all-photos'),
   clearThumbnailCache: () => ipcRenderer.invoke('clear-thumbnail-cache'),
+  resetDatabase: () => ipcRenderer.invoke('reset-database'),
   getSidebarData: () => ipcRenderer.invoke('get-sidebar-data'),
   getLatestMonth: () => ipcRenderer.invoke('get-latest-month'),
   getTrackedFolders: () => ipcRenderer.invoke('get-tracked-folders'),
@@ -49,8 +50,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('update-world-settings', { photoId, ...payload }),
   updatePhotoMemo: (photoId, memoText) =>
     ipcRenderer.invoke('update-photo-memo', { photoId, memoText }),
-  rereadWorldName: (photoId) =>
-    ipcRenderer.invoke('reread-world-name', { photoId }),
+  rereadWorldName: (payload) =>
+    ipcRenderer.invoke('reread-world-name', payload),
+  startWorldMetadataSync: (targets) =>
+    ipcRenderer.invoke('start-world-metadata-sync', { targets }),
   openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
   resolvePhotoAccess: (payload) =>
     ipcRenderer.invoke('resolve-photo-access', payload),
@@ -74,6 +77,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     return () => {
       ipcRenderer.removeListener('processing-progress', wrappedListener);
+    };
+  },
+  onWorldMetadataUpdated: (listener) => {
+    if (typeof listener !== 'function') {
+      return () => {};
+    }
+
+    const wrappedListener = (_event, payload) => {
+      listener(payload);
+    };
+
+    ipcRenderer.on('world-metadata-updated', wrappedListener);
+
+    return () => {
+      ipcRenderer.removeListener('world-metadata-updated', wrappedListener);
     };
   },
 });

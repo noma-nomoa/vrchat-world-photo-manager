@@ -1301,6 +1301,10 @@ body[data-theme="light"] .primary-link-button {
   overflow: visible;
 }
 
+.photo-label-modal-content .sub-modal-close {
+  z-index: 4;
+}
+
 .photo-label-modal-body {
   display: grid;
   gap: 14px;
@@ -1372,10 +1376,6 @@ body[data-theme="light"] .primary-link-button {
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   align-items: stretch;
-}
-
-.photo-label-picker-row > .small-action-button {
-  display: none !important;
 }
 
 .photo-label-catalog-dropdown {
@@ -1593,6 +1593,22 @@ body[data-theme="light"] .primary-link-button {
 .world-name-editor-actions button.secondary {
   background: var(--secondary-btn-bg);
   color: var(--secondary-btn-text);
+}
+
+.world-name-editor-actions button.secondary:disabled {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(226, 232, 240, 0.46);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 1;
+  filter: none;
+}
+
+body[data-theme='light'] .world-name-editor-actions button.secondary:disabled {
+  background: rgba(15, 23, 42, 0.08);
+  border-color: rgba(15, 23, 42, 0.08);
+  color: rgba(15, 23, 42, 0.38);
 }
 
 .world-name-input-row {

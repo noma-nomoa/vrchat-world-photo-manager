@@ -544,6 +544,27 @@ function initDatabase(dbPath) {
     WHERE id = ?
   `);
 
+  const deleteAllPhotosStmt = db.prepare(`
+    DELETE FROM photos
+  `);
+
+  const deleteAllTrackedFoldersStmt = db.prepare(`
+    DELETE FROM tracked_folders
+  `);
+
+  const deleteAllWorldMetadataCacheStmt = db.prepare(`
+    DELETE FROM world_metadata_cache
+  `);
+
+  const deleteAllTagsStmt = db.prepare(`
+    DELETE FROM tags
+  `);
+
+  const resetSqliteSequenceStmt = db.prepare(`
+    DELETE FROM sqlite_sequence
+    WHERE name IN ('photos', 'tracked_folders', 'tags')
+  `);
+
   const replacePhotoTagsTxn = db.transaction((photoId, tagNames) => {
     const normalizedTags = Array.from(
       new Map(
@@ -909,6 +930,59 @@ function initDatabase(dbPath) {
     return getPhotoByIdStmt.get(photoId) || null;
   }
 
+  function getPhotosByWorldId(worldId) {
+    const normalizedWorldId =
+      typeof worldId === 'string' && worldId.trim().length > 0
+        ? worldId.trim()
+        : null;
+
+    if (!normalizedWorldId) {
+      return [];
+    }
+
+    return db
+      .prepare(
+        `
+          SELECT *
+          FROM photos
+          WHERE world_id = ?
+          ORDER BY taken_at_timestamp DESC, id DESC
+        `
+      )
+      .all(normalizedWorldId);
+  }
+
+  function updateAutoWorldInfoByWorldId(worldId, payload) {
+    const normalizedWorldId =
+      typeof worldId === 'string' && worldId.trim().length > 0
+        ? worldId.trim()
+        : null;
+
+    if (!normalizedWorldId) {
+      return [];
+    }
+
+    db.prepare(`
+      UPDATE photos
+      SET
+        world_name = ?,
+        world_url = COALESCE(?, world_url),
+        updated_at = ?
+      WHERE world_id = ?
+        AND (
+          world_name_manual IS NULL OR
+          TRIM(world_name_manual) = ''
+        )
+    `).run(
+      payload.worldName,
+      payload.worldUrl || null,
+      new Date().toISOString(),
+      normalizedWorldId
+    );
+
+    return getPhotosByWorldId(normalizedWorldId);
+  }
+
   function clearThumbnailPaths(photoIds) {
     const normalizedIds = Array.from(
       new Set(
@@ -1017,6 +1091,32 @@ function initDatabase(dbPath) {
     return getPhotoByIdStmt.get(photoId) || null;
   }
 
+  // Reset helpers live in the DB layer so destructive maintenance work has a
+  // single place to audit instead of scattering direct DELETEs across the app.
+  function resetApplicationData() {
+    const counts = {
+      photoCount: db.prepare('SELECT COUNT(*) AS count FROM photos').get().count,
+      trackedFolderCount: db
+        .prepare('SELECT COUNT(*) AS count FROM tracked_folders')
+        .get().count,
+      worldCacheCount: db
+        .prepare('SELECT COUNT(*) AS count FROM world_metadata_cache')
+        .get().count,
+      tagCount: db.prepare('SELECT COUNT(*) AS count FROM tags').get().count,
+    };
+
+    const txn = db.transaction(() => {
+      deleteAllPhotosStmt.run();
+      deleteAllTrackedFoldersStmt.run();
+      deleteAllWorldMetadataCacheStmt.run();
+      deleteAllTagsStmt.run();
+      resetSqliteSequenceStmt.run();
+    });
+
+    txn();
+    return counts;
+  }
+
   return {
     insertOrUpdatePhoto,
     insertOrUpdatePhotos,
@@ -1028,6 +1128,7 @@ function initDatabase(dbPath) {
     getLatestMonth,
     getPhotosByMonth,
     getAllPhotos,
+    getPhotosByWorldId,
     getTrackedFolders,
     upsertTrackedFolder,
     deleteTrackedFolder,
@@ -1040,6 +1141,7 @@ function initDatabase(dbPath) {
     updateManualWorldName,
     updateManualWorldSettings,
     updateAutoWorldInfo,
+    updateAutoWorldInfoByWorldId,
     updateThumbnailPath,
     clearThumbnailPaths,
     deletePhotoById,
@@ -1048,6 +1150,7 @@ function initDatabase(dbPath) {
     updateImageMetadata,
     updatePhotoFileLocation,
     updatePhotoMemo,
+    resetApplicationData,
   };
 }
 

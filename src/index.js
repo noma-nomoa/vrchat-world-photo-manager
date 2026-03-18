@@ -46,6 +46,14 @@ const DEFAULT_PHOTO_LABEL_COLORS = [
 
 const SUPPORTED_IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 const PROCESSING_PROGRESS_CHANNEL = 'processing-progress';
+const WORLD_METADATA_UPDATED_CHANNEL = 'world-metadata-updated';
+const WORLD_METADATA_SYNC_OPERATION = 'world-metadata-sync';
+const WORLD_METADATA_SYNC_DELAY_MS = 1000;
+
+const pendingWorldMetadataSyncTargets = new Map();
+const worldMetadataSyncSubscribers = new Set();
+let isWorldMetadataSyncRunning = false;
+let activeWorldMetadataSyncWorldId = null;
 
 function isSupportedImageFile(filePath) {
   return SUPPORTED_IMAGE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
@@ -219,6 +227,21 @@ function normalizeTagValue(tag) {
   return pickBestTextCandidate([tag.value, tag.description]);
 }
 
+// Only treat the exact "{}" placeholder as missing so unusual but real names still render.
+function hasMeaningfulWorldNameContent(value) {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return false;
+  }
+
+  return trimmed !== '{}';
+}
+
 function normalizeDisplayWorldName(value) {
   const sanitized = sanitizeExtractedText(value);
 
@@ -226,7 +249,7 @@ function normalizeDisplayWorldName(value) {
     return null;
   }
 
-  return sanitized
+  const normalized = sanitized
     .replace(/[⁄∕／]/g, '/')
     .replace(/ǃ/g, '!')
     .replace(/‚/g, ',')
@@ -240,6 +263,8 @@ function normalizeDisplayWorldName(value) {
     .replace(/\s{2,}/g, ' ')
     .trim()
     .normalize('NFC');
+
+  return hasMeaningfulWorldNameContent(normalized) ? normalized : null;
 }
 
 function normalizeOfficialWorldText(value) {
@@ -1285,15 +1310,51 @@ async function deleteAllPhotoRegistrations() {
   };
 }
 
+// Full reset is reserved for maintenance/testing, so it clears both managed
+// thumbnail files and every persisted table that belongs to this app.
+async function resetApplicationData(progressReporter = null) {
+  if (!photoDb) {
+    throw new Error('データベースが初期化されていません');
+  }
+
+  progressReporter?.({
+    phase: 'process',
+    current: 0,
+    total: 1,
+    message: 'アプリデータを初期化しています...',
+  });
+
+  try {
+    await fs.rm(thumbnailDirPath, { recursive: true, force: true });
+    await ensureDir(thumbnailDirPath);
+  } catch (error) {
+    throw new Error(`サムネイル保存先を初期化できませんでした: ${error.message}`);
+  }
+
+  const counts = photoDb.resetApplicationData();
+
+  progressReporter?.({
+    phase: 'process',
+    current: 1,
+    total: 1,
+    message: 'アプリデータを初期化しています...',
+  });
+
+  return {
+    ok: true,
+    ...counts,
+  };
+}
+
 function toRendererPhoto(row) {
   const resolvedPhotoLabels = Array.isArray(row?.photo_labels)
     ? row.photo_labels
     : photoDb && Number.isInteger(row?.id)
       ? photoDb.getPhotoTags(row.id)
       : [];
-  const displayWorldName = normalizeDisplayWorldName(
-    row.world_name_manual || row.world_name
-  );
+  const displayWorldName =
+    normalizeDisplayWorldName(row.world_name_manual || row.world_name) ||
+    'ワールド名を取得できませんでした';
   const derivedOrientationTier =
     row.orientation_tier || getOrientationTier(row.image_width, row.image_height);
 
@@ -2148,6 +2209,7 @@ async function importManyFiles(filePaths, progressReporter = null) {
     newCount,
     updatedCount,
     relocatedCount,
+    worldMetadataTargets: buildWorldMetadataSyncTargetsFromPhotoRecords(photoRecords),
     failedCount: failedFiles.length,
     failedFiles,
     selectedMonth: latestRow
@@ -2156,6 +2218,242 @@ async function importManyFiles(filePaths, progressReporter = null) {
           month: latestRow.month,
         }
       : null,
+  };
+}
+
+function delay(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+// World metadata sync works on unique world IDs so post-import enrichment can
+// reuse cache entries instead of re-fetching per photo.
+function buildWorldMetadataSyncTargetsFromPhotoRecords(photoRecords) {
+  const targets = new Map();
+
+  for (const photoRecord of Array.isArray(photoRecords) ? photoRecords : []) {
+    const worldId =
+      normalizeWorldId(photoRecord?.worldId) ||
+      parseWorldIdFromUrl(photoRecord?.worldUrl);
+
+    if (!worldId) {
+      continue;
+    }
+
+    if (!targets.has(worldId)) {
+      targets.set(worldId, {
+        worldId,
+        worldUrl: photoRecord?.worldUrl || buildWorldUrlFromId(worldId),
+      });
+      continue;
+    }
+
+    const existingTarget = targets.get(worldId);
+
+    if (!existingTarget.worldUrl && photoRecord?.worldUrl) {
+      existingTarget.worldUrl = photoRecord.worldUrl;
+    }
+  }
+
+  return Array.from(targets.values());
+}
+
+function hasUsableOfficialWorldMetadataRow(row) {
+  if (!row) {
+    return false;
+  }
+
+  const officialName = normalizeOfficialWorldText(row.world_name_official);
+  const officialDescription = normalizeOfficialWorldText(row.world_description);
+
+  let officialTags = [];
+
+  try {
+    const parsedTags = JSON.parse(row.world_tags_json || '[]');
+    officialTags = Array.isArray(parsedTags) ? parsedTags : [];
+  } catch {
+    officialTags = [];
+  }
+
+  return Boolean(officialName || officialDescription || officialTags.length > 0);
+}
+
+function addWorldMetadataSyncSubscriber(webContents) {
+  if (!webContents || webContents.isDestroyed()) {
+    return;
+  }
+
+  worldMetadataSyncSubscribers.add(webContents);
+}
+
+function broadcastWorldMetadataSyncProgress(payload = {}) {
+  for (const webContents of Array.from(worldMetadataSyncSubscribers)) {
+    if (!webContents || webContents.isDestroyed()) {
+      worldMetadataSyncSubscribers.delete(webContents);
+      continue;
+    }
+
+    webContents.send(PROCESSING_PROGRESS_CHANNEL, {
+      operation: WORLD_METADATA_SYNC_OPERATION,
+      ...payload,
+    });
+  }
+}
+
+function broadcastWorldMetadataUpdated(rows) {
+  const photos = (Array.isArray(rows) ? rows : [])
+    .map((row) => toRendererPhoto(row))
+    .filter(Boolean);
+
+  if (photos.length === 0) {
+    return;
+  }
+
+  for (const webContents of Array.from(worldMetadataSyncSubscribers)) {
+    if (!webContents || webContents.isDestroyed()) {
+      worldMetadataSyncSubscribers.delete(webContents);
+      continue;
+    }
+
+    webContents.send(WORLD_METADATA_UPDATED_CHANNEL, {
+      photos,
+    });
+  }
+}
+
+async function syncOfficialWorldMetadataForTarget(target) {
+  const worldId =
+    normalizeWorldId(target?.worldId) ||
+    parseWorldIdFromUrl(target?.worldUrl);
+
+  if (!worldId) {
+    return {
+      didFetch: false,
+      updatedRows: [],
+    };
+  }
+
+  const worldUrl = target?.worldUrl || buildWorldUrlFromId(worldId);
+  let metadataRow = photoDb.getWorldMetadataByWorldId(worldId);
+  let didFetch = false;
+
+  if (!hasUsableOfficialWorldMetadataRow(metadataRow)) {
+    await delay(WORLD_METADATA_SYNC_DELAY_MS);
+    metadataRow =
+      (await fetchAndCacheOfficialWorldMetadata(worldId, worldUrl)) ||
+      photoDb.getWorldMetadataByWorldId(worldId);
+    didFetch = true;
+  }
+
+  const officialWorldName = normalizeOfficialWorldText(
+    metadataRow?.world_name_official
+  );
+
+  if (!officialWorldName) {
+    return {
+      didFetch,
+      updatedRows: [],
+    };
+  }
+
+  return {
+    didFetch,
+    updatedRows: photoDb.updateAutoWorldInfoByWorldId(worldId, {
+      worldName: officialWorldName,
+      worldUrl,
+    }),
+  };
+}
+
+async function runQueuedWorldMetadataSync() {
+  if (isWorldMetadataSyncRunning) {
+    return;
+  }
+
+  isWorldMetadataSyncRunning = true;
+  let processedCount = 0;
+
+  try {
+    while (pendingWorldMetadataSyncTargets.size > 0) {
+      const totalCount = processedCount + pendingWorldMetadataSyncTargets.size;
+      const [worldId, target] =
+        pendingWorldMetadataSyncTargets.entries().next().value;
+
+      pendingWorldMetadataSyncTargets.delete(worldId);
+      activeWorldMetadataSyncWorldId = worldId;
+
+      broadcastWorldMetadataSyncProgress({
+        phase: 'process',
+        current: processedCount,
+        total: totalCount,
+        message: 'World情報を自動で同期しています...',
+      });
+
+      const result = await syncOfficialWorldMetadataForTarget(target);
+
+      if (result.updatedRows.length > 0) {
+        broadcastWorldMetadataUpdated(result.updatedRows);
+      }
+
+      processedCount += 1;
+
+      broadcastWorldMetadataSyncProgress({
+        phase: pendingWorldMetadataSyncTargets.size > 0 ? 'process' : 'complete',
+        current: processedCount,
+        total: processedCount + pendingWorldMetadataSyncTargets.size,
+        message:
+          pendingWorldMetadataSyncTargets.size > 0
+            ? 'World情報を自動で同期しています...'
+            : 'World情報の自動同期が完了しました',
+      });
+    }
+  } finally {
+    isWorldMetadataSyncRunning = false;
+    activeWorldMetadataSyncWorldId = null;
+  }
+}
+
+function enqueueWorldMetadataSyncTargets(targets, webContents) {
+  addWorldMetadataSyncSubscriber(webContents);
+
+  let queuedCount = 0;
+
+  for (const target of Array.isArray(targets) ? targets : []) {
+    const worldId =
+      normalizeWorldId(target?.worldId) ||
+      parseWorldIdFromUrl(target?.worldUrl);
+
+    if (!worldId || activeWorldMetadataSyncWorldId === worldId) {
+      continue;
+    }
+
+    if (pendingWorldMetadataSyncTargets.has(worldId)) {
+      const existingTarget = pendingWorldMetadataSyncTargets.get(worldId);
+
+      if (!existingTarget.worldUrl && target?.worldUrl) {
+        existingTarget.worldUrl = target.worldUrl;
+      }
+
+      continue;
+    }
+
+    pendingWorldMetadataSyncTargets.set(worldId, {
+      worldId,
+      worldUrl: target?.worldUrl || buildWorldUrlFromId(worldId),
+    });
+    queuedCount += 1;
+  }
+
+  if (queuedCount > 0) {
+    void runQueuedWorldMetadataSync();
+  }
+
+  return {
+    ok: true,
+    queuedCount,
+    pendingCount:
+      pendingWorldMetadataSyncTargets.size + (isWorldMetadataSyncRunning ? 1 : 0),
   };
 }
 
@@ -2409,17 +2707,28 @@ async function fetchAndCacheOfficialWorldMetadata(worldId, worldUrl) {
   return null;
 }
 
-async function rereadWorldInfoFromPhotoId(photoId) {
+// World reread can optionally use the URL currently typed in the editor so the
+// user does not have to save first just to verify official metadata.
+async function rereadWorldInfoFromPhotoId(photoId, options = {}) {
   let row = photoDb.getPhotoById(photoId);
+
+  let pendingWorldUrl = null;
+  let pendingWorldId = null;
+
+  if (typeof options.worldUrl === 'string' && options.worldUrl.trim().length > 0) {
+    const normalizedUrl = normalizeManualWorldUrl(options.worldUrl, row?.world_url);
+    pendingWorldUrl = normalizedUrl.worldUrl;
+    pendingWorldId = normalizedUrl.worldId;
+  }
 
   if (!row) {
     throw new Error('対象の写真が見つかりません');
   }
 
   let localWorldInfo = {
-    worldId: row.world_id,
+    worldId: pendingWorldId || row.world_id,
     worldName: row.world_name,
-    worldUrl: row.world_url,
+    worldUrl: pendingWorldUrl || row.world_url,
   };
 
   try {
@@ -2436,17 +2745,19 @@ async function rereadWorldInfoFromPhotoId(photoId) {
     const tags = ExifReader.load(fileBuffer);
     localWorldInfo = extractWorldInfo(tags, fileBuffer);
   } catch {
-    if (!row.world_id && !row.world_url) {
+    if (!pendingWorldId && !pendingWorldUrl && !row.world_id && !row.world_url) {
       throw new Error('ワールド情報を再取得できませんでした');
     }
   }
 
   const resolvedWorldId =
+    pendingWorldId ||
     localWorldInfo.worldId ||
     row.world_id ||
     parseWorldIdFromUrl(localWorldInfo.worldUrl) ||
     parseWorldIdFromUrl(row.world_url);
   const resolvedWorldUrl =
+    pendingWorldUrl ||
     localWorldInfo.worldUrl ||
     row.world_url ||
     buildWorldUrlFromId(resolvedWorldId);
@@ -2685,6 +2996,26 @@ app.whenReady().then(async () => {
     }
   });
 
+  ipcMain.handle('reset-database', async (event) => {
+    try {
+      const progressReporter = createProcessingProgressReporter(
+        event.sender,
+        'reset-database'
+      );
+
+      return await resetApplicationData(progressReporter);
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        photoCount: 0,
+        trackedFolderCount: 0,
+        worldCacheCount: 0,
+        tagCount: 0,
+      };
+    }
+  });
+
   ipcMain.handle('get-sidebar-data', async () => {
     return photoDb.getSidebarTree();
   });
@@ -2708,6 +3039,19 @@ app.whenReady().then(async () => {
     return toRendererWorldMetadata(
       photoDb.getWorldMetadataByWorldId(normalizedWorldId)
     );
+  });
+
+  ipcMain.handle('start-world-metadata-sync', async (event, payload) => {
+    try {
+      return enqueueWorldMetadataSyncTargets(payload?.targets, event.sender);
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        queuedCount: 0,
+        pendingCount: pendingWorldMetadataSyncTargets.size,
+      };
+    }
   });
 
   ipcMain.handle('get-label-catalog', async () => {
@@ -2927,7 +3271,9 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('reread-world-name', async (_event, payload) => {
     try {
-      const saved = await rereadWorldInfoFromPhotoId(payload.photoId);
+      const saved = await rereadWorldInfoFromPhotoId(payload.photoId, {
+        worldUrl: payload?.worldUrl,
+      });
   
       return {
         ok: true,

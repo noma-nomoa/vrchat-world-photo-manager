@@ -139,6 +139,7 @@ const deleteAllRegistrationsButton = document.getElementById(
 const clearThumbnailCacheButton = document.getElementById(
   'clear-thumbnail-cache-btn'
 );
+const resetDatabaseButton = document.getElementById('reset-database-btn');
 const toolbar = document.querySelector('.toolbar');
 const toolbarRight = toolbar?.querySelector('.toolbar-right');
 const pageHeaderActions = document.querySelector('.page-header-actions');
@@ -205,11 +206,9 @@ let photoLabelModal = null;
 let photoLabelBackdrop = null;
 let photoLabelClose = null;
 let photoLabelSelectedList = null;
-let photoLabelSelect = null;
 let photoLabelCatalogDropdown = null;
 let photoLabelCatalogButton = null;
 let photoLabelCatalogMenu = null;
-let photoLabelAddSelectedButton = null;
 let photoLabelNewForm = null;
 let photoLabelNewNameInput = null;
 let photoLabelNewColorInput = null;
@@ -239,6 +238,8 @@ let worldNameFilterInputTimer = null;
 let isSelectionMode = false;
 const selectedPhotoIds = new Set();
 let isImporting = false;
+let isWorldMetadataSyncing = false;
+let worldMetadataSyncResetTimer = null;
 
 const expandedYears = new Set();
 
@@ -501,6 +502,73 @@ function resetProcessingProgress() {
 
   if (processingProgressTrack) {
     processingProgressTrack.setAttribute('aria-valuenow', '0');
+  }
+}
+
+function syncWorldMetadataSyncUi() {
+  if (!rereadWorldNameButton) {
+    return;
+  }
+
+  rereadWorldNameButton.disabled = isWorldMetadataSyncing || !currentModalPhoto;
+  rereadWorldNameButton.setAttribute(
+    'title',
+    isWorldMetadataSyncing
+      ? '自動同期中は再読み込みできません'
+      : 'World情報を再読み込み'
+  );
+}
+
+function handleWorldMetadataSyncProgress(payload = {}) {
+  if (worldMetadataSyncResetTimer) {
+    clearTimeout(worldMetadataSyncResetTimer);
+    worldMetadataSyncResetTimer = null;
+  }
+
+  const isCompletePhase = payload.phase === 'complete';
+  isWorldMetadataSyncing = !isCompletePhase;
+  syncWorldMetadataSyncUi();
+
+  if (isImporting) {
+    return;
+  }
+
+  updateProcessingProgress(payload);
+
+  if (!isCompletePhase) {
+    return;
+  }
+
+  worldMetadataSyncResetTimer = setTimeout(() => {
+    if (!isImporting && !isWorldMetadataSyncing) {
+      resetProcessingProgress();
+    }
+    worldMetadataSyncResetTimer = null;
+  }, 420);
+}
+
+function applyWorldMetadataUpdated(payload = {}) {
+  const updatedPhotos = Array.isArray(payload.photos) ? payload.photos : [];
+
+  if (updatedPhotos.length === 0) {
+    return;
+  }
+
+  let nextModalPhoto = null;
+
+  for (const photo of updatedPhotos) {
+    updatePhotoInCurrentCollections(photo);
+    replaceRenderedPhotoCard(photo);
+
+    if (currentModalPhoto?.id === photo.id) {
+      nextModalPhoto = photo;
+    }
+  }
+
+  syncFavoriteFilterUi();
+
+  if (nextModalPhoto) {
+    showImageModalPhoto(nextModalPhoto);
   }
 }
 
@@ -2104,43 +2172,6 @@ function renderModalPhotoLabels() {
   }
 }
 
-function renderPhotoLabelCatalogOptionsLegacy() {
-  if (!photoLabelSelect) {
-    return;
-  }
-
-  const selectedNames = new Set(
-    draftModalPhotoLabels.map((label) => label.normalizedName)
-  );
-  const availableOptions = photoLabelCatalog.filter(
-    (label) => !selectedNames.has(label.normalizedName)
-  );
-
-  photoLabelSelect.innerHTML = '';
-
-  const placeholderOption = document.createElement('option');
-  placeholderOption.value = '';
-  placeholderOption.textContent =
-    availableOptions.length > 0 ? '既存ラベルを選択' : '追加できるラベルはありません';
-  photoLabelSelect.appendChild(placeholderOption);
-
-  availableOptions.forEach((label) => {
-    const option = document.createElement('option');
-    option.value = label.normalizedName;
-    option.textContent =
-      label.photoCount > 0
-        ? `${label.name} (${label.photoCount})`
-        : label.name;
-    photoLabelSelect.appendChild(option);
-  });
-
-  photoLabelSelect.disabled = availableOptions.length === 0;
-
-  if (photoLabelAddSelectedButton) {
-    photoLabelAddSelectedButton.disabled = availableOptions.length === 0;
-  }
-}
-
 function setPhotoLabelCatalogMenuOpen(isOpen) {
   isPhotoLabelCatalogMenuOpen = Boolean(isOpen);
   setAnimatedDropdownOpenState({
@@ -2159,6 +2190,8 @@ function setPhotoLabelCatalogMenuOpen(isOpen) {
   });
 }
 
+// The label catalog dropdown behaves like a single-purpose picker: choose one
+// existing label and append it immediately to the draft selection list.
 function selectPhotoLabelCatalogOption(normalizedName) {
   activePhotoLabelCatalogSelection = normalizedName || '';
   renderPhotoLabelCatalogOptions();
@@ -2257,10 +2290,6 @@ function renderPhotoLabelCatalogOptions() {
     photoLabelCatalogMenu.appendChild(optionButton);
   });
 
-  if (photoLabelAddSelectedButton) {
-    photoLabelAddSelectedButton.disabled =
-      availableOptions.length === 0 || !selectedOption;
-  }
 }
 
 function renderPhotoLabelEditorSelectedList() {
@@ -2804,6 +2833,7 @@ function showImageModalPhoto(item, { direction = null } = {}) {
   }
 
   updateImageModalNavigationState();
+  syncWorldMetadataSyncUi();
 
   if (direction) {
     playImageModalSwitchAnimation(direction);
@@ -2975,6 +3005,7 @@ function openWorldNameEditModal() {
   }
 
   worldNameSaveStatus.textContent = '';
+  syncWorldMetadataSyncUi();
   openSubModalElement(worldNameEditModal);
 }
 
@@ -3085,6 +3116,18 @@ function syncSettingsMaintenanceUi() {
         : '削除するサムネイルがありません'
     );
   }
+
+  if (resetDatabaseButton) {
+    const hasAnyPersistedData =
+      sidebarData.length > 0 || trackedFolders.length > 0;
+    resetDatabaseButton.disabled = isImporting || !hasAnyPersistedData;
+    resetDatabaseButton.setAttribute(
+      'title',
+      hasAnyPersistedData
+        ? '登録・キャッシュ・更新対象フォルダを初期化'
+        : '初期化するデータがありません'
+    );
+  }
 }
 
 function initializeModalCloseIcons() {
@@ -3107,6 +3150,43 @@ function initializeModalCloseIcons() {
     icon.textContent = 'close';
     button.appendChild(icon);
   });
+}
+
+// Some sub-modals are created dynamically, so close-button handling is also
+// delegated from the document to avoid missing late-bound buttons.
+function handleDelegatedSubModalClose(event) {
+  const closeButton = event.target.closest('.sub-modal-close');
+
+  if (!closeButton) {
+    return;
+  }
+
+  if (closeButton === photoLabelClose) {
+    event.preventDefault();
+    event.stopPropagation();
+    closePhotoLabelModal();
+    return;
+  }
+
+  if (closeButton === worldNameEditClose) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeWorldNameEditModal();
+    return;
+  }
+
+  if (closeButton === settingsModalClose) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeSettingsModal();
+    return;
+  }
+
+  if (closeButton === confirmModalClose) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeConfirmModal(false);
+  }
 }
 
 function initializeImageModalUi() {
@@ -3338,6 +3418,9 @@ function initializePhotoLabelUi() {
     photoLabelClose = document.createElement('button');
     photoLabelClose.type = 'button';
     photoLabelClose.className = 'sub-modal-close';
+    photoLabelClose.setAttribute('aria-label', '閉じる');
+    photoLabelClose.innerHTML =
+      '<span class="material-symbols-outlined">close</span>';
     content.appendChild(photoLabelClose);
 
     const body = document.createElement('div');
@@ -3391,12 +3474,6 @@ function initializePhotoLabelUi() {
     photoLabelCatalogMenu.setAttribute('role', 'menu');
     photoLabelCatalogMenu.hidden = true;
     photoLabelCatalogDropdown.appendChild(photoLabelCatalogMenu);
-
-    photoLabelAddSelectedButton = document.createElement('button');
-    photoLabelAddSelectedButton.type = 'button';
-    photoLabelAddSelectedButton.className = 'small-action-button';
-    photoLabelAddSelectedButton.textContent = '追加';
-    pickerRow.appendChild(photoLabelAddSelectedButton);
 
     const newTitle = document.createElement('p');
     newTitle.className = 'photo-label-editor-section-title';
@@ -3474,9 +3551,12 @@ function initializePhotoLabelUi() {
 
   photoLabelBackdrop?.addEventListener('click', closePhotoLabelModal);
   photoLabelClose?.addEventListener('click', closePhotoLabelModal);
-
-  photoLabelAddSelectedButton?.addEventListener('click', () => {
-    addSelectedPhotoLabel();
+  photoLabelModal?.addEventListener('click', (event) => {
+    if (event.target.closest('.sub-modal-close') === photoLabelClose) {
+      event.preventDefault();
+      event.stopPropagation();
+      closePhotoLabelModal();
+    }
   });
 
   photoLabelCatalogButton?.addEventListener('click', (event) => {
@@ -4754,6 +4834,33 @@ async function handleImportResult(result, modeLabel) {
   }
 }
 
+async function startBackgroundWorldMetadataSync(targets) {
+  if (!window.electronAPI.startWorldMetadataSync) {
+    return;
+  }
+
+  const normalizedTargets = (Array.isArray(targets) ? targets : []).filter(
+    (target) =>
+      typeof target?.worldId === 'string' && target.worldId.trim().length > 0
+  );
+
+  if (normalizedTargets.length === 0) {
+    return;
+  }
+
+  try {
+    const result = await window.electronAPI.startWorldMetadataSync(
+      normalizedTargets
+    );
+
+    if (!result?.ok) {
+      showToast(result?.message || 'World情報の自動同期を開始できませんでした');
+    }
+  } catch (error) {
+    showToast(`World情報の自動同期を開始できませんでした: ${error.message}`);
+  }
+}
+
 async function handleTrackedFoldersRefreshResult(result, fallbackSelection) {
   importStatus.textContent = buildTrackedFoldersRefreshMessage(result);
 
@@ -4865,6 +4972,11 @@ function setImportUiBusy(isBusy) {
     clearThumbnailCacheButton.disabled = isBusy || sidebarData.length === 0;
   }
 
+  if (resetDatabaseButton) {
+    resetDatabaseButton.disabled =
+      isBusy || (sidebarData.length === 0 && trackedFolders.length === 0);
+  }
+
   if (isBusy && typeof resetDropOverlay === 'function') {
     resetDropOverlay();
   }
@@ -4883,6 +4995,8 @@ async function runImportFlow(modeLabel, startMessage, importRunner) {
     return;
   }
 
+  let result = null;
+
   setImportUiBusy(true);
   importStatus.textContent = startMessage;
   updateProcessingProgress({
@@ -4890,13 +5004,15 @@ async function runImportFlow(modeLabel, startMessage, importRunner) {
   });
 
   try {
-    const result = await importRunner();
+    result = await importRunner();
     await handleImportResult(result, modeLabel);
   } catch (error) {
     importStatus.textContent = `取り込みに失敗しました: ${error.message}`;
   } finally {
     setImportUiBusy(false);
   }
+
+  await startBackgroundWorldMetadataSync(result?.worldMetadataTargets);
 }
 
 
@@ -4990,7 +5106,10 @@ async function rereadWorldName() {
 
   worldNameSaveStatus.textContent = '再取得中...';
 
-  const result = await window.electronAPI.rereadWorldName(currentModalPhoto.id);
+  const result = await window.electronAPI.rereadWorldName({
+    photoId: currentModalPhoto.id,
+    worldUrl: modalWorldUrlInput?.value || currentModalPhoto.worldUrl || '',
+  });
 
   if (!result || !result.ok) {
     worldNameSaveStatus.textContent = `再取得に失敗しました: ${
@@ -5353,6 +5472,72 @@ async function clearThumbnailCacheFromSettings() {
   }
 }
 
+async function resetDatabaseFromSettings() {
+  if (
+    isImporting ||
+    (sidebarData.length === 0 && trackedFolders.length === 0) ||
+    !window.electronAPI.resetDatabase
+  ) {
+    return;
+  }
+
+  const confirmed = await openConfirmModal({
+    title: 'DBを初期化',
+    message:
+      '登録データ、ラベル、メモ、ワールドキャッシュ、更新対象フォルダ、サムネイルキャッシュをすべて初期化します。元画像ファイル自体は削除しません。続行しますか？',
+    confirmText: '初期化する',
+  });
+
+  if (!confirmed) {
+    return;
+  }
+
+  setImportUiBusy(true);
+  importStatus.textContent = 'DBを初期化中...';
+
+  updateProcessingProgress({
+    message: 'アプリデータを初期化しています...',
+  });
+
+  try {
+    const result = await window.electronAPI.resetDatabase();
+
+    if (!result?.ok) {
+      throw new Error(result?.message || '初期化に失敗しました');
+    }
+
+    closePhotoLabelModal();
+    closeWorldNameEditModal();
+    closeImageModal();
+
+    sidebarData = [];
+    trackedFolders = [];
+    currentSelection = null;
+    currentPhotos = [];
+    allCurrentMonthPhotos = [];
+    expandedYears.clear();
+    clearSelectionState();
+    renderSidebar();
+    clearMainContent();
+    renderTrackedFolderList();
+    renderRegenerateThumbnailMonthOptions();
+
+    importStatus.textContent =
+      `DB初期化: 写真 ${result.photoCount || 0}件 / ` +
+      `フォルダ ${result.trackedFolderCount || 0}件 / ` +
+      `キャッシュ ${result.worldCacheCount || 0}件 / ` +
+      `ラベル ${result.tagCount || 0}件`;
+
+    showToast('DBを初期化しました');
+  } catch (error) {
+    importStatus.textContent = `DB初期化に失敗しました: ${error.message}`;
+    showToast(`DB初期化に失敗しました: ${error.message}`);
+  } finally {
+    setImportUiBusy(false);
+    syncSettingsMaintenanceUi();
+  }
+}
+
 function hasDraggedFiles(dataTransfer) {
   return Array.from(dataTransfer?.types || []).includes('Files');
 }
@@ -5631,6 +5816,7 @@ refreshTrackedFoldersButton?.addEventListener('click', async () => {
   const fallbackSelection = currentSelection
     ? { ...currentSelection }
     : null;
+  let result = null;
 
   setImportUiBusy(true);
   importStatus.textContent = '追跡フォルダを更新中...';
@@ -5640,13 +5826,16 @@ refreshTrackedFoldersButton?.addEventListener('click', async () => {
   });
 
   try {
-    const result = await window.electronAPI.refreshTrackedFolders();
+    result = await window.electronAPI.refreshTrackedFolders();
+    setImportUiBusy(false);
     await handleTrackedFoldersRefreshResult(result, fallbackSelection);
   } catch (error) {
     importStatus.textContent = `更新に失敗しました: ${error.message}`;
   } finally {
     setImportUiBusy(false);
   }
+
+  await startBackgroundWorldMetadataSync(result?.worldMetadataTargets);
 });
 
 favoriteFilterButton?.addEventListener('click', async () => {
@@ -6000,6 +6189,10 @@ clearThumbnailCacheButton?.addEventListener('click', async () => {
   await clearThumbnailCacheFromSettings();
 });
 
+resetDatabaseButton?.addEventListener('click', async () => {
+  await resetDatabaseFromSettings();
+});
+
 imageModalBackdrop?.addEventListener('click', closeImageModal);
 imageModalClose?.addEventListener('click', closeImageModal);
 
@@ -6258,8 +6451,23 @@ fontOptionButtons.forEach((button) => {
   });
 });
 
+// Foreground progress bars belong to explicit import/refresh/maintenance
+// actions. Late IPC events should not reopen the bar after the UI is idle.
 window.electronAPI.onProcessingProgress?.((payload) => {
+  if (payload?.operation === 'world-metadata-sync') {
+    handleWorldMetadataSyncProgress(payload);
+    return;
+  }
+
+  if (!isImporting) {
+    return;
+  }
+
   updateProcessingProgress(payload);
+});
+
+window.electronAPI.onWorldMetadataUpdated?.((payload) => {
+  applyWorldMetadataUpdated(payload);
 });
 
 initializeTheme();
@@ -6268,6 +6476,7 @@ initializeImageModalUi();
 initializeWorldNameEditUi();
 initializePhotoLabelUi();
 initializeModalCloseIcons();
+document.addEventListener('click', handleDelegatedSubModalClose, true);
 initializeTrackedFolderAccordion();
 initializeTopToolbarLayout();
 initializeDragAndDropImport();
