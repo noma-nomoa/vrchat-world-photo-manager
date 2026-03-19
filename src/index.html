@@ -14,7 +14,7 @@
     />
   </head>
   <body>
-    <div class="app">
+    <div class="app is-app-initializing" aria-busy="true">
       <div class="top-sticky-shell">
         <header class="page-header">
           <div class="page-header-row">
@@ -253,10 +253,6 @@
                 </div>
               </div>
 
-              <p id="selection-count-badge" class="selection-count-badge hidden" aria-live="polite">
-                0件選択中
-              </p>
-            
               <button
                 id="selection-mode-btn"
                 type="button"
@@ -270,7 +266,6 @@
                 type="button"
                 class="header-filter-button bulk-favorite-button"
                 disabled
-                hidden
               >
                 お気に入り
               </button>
@@ -285,7 +280,7 @@
               </button>
             
               <p class="drop-hint-always">
-                画像 / フォルダをここへドラッグ＆ドロップ
+                画像/フォルダをここにドラッグ＆ドロップ
               </p>
             </div>
           </div>
@@ -392,7 +387,7 @@
 
             <div class="modal-world-meta-block modal-photo-memo-block">
               <div class="photo-label-block-header modal-photo-memo-header">
-                <p class="modal-world-meta-title">Memo</p>
+                <p class="modal-world-meta-title">メモ</p>
                 <button
                   id="modal-photo-memo-save-btn"
                   type="button"

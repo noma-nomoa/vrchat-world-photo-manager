@@ -21,6 +21,7 @@ const processingProgressTrack = processingProgress?.querySelector(
 );
 
 // Main layout surfaces for sidebar, month header, and gallery content.
+const appRoot = document.querySelector('.app');
 const sidebarTree = document.getElementById('sidebar-tree');
 const currentMonthLabel = document.getElementById('current-month-label');
 const currentMonthCount = document.getElementById('current-month-count');
@@ -30,6 +31,11 @@ const mainContent = document.querySelector('.main-content');
 const dropOverlay = document.getElementById('drop-overlay');
 const topStickyShell = document.querySelector('.top-sticky-shell');
 const sidebar = document.querySelector('.sidebar');
+
+// Keep the content area in a loading state until sidebar/month restoration
+// finishes so the empty-state shell does not flash on startup.
+appRoot?.classList.add('is-app-initializing');
+appRoot?.setAttribute('aria-busy', 'true');
 
 // Header filter controls.
 const favoriteFilterButton = document.getElementById('favorite-filter-btn');
@@ -130,9 +136,18 @@ const settingsModalContent = settingsModal?.querySelector(
   '.settings-modal-content'
 );
 const settingsModalBody = settingsModal?.querySelector('.sub-modal-body');
+const settingsFontSection = settingsModal?.querySelector('.settings-font-section');
 const settingsSectionHeader = settingsModal?.querySelector(
   '.settings-section-header'
 );
+const settingsMaintenanceSection = settingsModal?.querySelector(
+  '.settings-maintenance-section'
+);
+const settingsMaintenanceActions = settingsMaintenanceSection?.querySelector(
+  '.settings-maintenance-actions'
+);
+let trackedFolderSettingsMeta = null;
+let settingsMaintenanceStatus = null;
 const addTrackedFolderButton = document.getElementById('add-tracked-folder-btn');
 const trackedFolderList = document.getElementById('tracked-folder-list');
 const deleteCurrentMonthRegistrationsButton = document.getElementById(
@@ -174,6 +189,8 @@ const themeToggleIcon = document.getElementById('theme-toggle-icon');
 
 const THEME_STORAGE_KEY = 'vrchat-world-photo-manager-theme';
 const FONT_STORAGE_KEY = 'vrchat-world-photo-manager-font';
+const BACKGROUND_IMAGE_STORAGE_KEY =
+  'vrchat-world-photo-manager-background-image';
 
 // Batch selection controls for the current month view.
 const selectionModeButton = document.getElementById('selection-mode-btn');
@@ -193,6 +210,12 @@ let modalWorldMetadataRequestId = 0;
 let modalPhotoLabelsRequestId = 0;
 let modalImageRecoveryRequestId = 0;
 let trackedFolders = [];
+let settingsOverviewSection = null;
+let settingsOverviewGrid = null;
+let settingsBackgroundSection = null;
+let settingsBackgroundMeta = null;
+let selectBackgroundImageButton = null;
+let clearBackgroundImageButton = null;
 let regenerateThumbnailMonthSelect = null;
 let regenerateThumbnailMonthDropdown = null;
 let regenerateThumbnailMonthButton = null;
@@ -201,8 +224,13 @@ let regenerateThumbnailMonthMenu = null;
 let regenerateThumbnailMonthValue = '';
 let isRegenerateThumbnailMonthMenuOpen = false;
 let regenerateThumbnailMonthMenuCloseTimer = null;
-let trackedFolderAccordionButton = null;
-let trackedFolderAccordionPanel = null;
+let trackedFolderSettingsSection = null;
+let trackedFolderSettingsActions = null;
+let openTrackedFolderListButton = null;
+let trackedFolderModal = null;
+let trackedFolderModalBackdrop = null;
+let trackedFolderModalClose = null;
+let trackedFolderModalBody = null;
 let modalResolutionHeroBadge = null;
 let modalTakenAtHero = null;
 let imageModalPrevButton = null;
@@ -232,7 +260,6 @@ let photoLabelCatalog = [];
 let activePhotoLabelCatalogSelection = '';
 let isPhotoLabelCatalogMenuOpen = false;
 let photoLabelCatalogMenuCloseTimer = null;
-let isTrackedFolderAccordionOpen = false;
 let isFavoriteFilterOnly = false;
 let activeOrientationFilter = 'all';
 let isOrientationFilterMenuOpen = false;
@@ -247,6 +274,13 @@ let worldNameFilterMenuCloseTimer = null;
 let worldNameFilterInputTimer = null;
 let isSelectionMode = false;
 const selectedPhotoIds = new Set();
+let lastSelectionAnchorPhotoId = null;
+let isSelectionDragActive = false;
+let selectionDragTargetState = null;
+let selectionDragPointerId = null;
+let suppressSelectionModeCardClickPhotoId = null;
+let lastSelectionDragPhotoId = null;
+let keyboardFocusedPhotoId = null;
 let isImporting = false;
 let isWorldMetadataSyncing = false;
 let worldMetadataSyncResetTimer = null;
@@ -387,10 +421,10 @@ function getSelectionLabelText(selection = currentSelection) {
   }
 
   if (normalizedSelection.mode === 'year') {
-    return `${normalizedSelection.year}年`;
+    return String(normalizedSelection.year);
   }
 
-  return `${normalizedSelection.year}年${normalizedSelection.month}月`;
+  return `${normalizedSelection.year}/${pad2(normalizedSelection.month)}`;
 }
 
 function getDefaultSelectionEmptyMessage(selection = currentSelection) {
@@ -512,6 +546,50 @@ function initializeFontPreference() {
   }
 
   applyFontPreference('standard');
+}
+
+function normalizeBackgroundImagePath(filePath) {
+  return typeof filePath === 'string' ? filePath.trim() : '';
+}
+
+function getStoredBackgroundImagePath() {
+  return normalizeBackgroundImagePath(
+    localStorage.getItem(BACKGROUND_IMAGE_STORAGE_KEY)
+  );
+}
+
+function buildBackgroundImageFileUrl(filePath) {
+  const normalizedPath = normalizeBackgroundImagePath(filePath);
+
+  if (!normalizedPath) {
+    return '';
+  }
+
+  const slashPath = normalizedPath.replace(/\\/g, '/');
+  const prefixedPath = slashPath.startsWith('/') ? slashPath : `/${slashPath}`;
+  return encodeURI(`file://${prefixedPath}`);
+}
+
+function applyBackgroundImagePreference(filePath) {
+  const normalizedPath = normalizeBackgroundImagePath(filePath);
+
+  if (!normalizedPath) {
+    document.body.classList.remove('has-custom-background');
+    document.body.style.setProperty('--app-background-image', 'none');
+    localStorage.removeItem(BACKGROUND_IMAGE_STORAGE_KEY);
+    return;
+  }
+
+  document.body.classList.add('has-custom-background');
+  document.body.style.setProperty(
+    '--app-background-image',
+    `url("${buildBackgroundImageFileUrl(normalizedPath)}")`
+  );
+  localStorage.setItem(BACKGROUND_IMAGE_STORAGE_KEY, normalizedPath);
+}
+
+function initializeBackgroundImagePreference() {
+  applyBackgroundImagePreference(getStoredBackgroundImagePath());
 }
 
 function showToast(message) {
@@ -670,7 +748,7 @@ function buildImportStatusMessage(result, modeLabel) {
 
   return [
     `${modeLabel}: ${result.importedCount}件反映`,
-    `新要E${result.newCount}件`,
+    `新着${result.newCount}件`,
     `更新 ${result.updatedCount}件`,
     result.failedCount > 0 ? `失敗 ${result.failedCount}件` : null,
   ]
@@ -781,6 +859,9 @@ function setRegenerateThumbnailMonthMenuOpen(isOpen) {
     regenerateThumbnailMonthSelect && regenerateThumbnailMonthSelect.options.length > 0
   );
   const nextOpen = Boolean(isOpen) && !isImporting && hasOptions;
+  if (nextOpen) {
+    closeManagedDropdownsExcept(regenerateThumbnailMonthDropdown);
+  }
   isRegenerateThumbnailMonthMenuOpen = nextOpen;
   setAnimatedDropdownOpenState({
     dropdown: regenerateThumbnailMonthDropdown,
@@ -873,6 +954,33 @@ function syncRegenerateThumbnailMonthDropdownFromSelect() {
   });
 }
 
+function syncSettingsUtilityActionsUi() {
+  const hasMonthOptions = Boolean(
+    regenerateThumbnailMonthSelect &&
+      regenerateThumbnailMonthSelect.options.length > 0
+  );
+
+  if (regenerateThumbnailMonthSelect) {
+    regenerateThumbnailMonthSelect.disabled = isImporting || !hasMonthOptions;
+  }
+
+  if (regenerateThumbnailMonthButton) {
+    regenerateThumbnailMonthButton.disabled = isImporting || !hasMonthOptions;
+    regenerateThumbnailMonthButton.setAttribute(
+      'title',
+      hasMonthOptions ? 'サムネイルを再生成する月を選択' : '対象月がありません'
+    );
+  }
+
+  if (regenerateThumbnailsButton) {
+    regenerateThumbnailsButton.disabled = isImporting || !hasMonthOptions;
+    regenerateThumbnailsButton.setAttribute(
+      'title',
+      hasMonthOptions ? '選択中の月のサムネイルを再生成' : '再生成できる月がありません'
+    );
+  }
+}
+
 function buildTrackedFoldersRefreshMessage(result) {
   if (!result || result.canceled) {
     return '更新はキャンセルされました';
@@ -903,7 +1011,7 @@ function buildTrackedFoldersRefreshMessage(result) {
 
   return [
     `更新: ${result.importedCount || 0}件取込`,
-    `新要E${result.newCount || 0}件`,
+    `新着${result.newCount || 0}件`,
     result.updatedCount > 0 ? `再取込 ${result.updatedCount}件` : null,
     result.skippedKnownCount > 0 ? `既知 ${result.skippedKnownCount}件` : null,
     result.missingFolderPaths?.length > 0
@@ -971,6 +1079,9 @@ function getOrientationFilterMeta(filterValue) {
 
 function setOrientationFilterMenuOpen(isOpen) {
   const nextOpen = Boolean(isOpen) && !isImporting && Boolean(currentSelection);
+  if (nextOpen) {
+    closeManagedDropdownsExcept(orientationFilterDropdown);
+  }
   isOrientationFilterMenuOpen = nextOpen;
   setAnimatedDropdownOpenState({
     dropdown: orientationFilterDropdown,
@@ -988,29 +1099,322 @@ function setOrientationFilterMenuOpen(isOpen) {
   });
 }
 
+function openTrackedFolderModal() {
+  if (!trackedFolderModal) {
+    return;
+  }
+
+  openSubModalElement(trackedFolderModal);
+
+  if (trackedFolderList) {
+    trackedFolderList.scrollTop = 0;
+  }
+}
+
+function closeTrackedFolderModal() {
+  closeSubModalElement(trackedFolderModal, {
+    onClosed: () => {
+      if (trackedFolderList) {
+        trackedFolderList.scrollTop = 0;
+      }
+    },
+  });
+}
+
 function ensureSettingsUtilityActionsContainer() {
-  if (!settingsSectionHeader?.parentElement) {
+  if (!settingsMaintenanceSection) {
     return null;
   }
 
-  let utilityActions = settingsModalBody?.querySelector('.settings-utility-actions');
-  const utilityAnchor = trackedFolderAccordionPanel || trackedFolderList;
+  let utilityActions = settingsMaintenanceSection.querySelector(
+    '.settings-utility-actions'
+  );
+  const utilityAnchor = settingsMaintenanceActions;
 
   if (!utilityActions) {
     utilityActions = document.createElement('div');
     utilityActions.className = 'settings-utility-actions';
-    settingsSectionHeader.parentElement.insertBefore(
-      utilityActions,
-      utilityAnchor || null
-    );
+    settingsMaintenanceSection.insertBefore(utilityActions, utilityAnchor || null);
   } else if (
     utilityAnchor &&
     utilityActions.nextElementSibling !== utilityAnchor
   ) {
-    settingsSectionHeader.parentElement.insertBefore(utilityActions, utilityAnchor);
+    settingsMaintenanceSection.insertBefore(utilityActions, utilityAnchor);
   }
 
   return utilityActions;
+}
+
+function ensureSettingsOverviewSection() {
+  if (!settingsModalBody) {
+    return null;
+  }
+
+  if (!settingsOverviewSection) {
+    const section = document.createElement('div');
+    section.className = 'settings-section settings-overview-section';
+
+    const title = document.createElement('p');
+    title.className = 'settings-section-title';
+    title.textContent = '概要';
+    section.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'settings-overview-grid';
+    section.appendChild(grid);
+
+    const firstSettingsSection = settingsModalBody.querySelector('.settings-section');
+
+    settingsModalBody.insertBefore(section, firstSettingsSection || null);
+    settingsOverviewSection = section;
+    settingsOverviewGrid = grid;
+  }
+
+  return settingsOverviewSection;
+}
+
+function renderSettingsOverview(summary) {
+  if (!settingsOverviewGrid) {
+    return;
+  }
+
+  const normalizedSummary = {
+    photoCount: Number(summary?.photoCount) || 0,
+    trackedFolderCount: Number(summary?.trackedFolderCount) || 0,
+    worldCacheCount: Number(summary?.worldCacheCount) || 0,
+    tagCount: Number(summary?.tagCount) || 0,
+  };
+
+  const cards = [
+    { label: '写真', value: normalizedSummary.photoCount },
+    { label: 'フォルダ', value: normalizedSummary.trackedFolderCount },
+    { label: 'ワールド数', value: normalizedSummary.worldCacheCount },
+    { label: 'ラベル', value: normalizedSummary.tagCount },
+  ];
+
+  settingsOverviewGrid.innerHTML = cards
+    .map(
+      (item) => `
+        <div class="settings-overview-card">
+          <p class="settings-overview-label">${escapeHtml(item.label)}</p>
+          <p class="settings-overview-value">${item.value.toLocaleString('ja-JP')}</p>
+        </div>
+      `
+    )
+    .join('');
+}
+
+async function loadSettingsOverview() {
+  ensureSettingsOverviewSection();
+
+  if (!settingsOverviewGrid || !window.electronAPI.getApplicationDataSummary) {
+    return;
+  }
+
+  renderSettingsOverview({
+    photoCount: 0,
+    trackedFolderCount: trackedFolders.length,
+    worldCacheCount: 0,
+    tagCount: 0,
+  });
+
+  try {
+    const summary = await window.electronAPI.getApplicationDataSummary();
+    renderSettingsOverview(summary);
+  } catch {
+    renderSettingsOverview({
+      photoCount: sidebarData.reduce(
+        (sum, year) => sum + (Number(year.totalCount) || 0),
+        0
+      ),
+      trackedFolderCount: trackedFolders.length,
+      worldCacheCount: 0,
+      tagCount: 0,
+    });
+  }
+}
+
+function ensureSettingsBackgroundSection() {
+  if (!settingsModalBody || !settingsFontSection) {
+    return null;
+  }
+
+  if (!settingsBackgroundSection) {
+    const section = document.createElement('div');
+    section.className = 'settings-section settings-background-section';
+
+    const title = document.createElement('p');
+    title.className = 'settings-section-title';
+    title.textContent = '背景';
+    section.appendChild(title);
+
+    const meta = document.createElement('p');
+    meta.className = 'settings-background-meta';
+    section.appendChild(meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'settings-background-actions';
+
+    const selectButton = document.createElement('button');
+    selectButton.type = 'button';
+    selectButton.className = 'small-action-button';
+    selectButton.textContent = '画像を選択';
+    actions.appendChild(selectButton);
+
+    const clearButton = document.createElement('button');
+    clearButton.type = 'button';
+    clearButton.className = 'small-action-button secondary';
+    clearButton.textContent = 'クリア';
+    actions.appendChild(clearButton);
+
+    section.appendChild(actions);
+    settingsFontSection.insertAdjacentElement('afterend', section);
+
+    settingsBackgroundSection = section;
+    settingsBackgroundMeta = meta;
+    selectBackgroundImageButton = selectButton;
+    clearBackgroundImageButton = clearButton;
+  }
+
+  return settingsBackgroundSection;
+}
+
+function syncSettingsBackgroundUi() {
+  ensureSettingsBackgroundSection();
+
+  if (!settingsBackgroundMeta) {
+    return;
+  }
+
+  const currentPath = getStoredBackgroundImagePath();
+  const fileName = currentPath
+    ? currentPath.split(/[\\/]/).filter(Boolean).pop() || currentPath
+    : '';
+
+  settingsBackgroundMeta.textContent = fileName || '未設定';
+
+  if (selectBackgroundImageButton) {
+    selectBackgroundImageButton.disabled = isImporting;
+  }
+
+  if (clearBackgroundImageButton) {
+    clearBackgroundImageButton.disabled = isImporting || !currentPath;
+  }
+}
+
+async function selectBackgroundImageFromSettings() {
+  if (!window.electronAPI.selectBackgroundImage) {
+    return;
+  }
+
+  const result = await window.electronAPI.selectBackgroundImage();
+
+  if (!result?.ok || result.canceled) {
+    return;
+  }
+
+  applyBackgroundImagePreference(result.filePath);
+  syncSettingsBackgroundUi();
+  showToast('背景画像を更新しました');
+}
+
+function clearBackgroundImageFromSettings() {
+  applyBackgroundImagePreference('');
+  syncSettingsBackgroundUi();
+  showToast('背景画像をクリアしました');
+}
+
+// Settings modal keeps tracked folder management lightweight by showing only
+// entry points inline and moving the actual list into its own sub-modal.
+function initializeSettingsTrackedFolderUi() {
+  if (!settingsModalBody || !addTrackedFolderButton || !trackedFolderList) {
+    return;
+  }
+
+  if (clearThumbnailCacheButton) {
+    clearThumbnailCacheButton.classList.remove('secondary');
+    clearThumbnailCacheButton.classList.add('danger-button');
+  }
+
+  if (!trackedFolderSettingsSection) {
+    trackedFolderSettingsSection = addTrackedFolderButton.closest('.settings-section');
+  }
+
+  if (!trackedFolderSettingsSection) {
+    return;
+  }
+
+  trackedFolderSettingsSection.classList.add('tracked-folder-settings-section');
+
+  if (!trackedFolderSettingsMeta) {
+    trackedFolderSettingsMeta = document.createElement('p');
+    trackedFolderSettingsMeta.className = 'settings-section-meta tracked-folder-settings-meta';
+    const trackedFolderInsertBefore =
+      trackedFolderSettingsSection.querySelector('.tracked-folder-settings-actions') ||
+      trackedFolderSettingsSection.querySelector('.settings-section-header')?.nextElementSibling ||
+      trackedFolderList;
+    trackedFolderSettingsSection.insertBefore(
+      trackedFolderSettingsMeta,
+      trackedFolderInsertBefore
+    );
+  }
+
+  if (!trackedFolderSettingsActions) {
+    trackedFolderSettingsActions = document.createElement('div');
+    trackedFolderSettingsActions.className = 'tracked-folder-settings-actions';
+    trackedFolderSettingsSection.appendChild(trackedFolderSettingsActions);
+  }
+
+  if (!openTrackedFolderListButton) {
+    openTrackedFolderListButton = document.createElement('button');
+    openTrackedFolderListButton.type = 'button';
+    openTrackedFolderListButton.className = 'small-action-button secondary';
+    openTrackedFolderListButton.textContent = '一覧を表示';
+    trackedFolderSettingsActions.appendChild(openTrackedFolderListButton);
+  }
+
+  addTrackedFolderButton.textContent = 'フォルダ追加';
+  trackedFolderSettingsActions.appendChild(addTrackedFolderButton);
+  syncTrackedFolderSettingsMeta();
+  syncTrackedFolderSettingsActionsUi();
+
+  if (!trackedFolderModal) {
+    trackedFolderModal = document.createElement('div');
+    trackedFolderModal.id = 'tracked-folder-modal';
+    trackedFolderModal.className = 'sub-modal hidden';
+
+    trackedFolderModalBackdrop = document.createElement('div');
+    trackedFolderModalBackdrop.className = 'sub-modal-backdrop';
+    trackedFolderModal.appendChild(trackedFolderModalBackdrop);
+
+    const content = document.createElement('div');
+    content.className = 'sub-modal-content tracked-folder-modal-content';
+    trackedFolderModal.appendChild(content);
+
+    trackedFolderModalClose = document.createElement('button');
+    trackedFolderModalClose.type = 'button';
+    trackedFolderModalClose.className = 'sub-modal-close';
+    trackedFolderModalClose.setAttribute('aria-label', '更新対象フォルダ一覧を閉じる');
+    const closeIcon = document.createElement('span');
+    closeIcon.className = 'material-symbols-outlined';
+    closeIcon.textContent = 'close';
+    trackedFolderModalClose.appendChild(closeIcon);
+    content.appendChild(trackedFolderModalClose);
+
+    trackedFolderModalBody = document.createElement('div');
+    trackedFolderModalBody.className = 'sub-modal-body tracked-folder-modal-body';
+    content.appendChild(trackedFolderModalBody);
+
+    const title = document.createElement('h3');
+    title.textContent = '更新対象フォルダ一覧';
+    trackedFolderModalBody.appendChild(title);
+
+    document.body.appendChild(trackedFolderModal);
+  }
+
+  if (trackedFolderModalBody && trackedFolderList.parentElement !== trackedFolderModalBody) {
+    trackedFolderModalBody.appendChild(trackedFolderList);
+  }
 }
 
 function ensureRegenerateThumbnailMonthDropdown(utilityActions) {
@@ -1188,7 +1592,7 @@ function renderPhotoLabelFilterMenu() {
     modeButton.classList.toggle('is-active', photoLabelFilterMode === mode);
     modeButton.dataset.photoLabelFilterMode = mode;
     modeButton.setAttribute('aria-pressed', photoLabelFilterMode === mode ? 'true' : 'false');
-    modeButton.textContent = mode === 'or' ? 'いずれか (OR)' : 'すべて (AND)';
+    modeButton.textContent = mode === 'or' ? 'OR' : 'AND';
     modeToggle.appendChild(modeButton);
   }
 
@@ -1269,6 +1673,9 @@ function renderPhotoLabelFilterMenu() {
 
 function setPhotoLabelFilterMenuOpen(isOpen) {
   const nextOpen = Boolean(isOpen) && !isImporting && Boolean(currentSelection);
+  if (nextOpen) {
+    closeManagedDropdownsExcept(photoLabelFilterDropdown);
+  }
   isPhotoLabelFilterMenuOpen = nextOpen;
 
   if (nextOpen) {
@@ -1330,8 +1737,40 @@ function clearWorldNameFilterInputTimer() {
   worldNameFilterInputTimer = null;
 }
 
+function isStaticToolbarWorldFilter() {
+  return worldNameFilterDropdown?.classList.contains('is-static-toolbar-filter');
+}
+
+function ensureStaticToolbarWorldFilterVisible() {
+  if (!isStaticToolbarWorldFilter() || !worldNameFilterMenu) {
+    return;
+  }
+
+  worldNameFilterMenu.hidden = false;
+  worldNameFilterDropdown.classList.remove('is-open');
+  worldNameFilterButton?.setAttribute('aria-expanded', 'false');
+}
+
 function setWorldNameFilterMenuOpen(isOpen) {
+  if (isStaticToolbarWorldFilter()) {
+    isWorldNameFilterMenuOpen = false;
+    clearWorldNameFilterInputTimer();
+    ensureStaticToolbarWorldFilterVisible();
+
+    if (isOpen) {
+      requestAnimationFrame(() => {
+        worldNameFilterInput?.focus({ preventScroll: true });
+        worldNameFilterInput?.select();
+      });
+    }
+
+    return;
+  }
+
   const nextOpen = Boolean(isOpen) && !isImporting && Boolean(currentSelection);
+  if (nextOpen) {
+    closeManagedDropdownsExcept(worldNameFilterDropdown);
+  }
   isWorldNameFilterMenuOpen = nextOpen;
   setAnimatedDropdownOpenState({
     dropdown: worldNameFilterDropdown,
@@ -1398,6 +1837,20 @@ function closeManagedDropdownsFromOutsideClick(target) {
     if (entry.isOpen() && entry.dropdown && !entry.dropdown.contains(target)) {
       entry.close();
     }
+  }
+}
+
+function closeManagedDropdownsExcept(activeDropdown) {
+  for (const entry of getManagedDropdownClosers()) {
+    if (!entry.isOpen()) {
+      continue;
+    }
+
+    if (entry.dropdown === activeDropdown) {
+      continue;
+    }
+
+    entry.close();
   }
 }
 
@@ -1616,9 +2069,7 @@ function syncFavoriteFilterUi() {
   }
 
   if (orientationFilterLabel) {
-    orientationFilterLabel.textContent = getOrientationFilterMeta(
-      activeOrientationFilter
-    ).buttonLabel;
+    orientationFilterLabel.textContent = '向き';
   }
 
   if (photoLabelFilterButton) {
@@ -1636,7 +2087,7 @@ function syncFavoriteFilterUi() {
   }
 
   if (photoLabelFilterLabel) {
-    photoLabelFilterLabel.textContent = getPhotoLabelFilterButtonText();
+    photoLabelFilterLabel.textContent = 'ラベル';
   }
 
   for (const item of orientationFilterItems) {
@@ -1751,8 +2202,6 @@ async function setOrientationFilter(nextFilter) {
   await syncCurrentPhotoFilterPresentation();
 }
 
-const selectionCountBadge = document.getElementById('selection-count-badge');
-
 function getSelectedPhotosFromCurrentCollections() {
   if (selectedPhotoIds.size === 0) {
     return [];
@@ -1774,7 +2223,9 @@ function getBulkFavoriteTargetValue() {
 function syncSelectionModeButtonState() {
   if (selectionModeButton) {
     selectionModeButton.classList.toggle('is-active', isSelectionMode);
-    selectionModeButton.textContent = isSelectionMode ? '選択終了' : '選択';
+    selectionModeButton.textContent = isSelectionMode
+      ? `${selectedPhotoIds.size}件選択中`
+      : '選択';
     selectionModeButton.disabled = isImporting || !currentSelection;
   }
 }
@@ -1804,33 +2255,24 @@ function syncBulkDeleteButtonState() {
   }
 }
 
-function syncSelectionCountBadgeState() {
-  if (selectionCountBadge) {
-    const shouldShow =
-      Boolean(currentSelection) && isSelectionMode && selectedPhotoIds.size > 0;
-
-    selectionCountBadge.classList.toggle('hidden', !shouldShow);
-
-    if (shouldShow) {
-      selectionCountBadge.textContent = `${selectedPhotoIds.size}件選択中`;
-    } else {
-      selectionCountBadge.textContent = '0件選択中';
-    }
-  }
-}
-
 function syncSelectionUi() {
   syncSelectionModeButtonState();
   syncBulkFavoriteButtonState();
   syncBulkDeleteButtonState();
-  syncSelectionCountBadgeState();
 }
 
 function clearSelectionState() {
   isSelectionMode = false;
   selectedPhotoIds.clear();
+  lastSelectionAnchorPhotoId = null;
+  isSelectionDragActive = false;
+  selectionDragTargetState = null;
+  selectionDragPointerId = null;
+  suppressSelectionModeCardClickPhotoId = null;
+  lastSelectionDragPhotoId = null;
   syncRenderedSelectionState();
   syncSelectionUi();
+  syncKeyboardFocusedPhotoCard();
 }
 
 function syncRenderedPhotoSelectionState(photoId) {
@@ -1873,15 +2315,345 @@ function syncRenderedSelectionState() {
   }
 }
 
-function togglePhotoSelection(photoId) {
+function isEditableKeyboardTarget(target) {
+  return Boolean(
+    target?.closest?.(
+      'input, textarea, select, [contenteditable="true"], [contenteditable=""], [role="textbox"]'
+    )
+  );
+}
+
+function getRenderedVisiblePhotoCards() {
+  if (!monthGalleryList) {
+    return [];
+  }
+
+  return Array.from(monthGalleryList.querySelectorAll('.photo-card')).filter(
+    (card) => !card.hidden
+  );
+}
+
+function clearKeyboardFocusedPhotoCard() {
+  if (!monthGalleryList) {
+    keyboardFocusedPhotoId = null;
+    return;
+  }
+
+  monthGalleryList
+    .querySelectorAll('.photo-card.is-keyboard-focused')
+    .forEach((card) => {
+      card.classList.remove('is-keyboard-focused');
+      card.removeAttribute('tabindex');
+    });
+}
+
+function setKeyboardFocusedPhoto(photoId, { scroll = true } = {}) {
+  if (!Number.isInteger(photoId) || photoId <= 0 || !monthGalleryList) {
+    return false;
+  }
+
+  const card = monthGalleryList.querySelector(
+    `.photo-card[data-photo-id="${photoId}"]`
+  );
+
+  if (!card || card.hidden) {
+    return false;
+  }
+
+  clearKeyboardFocusedPhotoCard();
+  keyboardFocusedPhotoId = photoId;
+  card.classList.add('is-keyboard-focused');
+  card.tabIndex = -1;
+  card.focus({ preventScroll: true });
+
+  if (scroll) {
+    card.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest',
+      behavior: 'smooth',
+    });
+  }
+
+  return true;
+}
+
+function syncKeyboardFocusedPhotoCard() {
+  const visibleCards = getRenderedVisiblePhotoCards();
+
+  if (visibleCards.length === 0) {
+    clearKeyboardFocusedPhotoCard();
+    keyboardFocusedPhotoId = null;
+    return;
+  }
+
+  if (
+    Number.isInteger(keyboardFocusedPhotoId) &&
+    setKeyboardFocusedPhoto(keyboardFocusedPhotoId, { scroll: false })
+  ) {
+    return;
+  }
+
+  keyboardFocusedPhotoId = Number(visibleCards[0].dataset.photoId) || null;
+
+  if (keyboardFocusedPhotoId) {
+    setKeyboardFocusedPhoto(keyboardFocusedPhotoId, { scroll: false });
+  }
+}
+
+function moveKeyboardFocusedPhoto(delta) {
+  const visibleCards = getRenderedVisiblePhotoCards();
+
+  if (visibleCards.length === 0) {
+    return;
+  }
+
+  const visiblePhotoIds = visibleCards.map((card) => Number(card.dataset.photoId));
+  const currentIndex = visiblePhotoIds.indexOf(keyboardFocusedPhotoId);
+  const baseIndex = currentIndex === -1 ? 0 : currentIndex;
+  const nextIndex = Math.max(
+    0,
+    Math.min(visiblePhotoIds.length - 1, baseIndex + delta)
+  );
+
+  setKeyboardFocusedPhoto(visiblePhotoIds[nextIndex]);
+}
+
+function getVisiblePhotoCardRows() {
+  const rowTolerance = 24;
+  const cards = getRenderedVisiblePhotoCards()
+    .map((card) => ({
+      card,
+      photoId: Number(card.dataset.photoId),
+      rect: card.getBoundingClientRect(),
+    }))
+    .filter((entry) => Number.isInteger(entry.photoId) && entry.photoId > 0)
+    .sort((left, right) => {
+      const topDelta = left.rect.top - right.rect.top;
+      if (Math.abs(topDelta) > rowTolerance) {
+        return topDelta;
+      }
+
+      return left.rect.left - right.rect.left;
+    });
+
+  const rows = [];
+
+  for (const entry of cards) {
+    const previousRow = rows.at(-1);
+
+    if (!previousRow || Math.abs(previousRow.top - entry.rect.top) > rowTolerance) {
+      rows.push({
+        top: entry.rect.top,
+        items: [entry],
+      });
+      continue;
+    }
+
+    previousRow.items.push(entry);
+  }
+
+  for (const row of rows) {
+    row.items.sort((left, right) => left.rect.left - right.rect.left);
+  }
+
+  return rows;
+}
+
+function moveKeyboardFocusedPhotoVertical(rowDelta) {
+  const rows = getVisiblePhotoCardRows();
+
+  if (rows.length === 0) {
+    return;
+  }
+
+  let currentRowIndex = -1;
+  let currentColumnIndex = 0;
+
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+    const columnIndex = rows[rowIndex].items.findIndex(
+      (entry) => entry.photoId === keyboardFocusedPhotoId
+    );
+
+    if (columnIndex !== -1) {
+      currentRowIndex = rowIndex;
+      currentColumnIndex = columnIndex;
+      break;
+    }
+  }
+
+  if (currentRowIndex === -1) {
+    const fallbackPhotoId = rows[0].items[0]?.photoId;
+    if (fallbackPhotoId) {
+      setKeyboardFocusedPhoto(fallbackPhotoId);
+    }
+    return;
+  }
+
+  const nextRowIndex = Math.max(
+    0,
+    Math.min(rows.length - 1, currentRowIndex + rowDelta)
+  );
+  const nextRowItems = rows[nextRowIndex].items;
+  const currentEntry = rows[currentRowIndex].items[currentColumnIndex];
+  const currentCenterX =
+    currentEntry.rect.left + currentEntry.rect.width / 2;
+  const overlappingItems = nextRowItems.filter(
+    (entry) =>
+      currentCenterX >= entry.rect.left && currentCenterX <= entry.rect.right
+  );
+
+  let nextEntry = null;
+
+  if (overlappingItems.length > 0) {
+    nextEntry = overlappingItems.reduce((closest, entry) => {
+      if (!closest) {
+        return entry;
+      }
+
+      const closestCenterX =
+        closest.rect.left + closest.rect.width / 2;
+      const entryCenterX = entry.rect.left + entry.rect.width / 2;
+
+      return Math.abs(entryCenterX - currentCenterX) <
+        Math.abs(closestCenterX - currentCenterX)
+        ? entry
+        : closest;
+    }, null);
+  } else {
+    nextEntry =
+      rowDelta > 0
+        ? nextRowItems[nextRowItems.length - 1]
+        : nextRowItems[0];
+  }
+
+  const nextPhotoId = nextEntry?.photoId;
+
+  if (nextPhotoId) {
+    setKeyboardFocusedPhoto(nextPhotoId);
+  }
+}
+
+function activateKeyboardFocusedPhoto() {
+  if (!Number.isInteger(keyboardFocusedPhotoId) || keyboardFocusedPhotoId <= 0) {
+    return;
+  }
+
+  if (isSelectionMode) {
+    togglePhotoSelection(keyboardFocusedPhotoId);
+    return;
+  }
+
+  const photo = getLatestKnownPhotoById(keyboardFocusedPhotoId);
+
+  if (photo) {
+    openImageModal(photo);
+  }
+}
+
+function selectPhotoRange(anchorPhotoId, targetPhotoId) {
+  const visiblePhotoIds = currentPhotos.map((photo) => photo.id);
+  const startIndex = visiblePhotoIds.indexOf(anchorPhotoId);
+  const endIndex = visiblePhotoIds.indexOf(targetPhotoId);
+
+  if (startIndex === -1 || endIndex === -1) {
+    return false;
+  }
+
+  const rangeStart = Math.min(startIndex, endIndex);
+  const rangeEnd = Math.max(startIndex, endIndex);
+
+  for (let index = rangeStart; index <= rangeEnd; index += 1) {
+    selectedPhotoIds.add(visiblePhotoIds[index]);
+  }
+
+  return true;
+}
+
+function setPhotoSelectionState(photoId, shouldSelect) {
+  const isSelected = selectedPhotoIds.has(photoId);
+
+  if (shouldSelect === isSelected) {
+    return false;
+  }
+
+  if (shouldSelect) {
+    selectedPhotoIds.add(photoId);
+  } else {
+    selectedPhotoIds.delete(photoId);
+  }
+
+  lastSelectionAnchorPhotoId = photoId;
+  syncRenderedPhotoSelectionState(photoId);
+  return true;
+}
+
+function togglePhotoSelection(photoId, { rangeSelect = false } = {}) {
+  if (
+    rangeSelect &&
+    Number.isInteger(lastSelectionAnchorPhotoId) &&
+    lastSelectionAnchorPhotoId > 0 &&
+    lastSelectionAnchorPhotoId !== photoId &&
+    selectPhotoRange(lastSelectionAnchorPhotoId, photoId)
+  ) {
+    syncRenderedSelectionState();
+    syncSelectionUi();
+    return;
+  }
+
   if (selectedPhotoIds.has(photoId)) {
     selectedPhotoIds.delete(photoId);
   } else {
     selectedPhotoIds.add(photoId);
   }
 
+  lastSelectionAnchorPhotoId = photoId;
   syncRenderedPhotoSelectionState(photoId);
   syncSelectionUi();
+}
+
+function finishSelectionDrag() {
+  if (!isSelectionDragActive) {
+    return;
+  }
+
+  isSelectionDragActive = false;
+  selectionDragTargetState = null;
+  selectionDragPointerId = null;
+  lastSelectionDragPhotoId = null;
+  window.setTimeout(() => {
+    suppressSelectionModeCardClickPhotoId = null;
+  }, 0);
+}
+
+function applySelectionDragToPhoto(photoId) {
+  if (
+    !isSelectionDragActive ||
+    !Number.isInteger(photoId) ||
+    photoId <= 0 ||
+    lastSelectionDragPhotoId === photoId
+  ) {
+    return;
+  }
+
+  lastSelectionDragPhotoId = photoId;
+  suppressSelectionModeCardClickPhotoId = photoId;
+  if (setPhotoSelectionState(photoId, selectionDragTargetState)) {
+    syncSelectionUi();
+  }
+}
+
+function beginSelectionDrag(photoId, pointerId) {
+  if (!isSelectionMode || !Number.isInteger(photoId) || photoId <= 0) {
+    return;
+  }
+
+  const targetState = !selectedPhotoIds.has(photoId);
+  isSelectionDragActive = true;
+  selectionDragTargetState = targetState;
+  selectionDragPointerId = pointerId ?? null;
+  suppressSelectionModeCardClickPhotoId = photoId;
+  lastSelectionDragPhotoId = null;
+  applySelectionDragToPhoto(photoId);
 }
 
 function getLatestKnownPhotoById(photoId) {
@@ -2123,6 +2895,7 @@ function removeRenderedPhotoCards(
     monthGalleryList.innerHTML = '';
   }
 
+  syncKeyboardFocusedPhotoCard();
   scheduleMonthGalleryLoadCheck({ immediate: true });
   return true;
 }
@@ -2178,6 +2951,8 @@ function syncRenderedFavoriteFilterState() {
   if (monthGalleryEmpty && visibleCardCount === 0) {
     monthGalleryEmpty.textContent = buildFilteredEmptyMessage();
   }
+
+  syncKeyboardFocusedPhotoCard();
 
   return true;
 }
@@ -2645,12 +3420,16 @@ function renderModalPhotoLabels() {
 }
 
 function setPhotoLabelCatalogMenuOpen(isOpen) {
-  isPhotoLabelCatalogMenuOpen = Boolean(isOpen);
+  const nextOpen = Boolean(isOpen);
+  if (nextOpen) {
+    closeManagedDropdownsExcept(photoLabelCatalogDropdown);
+  }
+  isPhotoLabelCatalogMenuOpen = nextOpen;
   setAnimatedDropdownOpenState({
     dropdown: photoLabelCatalogDropdown,
     button: photoLabelCatalogButton,
     menu: photoLabelCatalogMenu,
-    isOpen: isPhotoLabelCatalogMenuOpen,
+    isOpen: nextOpen,
     closeTimerRef: {
       get current() {
         return photoLabelCatalogMenuCloseTimer;
@@ -3426,6 +4205,7 @@ function closeImageModal() {
   imageModal.classList.remove('is-open');
   imageModal.classList.add('is-closing');
   invalidateCurrentModalAsyncRequests();
+  setImageModalScrollLock(false);
 
   const finalizeImageModalClose = () => {
     if (imageModalSwitchTimer) {
@@ -3438,11 +4218,7 @@ function closeImageModal() {
     imageModal.classList.add('hidden');
     clearCurrentModalPhotoState();
     imageModalAnimationTimer = null;
-
-    requestAnimationFrame(() => {
-      setImageModalScrollLock(false);
-      triggerModalShellRestoreAnimation();
-    });
+    triggerModalShellRestoreAnimation();
   };
 
   if (prefersReducedMotion) {
@@ -3522,6 +4298,8 @@ function renderTrackedFolderList() {
     return;
   }
 
+  syncTrackedFolderSettingsMeta();
+
   if (!Array.isArray(trackedFolders) || trackedFolders.length === 0) {
     trackedFolderList.innerHTML =
       '<p class="tracked-folder-empty">まだ登録されていません</p>';
@@ -3544,6 +4322,87 @@ function renderTrackedFolderList() {
       `
     )
     .join('');
+
+  syncTrackedFolderListActionButtonsUi();
+}
+
+function syncTrackedFolderSettingsMeta() {
+  if (!trackedFolderSettingsMeta) {
+    return;
+  }
+
+  const count = Array.isArray(trackedFolders) ? trackedFolders.length : 0;
+  trackedFolderSettingsMeta.textContent =
+    count > 0
+      ? `登録済み ${count}件`
+      : 'まだ登録されていません';
+}
+
+function syncTrackedFolderSettingsActionsUi() {
+  const hasTrackedFolders =
+    Array.isArray(trackedFolders) && trackedFolders.length > 0;
+
+  if (openTrackedFolderListButton) {
+    openTrackedFolderListButton.disabled = isImporting || !hasTrackedFolders;
+    openTrackedFolderListButton.setAttribute(
+      'title',
+      hasTrackedFolders ? '更新対象フォルダ一覧を表示' : '登録されたフォルダがありません'
+    );
+  }
+
+  if (addTrackedFolderButton) {
+    addTrackedFolderButton.disabled = isImporting;
+    addTrackedFolderButton.setAttribute(
+      'title',
+      isImporting ? '処理中はフォルダを追加できません' : '更新対象フォルダを追加'
+    );
+  }
+}
+
+function syncTrackedFolderListActionButtonsUi() {
+  trackedFolderList
+    ?.querySelectorAll('[data-tracked-folder-path]')
+    .forEach((button) => {
+      button.disabled = isImporting;
+      button.setAttribute(
+        'title',
+        isImporting ? '処理中はフォルダを削除できません' : 'このフォルダを削除'
+      );
+    });
+}
+
+function ensureSettingsMaintenanceStatus() {
+  if (!settingsMaintenanceSection) {
+    return null;
+  }
+
+  if (!settingsMaintenanceStatus) {
+    settingsMaintenanceStatus = document.createElement('p');
+    settingsMaintenanceStatus.className = 'settings-maintenance-status';
+    settingsMaintenanceStatus.setAttribute('aria-live', 'polite');
+    settingsMaintenanceSection.appendChild(settingsMaintenanceStatus);
+  }
+
+  return settingsMaintenanceStatus;
+}
+
+function setSettingsMaintenanceStatus(message = '', tone = 'default') {
+  const statusElement = ensureSettingsMaintenanceStatus();
+
+  if (!statusElement) {
+    return;
+  }
+
+  statusElement.textContent = message;
+  statusElement.classList.remove('is-success', 'is-error', 'is-busy');
+
+  if (tone === 'success') {
+    statusElement.classList.add('is-success');
+  } else if (tone === 'error') {
+    statusElement.classList.add('is-error');
+  } else if (tone === 'busy') {
+    statusElement.classList.add('is-busy');
+  }
 }
 
 // Settings modal maintenance buttons are enabled or disabled from the current
@@ -3643,6 +4502,13 @@ function handleDelegatedSubModalClose(event) {
     event.preventDefault();
     event.stopPropagation();
     closeSettingsModal();
+    return;
+  }
+
+  if (closeButton === trackedFolderModalClose) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeTrackedFolderModal();
     return;
   }
 
@@ -4078,83 +4944,51 @@ function initializePhotoLabelUi() {
   });
 }
 
-function syncTrackedFolderAccordionState() {
-  if (!trackedFolderAccordionButton || !trackedFolderAccordionPanel) {
-    return;
-  }
-
-  trackedFolderAccordionButton.setAttribute(
-    'aria-expanded',
-    isTrackedFolderAccordionOpen ? 'true' : 'false'
-  );
-  trackedFolderAccordionPanel.classList.toggle(
-    'is-open',
-    isTrackedFolderAccordionOpen
-  );
-}
-
-function setTrackedFolderAccordionOpen(isOpen) {
-  isTrackedFolderAccordionOpen = Boolean(isOpen);
-  syncTrackedFolderAccordionState();
-}
-
-function initializeTrackedFolderAccordion() {
-  if (
-    trackedFolderAccordionButton ||
-    !settingsSectionHeader ||
-    !trackedFolderList
-  ) {
-    return;
-  }
-
-  const copyContainer = settingsSectionHeader.querySelector(':scope > div');
-
-  if (!copyContainer) {
-    return;
-  }
-
-  trackedFolderAccordionButton = document.createElement('button');
-  trackedFolderAccordionButton.id = 'tracked-folder-accordion-btn';
-  trackedFolderAccordionButton.type = 'button';
-  trackedFolderAccordionButton.className = 'settings-accordion-button';
-  trackedFolderAccordionButton.setAttribute('aria-controls', 'tracked-folder-accordion-panel');
-
-  copyContainer.classList.add('settings-accordion-copy');
-  settingsSectionHeader.insertBefore(trackedFolderAccordionButton, copyContainer);
-  trackedFolderAccordionButton.appendChild(copyContainer);
-
-  const chevron = document.createElement('span');
-  chevron.className = 'material-symbols-outlined settings-accordion-chevron';
-  chevron.textContent = 'expand_more';
-  trackedFolderAccordionButton.appendChild(chevron);
-
-  trackedFolderAccordionPanel = document.createElement('div');
-  trackedFolderAccordionPanel.id = 'tracked-folder-accordion-panel';
-  trackedFolderAccordionPanel.className = 'settings-accordion-panel';
-
-  const panelInner = document.createElement('div');
-  panelInner.className = 'settings-accordion-panel-inner';
-
-  trackedFolderList.parentElement.insertBefore(
-    trackedFolderAccordionPanel,
-    trackedFolderList
-  );
-  trackedFolderAccordionPanel.appendChild(panelInner);
-  panelInner.appendChild(trackedFolderList);
-
-  trackedFolderAccordionButton.addEventListener('click', () => {
-    setTrackedFolderAccordionOpen(!isTrackedFolderAccordionOpen);
-  });
-
-  syncTrackedFolderAccordionState();
-}
-
 async function loadTrackedFoldersForSettings() {
   trackedFolders = await window.electronAPI.getTrackedFolders();
   renderTrackedFolderList();
 }
 
+// Settings modal updates currently come from several entry points (open,
+// folder add/remove, maintenance actions). Keep the refresh steps in one place
+// so future UI changes only need to update a single helper.
+async function refreshSettingsModalUi({
+  loadTrackedFolders = false,
+  loadOverview = true,
+  resetScroll = false,
+  resetMaintenanceStatus = false,
+} = {}) {
+  ensureSettingsOverviewSection();
+  ensureSettingsBackgroundSection();
+  initializeSettingsTrackedFolderUi();
+  ensureSettingsMaintenanceStatus();
+
+  if (loadTrackedFolders) {
+    await loadTrackedFoldersForSettings();
+  } else {
+    renderTrackedFolderList();
+  }
+
+  syncTrackedFolderSettingsActionsUi();
+  syncSettingsBackgroundUi();
+  syncSelectionDependentSettingsUi();
+
+  if (loadOverview) {
+    await loadSettingsOverview();
+  }
+
+  if (resetMaintenanceStatus) {
+    setSettingsMaintenanceStatus('');
+  }
+
+  if (resetScroll && settingsModalBody) {
+    settingsModalBody.scrollTop = 0;
+  }
+}
+
 function initializeTopToolbarLayout() {
+  // Toolbar layout is assembled at runtime so the static HTML can stay simple
+  // and fragile header IDs do not need to move around in index.html.
   if (refreshTrackedFoldersButton && pageHeaderActions && settingsButton) {
     refreshTrackedFoldersButton.classList.add('theme-toggle-btn');
     refreshTrackedFoldersButton.innerHTML =
@@ -4165,6 +4999,9 @@ function initializeTopToolbarLayout() {
   }
 
   if (worldNameFilterDropdown && toolbar && toolbarRight) {
+    // The world-name filter behaves like a persistent toolbar input instead of
+    // a transient dropdown. We relocate the existing block rather than
+    // duplicating markup so all renderer bindings keep working.
     let toolbarLeftGroup = toolbar.querySelector('.toolbar-left-group');
 
     if (!toolbarLeftGroup) {
@@ -4176,9 +5013,12 @@ function initializeTopToolbarLayout() {
     worldNameFilterDropdown.classList.add('toolbar-world-filter');
     worldNameFilterDropdown.classList.add('is-static-toolbar-filter');
     toolbarLeftGroup.appendChild(worldNameFilterDropdown);
+    ensureStaticToolbarWorldFilterVisible();
   }
 
-  if (regenerateThumbnailsButton && settingsSectionHeader?.parentElement) {
+  if (regenerateThumbnailsButton && settingsMaintenanceSection) {
+    // Settings owns thumbnail regeneration so the toolbar stays focused on
+    // browsing/searching. The month selector is created once and reused.
     const utilityActions = ensureSettingsUtilityActionsContainer();
     ensureRegenerateThumbnailMonthDropdown(utilityActions);
 
@@ -4230,14 +5070,12 @@ async function openSettingsModal() {
     return;
   }
 
-  initializeTrackedFolderAccordion();
-  await loadTrackedFoldersForSettings();
-  syncTrackedFolderAccordionState();
-  syncSelectionDependentSettingsUi();
-
-  if (settingsModalBody) {
-    settingsModalBody.scrollTop = 0;
-  }
+  await refreshSettingsModalUi({
+    loadTrackedFolders: true,
+    loadOverview: true,
+    resetScroll: true,
+    resetMaintenanceStatus: true,
+  });
 
   openSubModalElement(settingsModal);
 }
@@ -4245,6 +5083,7 @@ async function openSettingsModal() {
 function closeSettingsModal() {
   closeSubModalElement(settingsModal, {
     onClosed: () => {
+      closeTrackedFolderModal();
       closeRegenerateThumbnailMonthMenu();
       if (settingsModalBody) {
         settingsModalBody.scrollTop = 0;
@@ -4255,6 +5094,7 @@ function closeSettingsModal() {
 
 function syncSelectionDependentSettingsUi() {
   renderRegenerateThumbnailMonthOptions();
+  syncSettingsUtilityActionsUi();
   syncSettingsMaintenanceUi();
 }
 
@@ -4285,6 +5125,7 @@ function createPhotoCard(item) {
   card.className = 'photo-card';
   card.dataset.photoId = String(item.id);
   card.draggable = false;
+  card.tabIndex = -1;
 
   if (isSelectionMode) {
     card.classList.add('selection-mode');
@@ -4317,7 +5158,25 @@ function createPhotoCard(item) {
       return;
     }
 
-    togglePhotoSelection(item.id);
+    togglePhotoSelection(item.id, { rangeSelect: event.shiftKey });
+  });
+
+  card.addEventListener('pointerdown', (event) => {
+    if (
+      !isSelectionMode ||
+      event.button !== 0 ||
+      event.shiftKey ||
+      event.target.closest('.photo-card-selection-btn, .photo-card-favorite-btn')
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    beginSelectionDrag(item.id, event.pointerId);
+  });
+
+  card.addEventListener('pointerenter', () => {
+    applySelectionDragToPhoto(item.id);
   });
 
   const favoriteButton = document.createElement('button');
@@ -4432,9 +5291,16 @@ function createPhotoCard(item) {
     event.preventDefault();
   });
 
-  card.addEventListener('click', () => {
+  card.addEventListener('click', (event) => {
     if (isSelectionMode) {
-      togglePhotoSelection(item.id);
+      if (suppressSelectionModeCardClickPhotoId === item.id) {
+        suppressSelectionModeCardClickPhotoId = null;
+        return;
+      }
+
+      togglePhotoSelection(item.id, {
+        rangeSelect: event.shiftKey,
+      });
       return;
     }
 
@@ -4570,6 +5436,7 @@ function appendMonthGalleryPhotoBatch(targetCount) {
   renderedPhotoCount = targetCount;
   monthGalleryList.appendChild(fragment);
   syncSelectionUi();
+  syncKeyboardFocusedPhotoCard();
 }
 
 function maybeLoadMoreMonthGalleryPhotos() {
@@ -4718,6 +5585,7 @@ function renderMonthGallery({ resetProgressive = false } = {}) {
     )
   );
   scheduleMonthGalleryLoadCheck({ immediate: true });
+  syncKeyboardFocusedPhotoCard();
 }
 
 function resetMonthSwitchClasses() {
@@ -4737,6 +5605,7 @@ function stopScrollToTopAnimation() {
 
 function scrollGalleryViewToTop({ animated = false } = {}) {
   const targets = [];
+  const appScrollTop = appRoot?.scrollTop || 0;
   const documentScrollTop =
     window.scrollY ||
     document.documentElement.scrollTop ||
@@ -4765,7 +5634,16 @@ function scrollGalleryViewToTop({ animated = false } = {}) {
     });
   }
 
-  if (documentScrollTop > 0) {
+  if (appScrollTop > 0) {
+    targets.push({
+      start: appScrollTop,
+      apply(value) {
+        if (appRoot) {
+          appRoot.scrollTop = value;
+        }
+      },
+    });
+  } else if (documentScrollTop > 0) {
     targets.push({
       start: documentScrollTop,
       apply(value) {
@@ -5089,7 +5967,7 @@ function renderSidebar() {
     toggle.textContent = expandedYears.has(yearEntry.year) ? '▾' : '▸';
 
     const label = document.createElement('span');
-    label.textContent = `${yearEntry.year}年`;
+    label.textContent = String(yearEntry.year);
 
     yearLeft.appendChild(toggle);
     yearLeft.appendChild(label);
@@ -5140,7 +6018,7 @@ function renderSidebar() {
 
       const monthName = document.createElement('span');
       monthName.className = 'month-name';
-      monthName.textContent = `${pad2(monthEntry.month)}月`;
+      monthName.textContent = pad2(monthEntry.month);
 
       const monthCount = document.createElement('span');
       monthCount.className = 'month-count';
@@ -5365,6 +6243,7 @@ async function handleTrackedFoldersRefreshResult(result, fallbackSelection) {
 }
 
 async function runRegenerateThumbnailsFlow(targetYear, targetMonth) {
+  setSettingsMaintenanceStatus('サムネイルを再生成しています...', 'busy');
   await runForegroundAsyncAction({
     statusMessage: 'サムネイルを再生成しています...',
     progressMessage: 'サムネイルを再生成しています...',
@@ -5374,7 +6253,9 @@ async function runRegenerateThumbnailsFlow(targetYear, targetMonth) {
         month: targetMonth,
       }),
     handleResult: async (result) => {
-      importStatus.textContent = buildScopedRegenerateThumbnailsMessage(result);
+      const successStatus = buildScopedRegenerateThumbnailsMessage(result);
+      importStatus.textContent = successStatus;
+      setSettingsMaintenanceStatus(successStatus, 'success');
 
       if (result?.failedCount > 0) {
         showToast(`サムネイル再生成 ${result.failedCount}件失敗しました`);
@@ -5384,7 +6265,11 @@ async function runRegenerateThumbnailsFlow(targetYear, targetMonth) {
 
       await selectCurrentSelection();
     },
-    buildErrorStatus: (message) => `サムネイル再生成に失敗しました: ${message}`,
+    buildErrorStatus: (message) => {
+      const errorStatus = `サムネイル再生成に失敗しました: ${message}`;
+      setSettingsMaintenanceStatus(errorStatus, 'error');
+      return errorStatus;
+    },
   });
 }
 
@@ -5412,19 +6297,9 @@ function setElementDisabledState(element, disabled) {
 function syncBusyAffectedPrimaryActions(isBusy) {
   setElementDisabledState(refreshTrackedFoldersButton, isBusy);
   setElementDisabledState(settingsButton, isBusy);
-  setElementDisabledState(regenerateThumbnailsButton, isBusy);
-
-  if (regenerateThumbnailMonthSelect) {
-    regenerateThumbnailMonthSelect.disabled =
-      isBusy || regenerateThumbnailMonthSelect.options.length === 0;
-  }
-
-  if (regenerateThumbnailMonthButton) {
-    regenerateThumbnailMonthButton.disabled =
-      isBusy ||
-      !regenerateThumbnailMonthSelect ||
-      regenerateThumbnailMonthSelect.options.length === 0;
-  }
+  syncSettingsUtilityActionsUi();
+  syncTrackedFolderSettingsActionsUi();
+  syncTrackedFolderListActionButtonsUi();
 }
 
 function syncBusyAffectedFilterActions(isBusy) {
@@ -5829,6 +6704,7 @@ async function runSettingsMaintenanceAction({
     progressMessage,
     showProgress: Boolean(progressMessage),
   });
+  setSettingsMaintenanceStatus(busyStatus, 'busy');
 
   try {
     const result = await run();
@@ -5842,7 +6718,9 @@ async function runSettingsMaintenanceAction({
     }
 
     if (typeof buildSuccessStatus === 'function') {
-      importStatus.textContent = buildSuccessStatus(result);
+      const successStatus = buildSuccessStatus(result);
+      importStatus.textContent = successStatus;
+      setSettingsMaintenanceStatus(successStatus, 'success');
     }
 
     if (typeof buildSuccessToast === 'function') {
@@ -5859,7 +6737,9 @@ async function runSettingsMaintenanceAction({
       error instanceof Error ? error.message : String(error || '不明なエラー');
 
     if (typeof buildErrorStatus === 'function') {
-      importStatus.textContent = buildErrorStatus(message);
+      const errorStatus = buildErrorStatus(message);
+      importStatus.textContent = errorStatus;
+      setSettingsMaintenanceStatus(errorStatus, 'error');
     }
 
     if (typeof buildErrorToast === 'function') {
@@ -5873,7 +6753,10 @@ async function runSettingsMaintenanceAction({
     return null;
   } finally {
     setImportUiBusy(false);
-    syncSettingsMaintenanceUi();
+    void refreshSettingsModalUi({
+      loadTrackedFolders: false,
+      loadOverview: true,
+    });
   }
 }
 
@@ -6252,14 +7135,23 @@ function initializeDragAndDropImport() {
 }
 
 async function initializeApp() {
-  await refreshSidebar();
-  const restored = await restoreMonthViewAfterDataChange();
+  try {
+    await refreshSidebar();
+    const restored = await restoreMonthViewAfterDataChange();
 
-  if (!restored) {
-    renderSidebar();
+    if (!restored) {
+      renderSidebar();
+    }
+
+    syncFavoriteFilterUi();
+  } finally {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        appRoot?.classList.remove('is-app-initializing');
+        appRoot?.setAttribute('aria-busy', 'false');
+      });
+    });
   }
-
-  syncFavoriteFilterUi();
 }
 
 // Toolbar and maintenance actions that kick off foreground work.
@@ -6615,8 +7507,25 @@ function bindSettingsModalControls() {
     settingsModalClose,
     closeSettingsModal
   );
+  bindSubModalCloseTriggers(
+    trackedFolderModalBackdrop,
+    trackedFolderModalClose,
+    closeTrackedFolderModal
+  );
   settingsModalContent?.addEventListener('wheel', handleSettingsModalWheel, {
     passive: false,
+  });
+
+  openTrackedFolderListButton?.addEventListener('click', () => {
+    openTrackedFolderModal();
+  });
+
+  selectBackgroundImageButton?.addEventListener('click', async () => {
+    await selectBackgroundImageFromSettings();
+  });
+
+  clearBackgroundImageButton?.addEventListener('click', () => {
+    clearBackgroundImageFromSettings();
   });
 
   addTrackedFolderButton?.addEventListener('click', async () => {
@@ -6630,7 +7539,11 @@ function bindSettingsModalControls() {
     }
 
     trackedFolders = Array.isArray(result.folders) ? result.folders : trackedFolders;
-    renderTrackedFolderList();
+    await refreshSettingsModalUi({
+      loadTrackedFolders: false,
+      loadOverview: true,
+      resetMaintenanceStatus: true,
+    });
 
     if (!result.canceled && result.folder?.folder_path) {
       showToast('更新対象フォルダを追加しました');
@@ -6671,7 +7584,11 @@ function bindSettingsModalControls() {
     }
 
     trackedFolders = Array.isArray(result.folders) ? result.folders : trackedFolders;
-    renderTrackedFolderList();
+    await refreshSettingsModalUi({
+      loadTrackedFolders: false,
+      loadOverview: true,
+      resetMaintenanceStatus: true,
+    });
     showToast('更新対象フォルダを削除しました');
   });
 
@@ -6704,6 +7621,7 @@ function bindSelectionControls() {
     } else {
       isSelectionMode = true;
       selectedPhotoIds.clear();
+      lastSelectionAnchorPhotoId = null;
       syncSelectionUi();
     }
     syncRenderedSelectionState();
@@ -6797,6 +7715,14 @@ function bindGlobalDocumentInteractions() {
     closeManagedDropdownsFromOutsideClick(event.target);
   });
 
+  document.addEventListener('pointerup', () => {
+    finishSelectionDrag();
+  });
+
+  document.addEventListener('pointercancel', () => {
+    finishSelectionDrag();
+  });
+
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') {
       return;
@@ -6818,6 +7744,11 @@ function bindGlobalDocumentInteractions() {
 
     if (photoLabelModal && !photoLabelModal.classList.contains('hidden')) {
       closePhotoLabelModal();
+      return;
+    }
+
+    if (trackedFolderModal && !trackedFolderModal.classList.contains('hidden')) {
+      closeTrackedFolderModal();
       return;
     }
 
@@ -6849,6 +7780,53 @@ function bindGlobalDocumentInteractions() {
     if (event.key === 'ArrowRight') {
       event.preventDefault();
       stepImageModalPhoto(1);
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (
+      imageModal?.classList.contains('hidden') === false ||
+      worldNameEditModal?.classList.contains('hidden') === false ||
+      photoLabelModal?.classList.contains('hidden') === false ||
+      trackedFolderModal?.classList.contains('hidden') === false ||
+      settingsModal?.classList.contains('hidden') === false ||
+      confirmModal?.classList.contains('hidden') === false ||
+      isEditableKeyboardTarget(event.target)
+    ) {
+      return;
+    }
+
+    if (!currentSelection || getRenderedVisiblePhotoCards().length === 0) {
+      return;
+    }
+
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      moveKeyboardFocusedPhoto(-1);
+      return;
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      moveKeyboardFocusedPhoto(1);
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveKeyboardFocusedPhotoVertical(-1);
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveKeyboardFocusedPhotoVertical(1);
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      activateKeyboardFocusedPhoto();
     }
   });
 
@@ -6894,11 +7872,14 @@ function initializeRendererBindings() {
 function initializeRendererUi() {
   initializeTheme();
   initializeFontPreference();
+  initializeBackgroundImagePreference();
   initializeImageModalUi();
   initializeWorldNameEditUi();
   initializePhotoLabelUi();
   initializeModalCloseIcons();
-  initializeTrackedFolderAccordion();
+  ensureSettingsBackgroundSection();
+  initializeSettingsTrackedFolderUi();
+  syncSettingsBackgroundUi();
   initializeTopToolbarLayout();
   initializeDragAndDropImport();
   initializeProgressiveMonthGalleryLoading();

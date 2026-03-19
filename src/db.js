@@ -14,6 +14,9 @@ const DEFAULT_TAG_COLOR_PALETTE = [
   '#06B6D4',
 ];
 
+// ------------------------------
+// Schema migration helpers
+// ------------------------------
 function ensureColumn(db, tableName, columnDefinition) {
   const columnName = columnDefinition.split(' ')[0];
   const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
@@ -82,6 +85,9 @@ function normalizeTagName(tagInput) {
   };
 }
 
+// ------------------------------
+// Database initialization / schema
+// ------------------------------
 function initDatabase(dbPath) {
   const db = new Database(dbPath);
 
@@ -1102,10 +1108,10 @@ function initDatabase(dbPath) {
     return getPhotoByIdStmt.get(photoId) || null;
   }
 
-  // Reset helpers live in the DB layer so destructive maintenance work has a
-  // single place to audit instead of scattering direct DELETEs across the app.
-  function resetApplicationData() {
-    const counts = {
+  // Settings and maintenance surfaces use this lightweight summary to show
+  // the current persisted footprint without triggering heavy scans.
+  function getApplicationDataSummary() {
+    return {
       photoCount: db.prepare('SELECT COUNT(*) AS count FROM photos').get().count,
       trackedFolderCount: db
         .prepare('SELECT COUNT(*) AS count FROM tracked_folders')
@@ -1115,6 +1121,12 @@ function initDatabase(dbPath) {
         .get().count,
       tagCount: db.prepare('SELECT COUNT(*) AS count FROM tags').get().count,
     };
+  }
+
+  // Reset helpers live in the DB layer so destructive maintenance work has a
+  // single place to audit instead of scattering direct DELETEs across the app.
+  function resetApplicationData() {
+    const counts = getApplicationDataSummary();
 
     const txn = db.transaction(() => {
       deleteAllPhotosStmt.run();
@@ -1162,6 +1174,7 @@ function initDatabase(dbPath) {
     updateImageMetadata,
     updatePhotoFileLocation,
     updatePhotoMemo,
+    getApplicationDataSummary,
     resetApplicationData,
   };
 }

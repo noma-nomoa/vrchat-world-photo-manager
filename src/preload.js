@@ -1,6 +1,10 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
+// Renderer-facing bridge.
+// Keep this list grouped by workflow so main/renderer responsibilities stay
+// easy to follow when features are added or removed later.
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Import / maintenance actions.
   importImages: () => ipcRenderer.invoke('import-images'),
   importFolder: () => ipcRenderer.invoke('import-folder'),
   importDroppedFiles: (files) => {
@@ -29,12 +33,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteAllPhotos: () => ipcRenderer.invoke('delete-all-photos'),
   clearThumbnailCache: () => ipcRenderer.invoke('clear-thumbnail-cache'),
   resetDatabase: () => ipcRenderer.invoke('reset-database'),
+
+  // Read-only overview / sidebar data.
+  getApplicationDataSummary: () =>
+    ipcRenderer.invoke('get-application-data-summary'),
   getSidebarData: () => ipcRenderer.invoke('get-sidebar-data'),
   getLatestMonth: () => ipcRenderer.invoke('get-latest-month'),
   getTrackedFolders: () => ipcRenderer.invoke('get-tracked-folders'),
+  selectBackgroundImage: () => ipcRenderer.invoke('select-background-image'),
   addTrackedFolder: () => ipcRenderer.invoke('add-tracked-folder'),
   removeTrackedFolder: (folderPath) =>
     ipcRenderer.invoke('remove-tracked-folder', folderPath),
+
+  // Photo listing and world metadata.
   getPhotosByMonth: (year, month) =>
     ipcRenderer.invoke('get-photos-by-month', year, month),
   getPhotosByYear: (year) => ipcRenderer.invoke('get-photos-by-year', year),
@@ -43,6 +54,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPhotoLabels: (photoId) => ipcRenderer.invoke('get-photo-labels', photoId),
   replacePhotoLabels: (photoId, labels) =>
     ipcRenderer.invoke('replace-photo-labels', { photoId, labels }),
+
+  // Mutations from modal/editor flows.
   refreshTrackedFolders: (folderPaths) =>
     ipcRenderer.invoke('refresh-tracked-folders', folderPaths),
   updateWorldName: (photoId, worldNameManual) =>
@@ -65,6 +78,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('update-favorite-status', { photoId, isFavorite }),
   updateFavoriteStatuses: (photoIds, isFavorite) =>
     ipcRenderer.invoke('update-favorite-statuses', { photoIds, isFavorite }),
+
+  // Push-style notifications from main.
   onProcessingProgress: (listener) => {
     if (typeof listener !== 'function') {
       return () => {};

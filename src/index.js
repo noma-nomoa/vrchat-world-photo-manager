@@ -1739,11 +1739,18 @@ function createResolvedPhotoAccessResult(
   return payload;
 }
 
+// ------------------------------
+// World metadata sync: queue target normalization
+// ------------------------------
 function createWorldMetadataSyncTarget(target) {
   const worldId =
     normalizeWorldId(target?.worldId) ||
     parseWorldIdFromUrl(target?.worldUrl);
 
+  // Private / non-public captures can be stored without any world metadata in
+  // the local file. VRChat 2025.3.2 notes that private worlds do not write
+  // their ID/name into local photo metadata, so we intentionally skip queueing
+  // here and let the UI use its explicit fallback label instead.
   if (!worldId) {
     return null;
   }
@@ -1754,10 +1761,12 @@ function createWorldMetadataSyncTarget(target) {
   };
 }
 
-// NOTE:
-// The next two *LegacyCorrupt helpers exist only because this file previously
-// went through an encoding-corruption incident. Active code paths delegate to
-// the clean implementations further below.
+// ------------------------------
+// Quarantine: mojibake-affected compatibility helpers
+// ------------------------------
+// These helpers remain only because this file previously went through an
+// encoding-corruption incident. Active code paths delegate to the clean
+// implementations further below so the live app does not rely on this block.
 function createMissingAccessiblePhotoFileErrorLegacyCorrupt() {
   return createMissingAccessiblePhotoFileError();
 
@@ -1795,8 +1804,6 @@ function createMissingAccessiblePhotoFileError() {
   );
 }
 
-// Active progress/status helpers remain separate from the quarantined mojibake
-// block above so queue code can call a single clean entry point.
 // Quarantined compatibility helper kept in place because the original
 // mojibake-adjacent block is still preserved below. Active code now calls the
 // *Active helper further down instead of routing through this function.
@@ -1810,8 +1817,12 @@ function getWorldMetadataSyncProgressMessage(phase) {
     : 'World情報を自動で取得しています...';
 }
 
+// ------------------------------
+// Active world metadata sync helpers
+// ------------------------------
 // Active call sites use these UTF-8-safe helpers. The original function names
-// above remain only because the file still contains quarantined mojibake blocks.
+// above remain only because the file still contains quarantined mojibake
+// blocks that are kept for reference and safe fallback only.
 function createMissingAccessiblePhotoFileErrorActive() {
   return new Error(
     '画像ファイルが見つかりません。保存先を開いて場所を再確認してください。'
@@ -2472,7 +2483,8 @@ function delay(ms) {
 }
 
 // World metadata sync works on unique world IDs so post-import enrichment can
-// reuse cache entries instead of re-fetching per photo.
+// reuse cache entries instead of re-fetching per photo. Files without a
+// resolvable worldId are filtered out before they reach this stage.
 function buildWorldMetadataSyncTargetsFromPhotoRecords(photoRecords) {
   const targets = new Map();
 
@@ -3374,6 +3386,10 @@ app.whenReady().then(async () => {
     }
   });
 
+  ipcMain.handle('get-application-data-summary', async () => {
+    return photoDb.getApplicationDataSummary();
+  });
+
   ipcMain.handle('get-sidebar-data', async () => {
     return photoDb.getSidebarTree();
   });
@@ -3465,6 +3481,33 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('get-tracked-folders', async () => {
     return photoDb.getTrackedFolders();
+  });
+
+  ipcMain.handle('select-background-image', async () => {
+    const result = await dialog.showOpenDialog({
+      title: '背景画像を選択',
+      properties: ['openFile'],
+      filters: [
+        {
+          name: 'Image Files',
+          extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'],
+        },
+      ],
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return {
+        ok: true,
+        canceled: true,
+        filePath: '',
+      };
+    }
+
+    return {
+      ok: true,
+      canceled: false,
+      filePath: result.filePaths[0],
+    };
   });
 
   ipcMain.handle('add-tracked-folder', async () => {
