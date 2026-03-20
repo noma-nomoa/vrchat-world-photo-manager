@@ -45,6 +45,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectBackgroundImage: () => ipcRenderer.invoke('select-background-image'),
   setBackgroundImagePreference: (filePath) =>
     ipcRenderer.invoke('set-background-image-preference', { filePath }),
+  startAppUpdateDownload: () =>
+    ipcRenderer.invoke('start-app-update-download'),
+  installDownloadedAppUpdate: () =>
+    ipcRenderer.invoke('install-downloaded-app-update'),
   addTrackedFolder: () => ipcRenderer.invoke('add-tracked-folder'),
   removeTrackedFolder: (folderPath) =>
     ipcRenderer.invoke('remove-tracked-folder', folderPath),
@@ -112,6 +116,36 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     return () => {
       ipcRenderer.removeListener('world-metadata-updated', wrappedListener);
+    };
+  },
+  onAppUpdateStatus: (listener) => {
+    if (typeof listener !== 'function') {
+      return () => {};
+    }
+
+    const wrappedListener = (_event, payload) => {
+      listener(payload);
+    };
+
+    ipcRenderer.on('app-update-status', wrappedListener);
+
+    return () => {
+      ipcRenderer.removeListener('app-update-status', wrappedListener);
+    };
+  },
+  onAppUpdateAction: (listener) => {
+    if (typeof listener !== 'function') {
+      return () => {};
+    }
+
+    const wrappedListener = (_event, payload) => {
+      listener(payload);
+    };
+
+    ipcRenderer.on('app-update-action', wrappedListener);
+
+    return () => {
+      ipcRenderer.removeListener('app-update-action', wrappedListener);
     };
   },
 });

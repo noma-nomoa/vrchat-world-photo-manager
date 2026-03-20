@@ -37,6 +37,26 @@ const sidebar = document.querySelector('.sidebar');
 appRoot?.classList.add('is-app-initializing');
 appRoot?.setAttribute('aria-busy', 'true');
 
+// Fail safe: if renderer startup hits an unexpected error, do not leave the
+// whole window permanently covered by the loading spinner.
+function forceClearInitializationState() {
+  appRoot?.classList.remove('is-app-initializing');
+  appRoot?.setAttribute('aria-busy', 'false');
+}
+
+const appInitializationFailsafeTimer = setTimeout(() => {
+  console.warn('[renderer startup] forcing initialization overlay to close');
+  forceClearInitializationState();
+}, 3000);
+
+window.addEventListener('error', () => {
+  setTimeout(forceClearInitializationState, 0);
+});
+
+window.addEventListener('unhandledrejection', () => {
+  setTimeout(forceClearInitializationState, 0);
+});
+
 // Header filter controls.
 const favoriteFilterButton = document.getElementById('favorite-filter-btn');
 const orientationFilterButton = document.getElementById(
@@ -103,8 +123,8 @@ const modalDeletePhotoButton = document.getElementById(
   'modal-delete-photo-btn'
 );
 
-const modalFavoriteButton = document.getElementById('modal-favorite-btn');
-const modalFavoriteIcon = document.getElementById('modal-favorite-icon');
+let modalFavoriteButton = document.getElementById('modal-favorite-btn');
+let modalFavoriteIcon = document.getElementById('modal-favorite-icon');
 const worldNameEditorActions = document.querySelector('.world-name-editor-actions');
 const modalDangerActions = document.querySelector('.modal-danger-actions');
 
@@ -284,6 +304,7 @@ let keyboardFocusedPhotoId = null;
 let isImporting = false;
 let isWorldMetadataSyncing = false;
 let worldMetadataSyncResetTimer = null;
+let appUpdatePromptQueue = Promise.resolve();
 
 // Expanded tree state and transient UI timers/overlays.
 const expandedYears = new Set();
@@ -4191,34 +4212,12 @@ function handleImageModalWheel(event) {
 }
 
 function triggerModalShellRestoreAnimation() {
-  const prefersReducedMotion = window.matchMedia?.(
-    '(prefers-reduced-motion: reduce)'
-  )?.matches;
-  // Keep the lightweight sidebar polish, but avoid touching the sticky header
-  // after modal close because it reads as a flash / reload.
-  const targets = [sidebar].filter(Boolean);
-
-  if (targets.length === 0 || prefersReducedMotion) {
-    return;
-  }
-
+  // Keep the hook in place for future experiments, but do not animate the
+  // sticky shell today. The current effect reads as a reload/flash.
   if (modalShellRestoreTimer) {
     clearTimeout(modalShellRestoreTimer);
     modalShellRestoreTimer = null;
   }
-
-  targets.forEach((element) => {
-    element.classList.remove('modal-shell-restore');
-    void element.offsetWidth;
-    element.classList.add('modal-shell-restore');
-  });
-
-  modalShellRestoreTimer = setTimeout(() => {
-    targets.forEach((element) => {
-      element.classList.remove('modal-shell-restore');
-    });
-    modalShellRestoreTimer = null;
-  }, 520);
 }
 
 function openImageModal(item) {
@@ -4343,6 +4342,88 @@ function openConfirmModal({
   return new Promise((resolve) => {
     confirmModalResolver = resolve;
   });
+}
+
+function buildAppUpdatePromptConfig(payload) {
+  const kind =
+    typeof payload?.kind === 'string' ? payload.kind.trim().toLowerCase() : '';
+  const version =
+    typeof payload?.version === 'string' ? payload.version.trim() : '';
+  const versionLabel = version || '最新バージョン';
+
+  if (kind === 'downloaded') {
+    return {
+      title: 'アップデートの準備ができました',
+      message: `${versionLabel} のダウンロードが完了しました。再起動して更新しますか？`,
+      confirmText: '再起動して更新',
+    };
+  }
+
+  if (kind === 'available') {
+    return {
+      title: 'アップデートがあります',
+      message: `新しいバージョン ${versionLabel} が利用できます。今すぐダウンロードしますか？`,
+      confirmText: '今すぐ更新',
+    };
+  }
+
+  return null;
+}
+
+async function handleAppUpdateAction(payload) {
+  const config = buildAppUpdatePromptConfig(payload);
+
+  if (!config) {
+    return;
+  }
+
+  const confirmed = await openConfirmModal(config);
+
+  if (!confirmed) {
+    if (payload?.kind === 'available') {
+      showToast('アップデートは保留しました');
+    } else if (payload?.kind === 'downloaded') {
+      showToast('アップデートは準備済みです。あとで再起動して適用できます');
+    }
+    return;
+  }
+
+  try {
+    if (payload?.kind === 'available') {
+      const result = await window.electronAPI.startAppUpdateDownload?.();
+
+      if (!result?.ok) {
+        showToast(result?.message || 'アップデートを開始できませんでした');
+      }
+      return;
+    }
+
+    if (payload?.kind === 'downloaded') {
+      const result = await window.electronAPI.installDownloadedAppUpdate?.();
+
+      if (result && result.ok === false) {
+        showToast(result.message || 'アップデートを適用できませんでした');
+      }
+    }
+  } catch (error) {
+    showToast(
+      `アップデート処理に失敗しました: ${
+        error instanceof Error ? error.message : '不明なエラー'
+      }`
+    );
+  }
+}
+
+function queueAppUpdatePrompt(payload) {
+  appUpdatePromptQueue = appUpdatePromptQueue
+    .then(() => handleAppUpdateAction(payload))
+    .catch((error) => {
+      showToast(
+        `アップデート確認の表示に失敗しました: ${
+          error instanceof Error ? error.message : '不明なエラー'
+        }`
+      );
+    });
 }
 
 function renderTrackedFolderList() {
@@ -4647,6 +4728,27 @@ function initializeImageModalUi() {
     modalResolutionHeroBadge.className =
       'modal-world-label modal-resolution-hero-badge is-hidden';
     badgeRow.appendChild(modalResolutionHeroBadge);
+
+    if (!modalFavoriteButton) {
+      modalFavoriteButton = document.createElement('button');
+      modalFavoriteButton.id = 'modal-favorite-btn';
+      modalFavoriteButton.type = 'button';
+      modalFavoriteButton.className =
+        'favorite-toggle-button modal-hero-favorite-button';
+      modalFavoriteButton.setAttribute('aria-label', 'お気に入り切り替え');
+      modalFavoriteButton.setAttribute('title', 'お気に入り切り替え');
+
+      modalFavoriteIcon = document.createElement('span');
+      modalFavoriteIcon.id = 'modal-favorite-icon';
+      modalFavoriteIcon.className = 'material-symbols-outlined';
+      modalFavoriteIcon.textContent = 'star';
+      modalFavoriteButton.appendChild(modalFavoriteIcon);
+    } else {
+      modalFavoriteButton.classList.add('modal-hero-favorite-button');
+    }
+
+    // Keep the favorite toggle at the far left of the badge row.
+    badgeRow.insertBefore(modalFavoriteButton, modalWorldLabel);
   }
 
   if (modalWorldHero && modalWorldLink && !modalTakenAtHero) {
@@ -4671,7 +4773,7 @@ function initializeImageModalUi() {
   }
 
   if (openWorldNameEditButton) {
-    openWorldNameEditButton.textContent = '編集';
+    openWorldNameEditButton.textContent = 'カードを編集';
   }
 
   if (rereadWorldNameButton) {
@@ -4850,7 +4952,7 @@ function initializePhotoLabelUi() {
 
     const pickerTitle = document.createElement('p');
     pickerTitle.className = 'photo-label-editor-section-title';
-    pickerTitle.textContent = 'Choose Existing Label';
+    pickerTitle.textContent = 'ラベルを設定する';
     body.appendChild(pickerTitle);
 
     const pickerRow = document.createElement('div');
@@ -4879,7 +4981,7 @@ function initializePhotoLabelUi() {
 
     const newTitle = document.createElement('p');
     newTitle.className = 'photo-label-editor-section-title';
-    newTitle.textContent = 'Create New Label';
+    newTitle.textContent = 'ラベルを作成する';
     body.appendChild(newTitle);
 
     photoLabelNewForm = document.createElement('div');
@@ -4894,7 +4996,7 @@ function initializePhotoLabelUi() {
     photoLabelNewNameInput = document.createElement('input');
     photoLabelNewNameInput.type = 'text';
     photoLabelNewNameInput.className = 'photo-label-new-name';
-    photoLabelNewNameInput.placeholder = 'New label name';
+    photoLabelNewNameInput.placeholder = 'ラベルの名前を入力してください';
     nameRow.appendChild(photoLabelNewNameInput);
 
     photoLabelNewColorPreview = document.createElement('span');
@@ -7186,23 +7288,65 @@ function initializeDragAndDropImport() {
   });
 }
 
-async function initializeApp() {
-  try {
-    await refreshSidebar();
-    const restored = await restoreMonthViewAfterDataChange();
-
-    if (!restored) {
-      renderSidebar();
-    }
-
-    syncFavoriteFilterUi();
-  } finally {
+function finishAppInitialization() {
+  clearTimeout(appInitializationFailsafeTimer);
+  requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        appRoot?.classList.remove('is-app-initializing');
-        appRoot?.setAttribute('aria-busy', 'false');
-      });
+      appRoot?.classList.remove('is-app-initializing');
+      appRoot?.setAttribute('aria-busy', 'false');
     });
+  });
+}
+
+async function initializeApp() {
+  await refreshSidebar();
+  const restored = await restoreMonthViewAfterDataChange();
+
+  if (!restored) {
+    renderSidebar();
+  }
+
+  syncFavoriteFilterUi();
+}
+
+async function runRendererStartupStep(label, step) {
+  try {
+    return await step();
+  } catch (error) {
+    console.error(`[renderer startup] ${label} failed`, error);
+    return null;
+  }
+}
+
+async function bootstrapRenderer() {
+  const initializationTimeoutMs = 8000;
+  let timeoutId = null;
+
+  try {
+    await runRendererStartupStep('initializeRendererUi', async () => {
+      initializeRendererUi();
+    });
+    await runRendererStartupStep('initializeRendererBindings', async () => {
+      initializeRendererBindings();
+    });
+    await runRendererStartupStep('syncFavoriteFilterUi', async () => {
+      syncFavoriteFilterUi();
+    });
+    await runRendererStartupStep('initializeApp', async () => {
+      await Promise.race([
+        initializeApp(),
+        new Promise((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error('renderer app initialization timed out'));
+          }, initializationTimeoutMs);
+        }),
+      ]);
+    });
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    finishAppInitialization();
   }
 }
 
@@ -7906,6 +8050,21 @@ function bindIpcEventListeners() {
   window.electronAPI.onWorldMetadataUpdated?.((payload) => {
     applyWorldMetadataUpdated(payload);
   });
+
+  window.electronAPI.onAppUpdateStatus?.((payload) => {
+    const message =
+      typeof payload?.message === 'string' ? payload.message.trim() : '';
+
+    if (!message) {
+      return;
+    }
+
+    showToast(message);
+  });
+
+  window.electronAPI.onAppUpdateAction?.((payload) => {
+    queueAppUpdatePrompt(payload);
+  });
 }
 
 // Boot sequence for renderer-only concerns. Keeping the order explicit makes
@@ -7938,9 +8097,6 @@ function initializeRendererUi() {
   initializeScrollToTopAnimationInterrupts();
 }
 
-initializeRendererUi();
-initializeRendererBindings();
-syncFavoriteFilterUi();
-initializeApp();
+bootstrapRenderer();
 
 

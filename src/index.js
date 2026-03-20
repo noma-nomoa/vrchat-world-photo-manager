@@ -1,5 +1,16 @@
-const { app, BrowserWindow, ipcMain, dialog, nativeImage, shell, Menu } = require('electron');
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  nativeImage,
+  shell,
+  Menu,
+  autoUpdater,
+  net,
+} = require('electron');
 const path = require('node:path');
+const fsSync = require('node:fs');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const { createHash } = require('node:crypto');
@@ -15,6 +26,12 @@ if (require('electron-squirrel-startup')) {
 let photoDb = null;
 let thumbnailDirPath = '';
 let preferencesFilePath = '';
+let mainWindowRef = null;
+const APP_DISPLAY_NAME = 'WorldShot Log';
+const APP_WINDOW_ICON_ICO_PATH = path.join(__dirname, '..', 'img', 'logo.ico');
+const APP_WINDOW_ICON_PNG_PATH = path.join(__dirname, '..', 'img', 'logo.png');
+
+app.setName(APP_DISPLAY_NAME);
 
 const APP_STORAGE_DIRNAME = 'vrchat-world-photo-manager';
 const THUMBNAIL_DIRNAME = 'thumbnails';
@@ -48,8 +65,15 @@ const DEFAULT_PHOTO_LABEL_COLORS = [
 const SUPPORTED_IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 const PROCESSING_PROGRESS_CHANNEL = 'processing-progress';
 const WORLD_METADATA_UPDATED_CHANNEL = 'world-metadata-updated';
+const APP_UPDATE_STATUS_CHANNEL = 'app-update-status';
+const APP_UPDATE_ACTION_CHANNEL = 'app-update-action';
 const WORLD_METADATA_SYNC_OPERATION = 'world-metadata-sync';
 const WORLD_METADATA_SYNC_DELAY_MS = 1000;
+const APP_UPDATE_CHECK_DELAY_MS = 3500;
+const APP_UPDATE_REPOSITORY_OWNER = 'noma-nomoa';
+const APP_UPDATE_REPOSITORY_NAME = 'vrchat-world-photo-manager';
+const APP_UPDATE_RELEASE_API_URL = `https://api.github.com/repos/${APP_UPDATE_REPOSITORY_OWNER}/${APP_UPDATE_REPOSITORY_NAME}/releases/latest`;
+const APP_UPDATE_SERVICE_BASE_URL = 'https://update.electronjs.org';
 const DEFAULT_APP_PREFERENCES = Object.freeze({
   backgroundImagePath: '',
 });
@@ -58,6 +82,10 @@ const pendingWorldMetadataSyncTargets = new Map();
 const worldMetadataSyncSubscribers = new Set();
 let isWorldMetadataSyncRunning = false;
 let activeWorldMetadataSyncWorldId = null;
+let isAutoUpdaterConfigured = false;
+let isAutoUpdateCheckRunning = false;
+let isAutoUpdateDownloadRunning = false;
+let latestAvailableAppUpdateRelease = null;
 
 // Lightweight app preferences are stored outside the renderer so they survive
 // reloads/restarts even if the file:// localStorage origin changes.
@@ -121,6 +149,346 @@ async function setBackgroundImagePreference(filePath) {
   );
   const savedPreferences = await writeAppPreferences(preferences);
   return savedPreferences.backgroundImagePath;
+}
+
+// App update helpers stay in main so packaged builds can decide whether to
+// download via Squirrel without exposing network logic to the renderer.
+function isAutoUpdateSupportedRuntime() {
+  return process.platform === 'win32' && app.isPackaged;
+}
+
+function isSquirrelFirstRunLaunch() {
+  return process.argv.includes('--squirrel-firstrun');
+}
+
+function normalizeReleaseVersionTag(versionTag) {
+  return typeof versionTag === 'string' ? versionTag.trim().replace(/^v/i, '') : '';
+}
+
+function getComparableVersionParts(version) {
+  return normalizeReleaseVersionTag(version)
+    .split('.')
+    .map((part) => Number.parseInt(part, 10))
+    .map((part) => (Number.isFinite(part) ? part : 0));
+}
+
+function compareComparableVersions(leftVersion, rightVersion) {
+  const leftParts = getComparableVersionParts(leftVersion);
+  const rightParts = getComparableVersionParts(rightVersion);
+  const maxLength = Math.max(leftParts.length, rightParts.length, 3);
+
+  for (let index = 0; index < maxLength; index += 1) {
+    const leftPart = leftParts[index] || 0;
+    const rightPart = rightParts[index] || 0;
+
+    if (leftPart > rightPart) {
+      return 1;
+    }
+
+    if (leftPart < rightPart) {
+      return -1;
+    }
+  }
+
+  return 0;
+}
+
+function sendAppUpdateStatusToRenderer(message) {
+  if (
+    !message ||
+    !mainWindowRef ||
+    mainWindowRef.isDestroyed() ||
+    mainWindowRef.webContents.isDestroyed()
+  ) {
+    return;
+  }
+
+  mainWindowRef.webContents.send(APP_UPDATE_STATUS_CHANNEL, {
+    message,
+  });
+}
+
+function sendAppUpdateActionToRenderer(payload) {
+  if (
+    !payload ||
+    typeof payload.kind !== 'string' ||
+    !mainWindowRef ||
+    mainWindowRef.isDestroyed() ||
+    mainWindowRef.webContents.isDestroyed()
+  ) {
+    return;
+  }
+
+  mainWindowRef.webContents.send(APP_UPDATE_ACTION_CHANNEL, payload);
+}
+
+function buildAutoUpdateFeedUrl() {
+  return `${APP_UPDATE_SERVICE_BASE_URL}/${APP_UPDATE_REPOSITORY_OWNER}/${APP_UPDATE_REPOSITORY_NAME}/${process.platform}-${process.arch}/${app.getVersion()}`;
+}
+
+async function fetchLatestGitHubReleaseInfo() {
+  const response = await net.fetch(APP_UPDATE_RELEASE_API_URL, {
+    headers: {
+      accept: 'application/vnd.github+json',
+      'user-agent': `${APP_UPDATE_REPOSITORY_NAME}/${app.getVersion()}`,
+    },
+  });
+
+  if (response.status === 404 || response.status === 204) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`GitHub Releases returned ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const version = normalizeReleaseVersionTag(
+    payload?.tag_name || payload?.name || ''
+  );
+
+  if (!version) {
+    return null;
+  }
+
+  return {
+    version,
+    title:
+      typeof payload?.name === 'string' && payload.name.trim()
+        ? payload.name.trim()
+        : `v${version}`,
+    htmlUrl:
+      typeof payload?.html_url === 'string' ? payload.html_url.trim() : '',
+  };
+}
+
+function setupAutoUpdater() {
+  if (isAutoUpdaterConfigured || !isAutoUpdateSupportedRuntime()) {
+    return;
+  }
+
+  isAutoUpdaterConfigured = true;
+  autoUpdater.on('update-available', () => {
+    sendAppUpdateStatusToRenderer('アップデートをダウンロードしています...');
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    isAutoUpdateDownloadRunning = false;
+  });
+
+  autoUpdater.on('error', (error) => {
+    isAutoUpdateDownloadRunning = false;
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : '不明なエラー';
+    sendAppUpdateStatusToRenderer(`アップデートに失敗しました: ${message}`);
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    isAutoUpdateDownloadRunning = false;
+    sendAppUpdateStatusToRenderer('アップデートの準備ができました');
+    sendAppUpdateActionToRenderer({
+      kind: 'downloaded',
+      version: latestAvailableAppUpdateRelease?.version || '',
+    });
+  });
+  // Legacy native-dialog flow is intentionally left below as quarantine only.
+  return;
+
+  autoUpdater.on('update-available', () => {
+    sendAppUpdateStatusToRenderer('アップデートをダウンロードしています...');
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    isAutoUpdateDownloadRunning = false;
+  });
+
+  autoUpdater.on('error', (error) => {
+    isAutoUpdateDownloadRunning = false;
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : '不明なエラー';
+    sendAppUpdateStatusToRenderer(
+      `アップデートに失敗しました: ${message}`
+    );
+  });
+
+  autoUpdater.on('update-downloaded', async () => {
+    isAutoUpdateDownloadRunning = false;
+    sendAppUpdateStatusToRenderer('アップデートの準備ができました');
+
+    const targetWindow =
+      mainWindowRef && !mainWindowRef.isDestroyed() ? mainWindowRef : null;
+    const promptResult = await dialog.showMessageBox(targetWindow, {
+      type: 'info',
+      buttons: ['再起動して更新', 'あとで'],
+      defaultId: 0,
+      cancelId: 1,
+      title: 'アップデートの準備ができました',
+      message: 'ダウンロードが完了しました。',
+      detail: '再起動して最新バージョンを適用しますか？',
+      noLink: true,
+    });
+
+    if (promptResult.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+}
+
+async function promptForAvailableUpdate(releaseInfo) {
+  if (!releaseInfo || isAutoUpdatePromptOpen) {
+    return false;
+  }
+
+  isAutoUpdatePromptOpen = true;
+
+  try {
+    const targetWindow =
+      mainWindowRef && !mainWindowRef.isDestroyed() ? mainWindowRef : null;
+    const promptResult = await dialog.showMessageBox(targetWindow, {
+      type: 'info',
+      buttons: ['今すぐ更新', 'あとで'],
+      defaultId: 0,
+      cancelId: 1,
+      title: 'アップデートがあります',
+      message: `新しいバージョン ${releaseInfo.version} が利用できます。`,
+      detail: 'ダウンロードして適用しますか？',
+      noLink: true,
+    });
+
+    return promptResult.response === 0;
+  } finally {
+    isAutoUpdatePromptOpen = false;
+  }
+}
+
+async function startAppUpdateDownload(releaseInfo) {
+  const activeReleaseInfo = releaseInfo || latestAvailableAppUpdateRelease;
+
+  if (
+    !activeReleaseInfo ||
+    isAutoUpdateDownloadRunning ||
+    !isAutoUpdateSupportedRuntime()
+  ) {
+    return;
+  }
+
+  setupAutoUpdater();
+  isAutoUpdateDownloadRunning = true;
+  latestAvailableAppUpdateRelease = activeReleaseInfo;
+  sendAppUpdateStatusToRenderer(
+    `アップデート ${activeReleaseInfo.version} をダウンロードしています...`
+  );
+  autoUpdater.setFeedURL({
+    url: buildAutoUpdateFeedUrl(),
+  });
+  autoUpdater.checkForUpdates();
+  // Legacy native-dialog flow is intentionally left below as quarantine only.
+  return;
+
+  if (!releaseInfo || isAutoUpdateDownloadRunning || !isAutoUpdateSupportedRuntime()) {
+    return;
+  }
+
+  setupAutoUpdater();
+  isAutoUpdateDownloadRunning = true;
+  sendAppUpdateStatusToRenderer(
+    `アップデート ${releaseInfo.version} をダウンロードしています...`
+  );
+  autoUpdater.setFeedURL({
+    url: buildAutoUpdateFeedUrl(),
+  });
+  autoUpdater.checkForUpdates();
+}
+
+async function checkForAppUpdatesOnLaunch() {
+  if (
+    !isAutoUpdateSupportedRuntime() ||
+    isSquirrelFirstRunLaunch() ||
+    isAutoUpdateCheckRunning ||
+    isAutoUpdateDownloadRunning
+  ) {
+    return;
+  }
+
+  isAutoUpdateCheckRunning = true;
+
+  try {
+    const latestRelease = await fetchLatestGitHubReleaseInfo();
+
+    if (!latestRelease) {
+      return;
+    }
+
+    if (compareComparableVersions(latestRelease.version, app.getVersion()) <= 0) {
+      return;
+    }
+
+    latestAvailableAppUpdateRelease = latestRelease;
+    sendAppUpdateStatusToRenderer(
+      `新しいバージョン ${latestRelease.version} が見つかりました`
+    );
+    sendAppUpdateActionToRenderer({
+      kind: 'available',
+      version: latestRelease.version,
+    });
+    // Legacy native-dialog prompt flow is intentionally left below as quarantine only.
+    return;
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message ? error.message : '不明なエラー';
+    sendAppUpdateStatusToRenderer(`アップデート確認に失敗しました: ${message}`);
+    return;
+  } finally {
+    isAutoUpdateCheckRunning = false;
+  }
+
+  try {
+    const latestRelease = await fetchLatestGitHubReleaseInfo();
+
+    if (!latestRelease) {
+      return;
+    }
+
+    if (compareComparableVersions(latestRelease.version, app.getVersion()) <= 0) {
+      return;
+    }
+
+    sendAppUpdateStatusToRenderer(
+      `新しいバージョン ${latestRelease.version} が見つかりました`
+    );
+    const shouldDownload = await promptForAvailableUpdate(latestRelease);
+
+    if (!shouldDownload) {
+      sendAppUpdateStatusToRenderer('アップデートは保留しました');
+      return;
+    }
+
+    await startAppUpdateDownload(latestRelease);
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message ? error.message : '不明なエラー';
+    sendAppUpdateStatusToRenderer(
+      `アップデート確認に失敗しました: ${message}`
+    );
+  } finally {
+    isAutoUpdateCheckRunning = false;
+  }
+}
+
+function scheduleStartupAutoUpdateCheck(mainWindow) {
+  if (!mainWindow || !isAutoUpdateSupportedRuntime()) {
+    return;
+  }
+
+  mainWindow.webContents.once('did-finish-load', () => {
+    setTimeout(() => {
+      void checkForAppUpdatesOnLaunch();
+    }, APP_UPDATE_CHECK_DELAY_MS);
+  });
 }
 
 function isSupportedImageFile(filePath) {
@@ -3272,12 +3640,17 @@ function createProcessingProgressReporter(webContents, operation) {
 }
 
 function createWindow() {
+  const windowIconPath = fsSync.existsSync(APP_WINDOW_ICON_ICO_PATH)
+    ? APP_WINDOW_ICON_ICO_PATH
+    : APP_WINDOW_ICON_PNG_PATH;
+
   const mainWindow = new BrowserWindow({
     width: 1440,
     height: 920,
     minWidth: 1200,
     minHeight: 760,
     autoHideMenuBar: true,
+    icon: windowIconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
@@ -3290,6 +3663,15 @@ function createWindow() {
     mainWindow.removeMenu();
   }
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  mainWindowRef = mainWindow;
+  setupAutoUpdater();
+  scheduleStartupAutoUpdateCheck(mainWindow);
+  mainWindow.on('closed', () => {
+    if (mainWindowRef === mainWindow) {
+      mainWindowRef = null;
+    }
+  });
+  return mainWindow;
 }
 
 app.whenReady().then(async () => {
@@ -3928,6 +4310,41 @@ app.whenReady().then(async () => {
         ok: false,
         message: error.message,
         photos: [],
+      };
+    }
+  });
+
+  ipcMain.handle('start-app-update-download', async () => {
+    try {
+      if (!latestAvailableAppUpdateRelease) {
+        return {
+          ok: false,
+          message: '利用可能なアップデートがありません',
+        };
+      }
+
+      await startAppUpdateDownload(latestAvailableAppUpdateRelease);
+      return {
+        ok: true,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : '不明なエラー',
+      };
+    }
+  });
+
+  ipcMain.handle('install-downloaded-app-update', async () => {
+    try {
+      autoUpdater.quitAndInstall();
+      return {
+        ok: true,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : '不明なエラー',
       };
     }
   });

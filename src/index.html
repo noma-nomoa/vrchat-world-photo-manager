@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>VRChat World Photo Manager</title>
+    <title>WorldShot Log</title>
     <link rel="stylesheet" href="./index.css" />
     <link
       rel="stylesheet"
@@ -18,9 +18,12 @@
       <div class="top-sticky-shell">
         <header class="page-header">
           <div class="page-header-row">
-            <div>
-              <h1>VRChat World Photo Manager（仮）</h1>
-              <p>VRChatで撮影した画像を、ワールド情報つきで管理するアプリ</p>
+            <div class="page-brand" aria-label="WorldShot Log">
+              <img
+                class="page-brand-banner"
+                src="../img/banner.png"
+                alt="WorldShot Log"
+              />
             </div>
 
             <div class="page-header-actions">
@@ -48,7 +51,7 @@
             </div>
           </div>
         </header>
-      
+
         <section class="toolbar">
           <button id="refresh-tracked-folders-btn" type="button">更新</button>
           <button id="regenerate-thumbnails-btn" type="button">
@@ -61,10 +64,16 @@
             </p>
             <div id="processing-progress" class="processing-progress" hidden>
               <div class="processing-progress-header">
-                <span id="processing-progress-label" class="processing-progress-label">
+                <span
+                  id="processing-progress-label"
+                  class="processing-progress-label"
+                >
                   処理を準備中...
                 </span>
-                <span id="processing-progress-value" class="processing-progress-value">
+                <span
+                  id="processing-progress-value"
+                  class="processing-progress-value"
+                >
                   ...
                 </span>
               </div>
@@ -75,7 +84,10 @@
                 aria-valuemax="100"
                 aria-valuenow="0"
               >
-                <div id="processing-progress-fill" class="processing-progress-fill"></div>
+                <div
+                  id="processing-progress-fill"
+                  class="processing-progress-fill"
+                ></div>
               </div>
             </div>
           </div>
@@ -98,7 +110,7 @@
               <h2 id="current-month-label">写真一覧</h2>
               <p id="current-month-count">0枚</p>
             </div>
-          
+
             <div class="main-header-actions">
               <button
                 id="favorite-filter-btn"
@@ -269,16 +281,16 @@
               >
                 お気に入り
               </button>
-            
+
               <button
-              id="bulk-delete-btn"
-              type="button"
-              class="header-filter-button danger-outline-button"
-              disabled
+                id="bulk-delete-btn"
+                type="button"
+                class="header-filter-button danger-outline-button"
+                disabled
               >
-              削除
+                削除
               </button>
-            
+
               <p class="drop-hint-always">
                 画像/フォルダをここにドラッグ＆ドロップ
               </p>
@@ -296,17 +308,10 @@
 
     <!-- Image detail modal -->
     <div id="image-modal" class="image-modal hidden">
-      <div
-        class="image-modal-backdrop"
-        id="image-modal-backdrop"
-      ></div>
+      <div id="image-modal-backdrop" class="image-modal-backdrop"></div>
 
       <div class="image-modal-content">
-        <button
-          id="image-modal-close"
-          class="image-modal-close"
-          type="button"
-        >
+        <button id="image-modal-close" class="image-modal-close" type="button">
           ×
         </button>
 
@@ -329,13 +334,15 @@
                 ワールド名未取得
               </a>
 
-              <p id="modal-file-name" class="modal-file-name">
-                ファイル名
-              </p>
+              <p id="modal-file-name" class="modal-file-name">ファイル名</p>
             </div>
 
             <div class="modal-actions">
-              <button id="modal-open-world-btn" type="button" class="primary-link-button">
+              <button
+                id="modal-open-world-btn"
+                type="button"
+                class="primary-link-button"
+              >
                 VRChatで開く
               </button>
               <button
@@ -402,7 +409,11 @@
                 rows="1"
                 placeholder="自由にメモを残せます"
               ></textarea>
-              <p id="modal-photo-memo-status" class="modal-photo-memo-status" aria-live="polite"></p>
+              <p
+                id="modal-photo-memo-status"
+                class="modal-photo-memo-status"
+                aria-live="polite"
+              ></p>
             </div>
 
             <div class="world-name-row">
@@ -410,7 +421,7 @@
                 <strong>現在の表示名</strong>
                 <span id="modal-world-name">-</span>
               </p>
-            
+
               <div class="world-name-row-actions">
                 <button
                   id="modal-favorite-btn"
@@ -423,18 +434,23 @@
                     star
                   </span>
                 </button>
-            
+
                 <button
                   id="open-world-name-edit-btn"
                   type="button"
                   class="small-action-button"
                 >
-                  編集
+                  カードを編集
                 </button>
               </div>
             </div>
+
             <div class="modal-danger-actions">
-              <button id="modal-delete-photo-btn" type="button" class="danger-button">
+              <button
+                id="modal-delete-photo-btn"
+                type="button"
+                class="danger-button"
+              >
                 この登録を削除
               </button>
             </div>
@@ -445,10 +461,7 @@
 
     <!-- World name / World URL edit modal -->
     <div id="world-name-edit-modal" class="sub-modal hidden">
-      <div
-        id="world-name-edit-backdrop"
-        class="sub-modal-backdrop"
-      ></div>
+      <div id="world-name-edit-backdrop" class="sub-modal-backdrop"></div>
 
       <div class="sub-modal-content">
         <button
@@ -519,7 +532,7 @@
           <!-- Font switch -->
           <div class="settings-section settings-font-section">
             <div>
-              <p class="settings-section-title">Font</p>
+              <p class="settings-section-title">フォント</p>
             </div>
 
             <div id="font-option-group" class="settings-font-option-group">

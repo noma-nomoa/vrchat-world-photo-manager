@@ -1,6 +1,6 @@
 {
-  "name": "vrchat-world-photo-manager",
-  "productName": "vrchat-world-photo-manager",
+  "name": "worldshot-log",
+  "productName": "WorldShot Log",
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": "src/index.js",
@@ -8,8 +8,11 @@
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
+    "package:win": "electron-forge package --platform win32",
     "make": "electron-forge make",
+    "make:win": "electron-forge make --platform win32",
     "publish": "electron-forge publish",
+    "publish:win": "electron-forge publish --platform win32",
     "lint": "echo \"No linting configured\""
   },
   "keywords": [],
