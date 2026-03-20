@@ -29,6 +29,7 @@ let thumbnailDirPath = '';
 let preferencesFilePath = '';
 let mainWindowRef = null;
 const APP_DISPLAY_NAME = 'WorldShot Log';
+const APP_TITLE = `${APP_DISPLAY_NAME} v${app.getVersion()}`;
 const APP_WINDOW_ICON_ICO_PATH = path.join(__dirname, '..', 'img', 'logo.ico');
 const APP_WINDOW_ICON_PNG_PATH = path.join(__dirname, '..', 'img', 'logo.png');
 
@@ -3731,6 +3732,7 @@ function createWindow() {
     minWidth: 1200,
     minHeight: 760,
     autoHideMenuBar: true,
+    title: APP_TITLE,
     icon: windowIconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
