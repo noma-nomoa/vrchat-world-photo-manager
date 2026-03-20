@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
@@ -631,6 +631,59 @@
                 DBを初期化
               </button>
             </div>
+          </div>
+
+          <!-- App uninstall entrypoint -->
+          <div class="settings-section settings-uninstall-section">
+            <div>
+              <p class="settings-section-title">アンインストール</p>
+            </div>
+
+            <button
+              id="settings-uninstall-launch-btn"
+              type="button"
+              class="danger-button settings-maintenance-button"
+            >
+              アンインストール
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- App uninstall modal -->
+    <div id="uninstall-modal" class="sub-modal hidden">
+      <div id="uninstall-modal-backdrop" class="sub-modal-backdrop"></div>
+
+      <div class="sub-modal-content uninstall-modal-content">
+        <button
+          id="uninstall-modal-close"
+          class="sub-modal-close"
+          type="button"
+          aria-label="アンインストールモーダルを閉じる"
+        ></button>
+
+        <div class="sub-modal-body">
+          <h3>アンインストール</h3>
+          <p class="sub-modal-description">
+            アプリ本体を削除します。必要に応じて、保存済みデータも一緒に削除できます。
+          </p>
+
+          <div class="uninstall-modal-actions">
+            <button
+              id="uninstall-app-btn"
+              type="button"
+              class="danger-button"
+            >
+              アンインストール
+            </button>
+            <button
+              id="uninstall-app-and-delete-data-btn"
+              type="button"
+              class="danger-button"
+            >
+              データも削除してアンインストール
+            </button>
           </div>
         </div>
       </div>

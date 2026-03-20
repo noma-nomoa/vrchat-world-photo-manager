@@ -33,6 +33,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteAllPhotos: () => ipcRenderer.invoke('delete-all-photos'),
   clearThumbnailCache: () => ipcRenderer.invoke('clear-thumbnail-cache'),
   resetDatabase: () => ipcRenderer.invoke('reset-database'),
+  uninstallApp: () => ipcRenderer.invoke('uninstall-app'),
+  uninstallAppAndDeleteData: () =>
+    ipcRenderer.invoke('uninstall-app-and-delete-data'),
 
   // Read-only overview / sidebar data.
   getApplicationDataSummary: () =>

@@ -14,6 +14,7 @@ const fsSync = require('node:fs');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const { createHash } = require('node:crypto');
+const { spawn } = require('node:child_process');
 const { pathToFileURL } = require('node:url');
 const ExifReader = require('exifreader');
 const iconv = require('iconv-lite');
@@ -149,6 +150,86 @@ async function setBackgroundImagePreference(filePath) {
   );
   const savedPreferences = await writeAppPreferences(preferences);
   return savedPreferences.backgroundImagePath;
+}
+
+function getDatabaseDirectoryPath() {
+  return preferencesFilePath ? path.dirname(preferencesFilePath) : '';
+}
+
+function getSquirrelUpdateExecutablePath() {
+  return path.resolve(path.dirname(process.execPath), '..', 'Update.exe');
+}
+
+function isInternalUninstallSupportedRuntime() {
+  return app.isPackaged && process.platform === 'win32';
+}
+
+async function closePhotoDatabaseForUninstall() {
+  if (!photoDb?.close) {
+    return;
+  }
+
+  photoDb.close();
+  photoDb = null;
+}
+
+async function deleteAppDataForUninstall() {
+  const targets = [getDatabaseDirectoryPath(), thumbnailDirPath].filter(Boolean);
+
+  for (const targetPath of targets) {
+    await fs.rm(targetPath, {
+      recursive: true,
+      force: true,
+      maxRetries: 2,
+      retryDelay: 120,
+    });
+  }
+}
+
+async function startInternalUninstall({ deleteData = false } = {}) {
+  if (!isInternalUninstallSupportedRuntime()) {
+    return {
+      ok: false,
+      message: 'インストーラー版の Windows アプリでのみ利用できます。',
+    };
+  }
+
+  const updateExecutablePath = getSquirrelUpdateExecutablePath();
+
+  try {
+    await fs.access(updateExecutablePath);
+  } catch {
+    return {
+      ok: false,
+      message: 'アンインストーラーが見つかりませんでした。',
+    };
+  }
+
+  try {
+    if (deleteData) {
+      await closePhotoDatabaseForUninstall();
+      await deleteAppDataForUninstall();
+    }
+
+    const uninstallProcess = spawn(
+      updateExecutablePath,
+      ['--uninstall'],
+      {
+        detached: true,
+        stdio: 'ignore',
+        cwd: path.dirname(updateExecutablePath),
+      }
+    );
+    uninstallProcess.unref();
+    setTimeout(() => app.quit(), 120);
+
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error?.message || 'アンインストールを開始できませんでした。',
+    };
+  }
 }
 
 // App update helpers stay in main so packaged builds can decide whether to
@@ -3845,6 +3926,14 @@ app.whenReady().then(async () => {
         tagCount: 0,
       };
     }
+  });
+
+  ipcMain.handle('uninstall-app', async () => {
+    return startInternalUninstall({ deleteData: false });
+  });
+
+  ipcMain.handle('uninstall-app-and-delete-data', async () => {
+    return startInternalUninstall({ deleteData: true });
   });
 
   ipcMain.handle('get-application-data-summary', async () => {

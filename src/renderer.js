@@ -180,11 +180,26 @@ const clearThumbnailCacheButton = document.getElementById(
   'clear-thumbnail-cache-btn'
 );
 const resetDatabaseButton = document.getElementById('reset-database-btn');
+const settingsUninstallLaunchButton = document.getElementById(
+  'settings-uninstall-launch-btn'
+);
 const toolbar = document.querySelector('.toolbar');
 const toolbarRight = toolbar?.querySelector('.toolbar-right');
 const pageHeaderActions = document.querySelector('.page-header-actions');
 const fontOptionButtons = Array.from(
   document.querySelectorAll('[data-font-option]')
+);
+
+// App uninstall modal stays separate from destructive maintenance so the
+// user always chooses the uninstall mode explicitly before the final confirm.
+const uninstallModal = document.getElementById('uninstall-modal');
+const uninstallModalBackdrop = document.getElementById(
+  'uninstall-modal-backdrop'
+);
+const uninstallModalClose = document.getElementById('uninstall-modal-close');
+const uninstallAppButton = document.getElementById('uninstall-app-btn');
+const uninstallAppAndDeleteDataButton = document.getElementById(
+  'uninstall-app-and-delete-data-btn'
 );
 
 // Shared confirm modal and toast feedback.
@@ -4586,12 +4601,33 @@ function syncSettingsMaintenanceUi() {
   }
 }
 
+function syncSettingsUninstallUi() {
+  if (settingsUninstallLaunchButton) {
+    settingsUninstallLaunchButton.disabled = isImporting;
+    settingsUninstallLaunchButton.setAttribute(
+      'title',
+      isImporting
+        ? '処理中はアンインストールを開始できません'
+        : 'アンインストールの確認を開く'
+    );
+  }
+
+  if (uninstallAppButton) {
+    uninstallAppButton.disabled = isImporting;
+  }
+
+  if (uninstallAppAndDeleteDataButton) {
+    uninstallAppAndDeleteDataButton.disabled = isImporting;
+  }
+}
+
 function initializeModalCloseIcons() {
   [
     imageModalClose,
     worldNameEditClose,
     photoLabelClose,
     settingsModalClose,
+    uninstallModalClose,
     confirmModalClose,
   ].forEach((button) => {
     if (!button) {
@@ -4635,6 +4671,13 @@ function handleDelegatedSubModalClose(event) {
     event.preventDefault();
     event.stopPropagation();
     closeSettingsModal();
+    return;
+  }
+
+  if (closeButton === uninstallModalClose) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeUninstallModal();
     return;
   }
 
@@ -5219,6 +5262,53 @@ function handleSettingsModalWheel(event) {
   }
 }
 
+function openUninstallModal() {
+  if (!uninstallModal || isImporting) {
+    return;
+  }
+
+  syncSettingsUninstallUi();
+  openSubModalElement(uninstallModal);
+}
+
+function closeUninstallModal() {
+  closeSubModalElement(uninstallModal);
+}
+
+async function runUninstallFlow({ deleteData = false } = {}) {
+  if (isImporting) {
+    return;
+  }
+
+  const confirmed = await openConfirmModal({
+    title: deleteData ? 'データも削除してアンインストール' : 'アンインストール',
+    message: '本当に削除しますか？',
+    confirmText: deleteData ? '削除してアンインストール' : 'アンインストール',
+  });
+
+  if (!confirmed) {
+    return;
+  }
+
+  const result = deleteData
+    ? await window.electronAPI.uninstallAppAndDeleteData()
+    : await window.electronAPI.uninstallApp();
+
+  if (!result?.ok) {
+    showToast(result?.message || 'アンインストールを開始できませんでした');
+    return;
+  }
+
+  showToast(
+    deleteData
+      ? 'データ削除とアンインストールを開始します'
+      : 'アンインストールを開始します'
+  );
+
+  closeUninstallModal();
+  closeSettingsModal();
+}
+
 async function openSettingsModal() {
   if (!settingsModal) {
     return;
@@ -5237,6 +5327,7 @@ async function openSettingsModal() {
 function closeSettingsModal() {
   closeSubModalElement(settingsModal, {
     onClosed: () => {
+      closeUninstallModal();
       closeTrackedFolderModal();
       closeRegenerateThumbnailMonthMenu();
       if (settingsModalBody) {
@@ -5250,6 +5341,7 @@ function syncSelectionDependentSettingsUi() {
   renderRegenerateThumbnailMonthOptions();
   syncSettingsUtilityActionsUi();
   syncSettingsMaintenanceUi();
+  syncSettingsUninstallUi();
 }
 
 function resetCurrentMonthState() {
@@ -7708,12 +7800,29 @@ function bindSettingsModalControls() {
     trackedFolderModalClose,
     closeTrackedFolderModal
   );
+  bindSubModalCloseTriggers(
+    uninstallModalBackdrop,
+    uninstallModalClose,
+    closeUninstallModal
+  );
   settingsModalContent?.addEventListener('wheel', handleSettingsModalWheel, {
     passive: false,
   });
 
   openTrackedFolderListButton?.addEventListener('click', () => {
     openTrackedFolderModal();
+  });
+
+  settingsUninstallLaunchButton?.addEventListener('click', () => {
+    openUninstallModal();
+  });
+
+  uninstallAppButton?.addEventListener('click', async () => {
+    await runUninstallFlow({ deleteData: false });
+  });
+
+  uninstallAppAndDeleteDataButton?.addEventListener('click', async () => {
+    await runUninstallFlow({ deleteData: true });
   });
 
   selectBackgroundImageButton?.addEventListener('click', async () => {
@@ -7945,6 +8054,11 @@ function bindGlobalDocumentInteractions() {
 
     if (trackedFolderModal && !trackedFolderModal.classList.contains('hidden')) {
       closeTrackedFolderModal();
+      return;
+    }
+
+    if (uninstallModal && !uninstallModal.classList.contains('hidden')) {
+      closeUninstallModal();
       return;
     }
 

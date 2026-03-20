@@ -1897,13 +1897,24 @@ body[data-theme='light'] .world-name-editor-actions button.secondary:disabled {
   margin: 20px auto;
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
+}
+
+#settings-modal {
+  overflow: hidden;
+}
+
+#settings-modal .sub-modal-backdrop {
+  position: fixed;
 }
 
 .settings-modal-content .sub-modal-body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  padding-right: 6px;
 }
 
 .settings-section {
@@ -2193,6 +2204,19 @@ body[data-theme='light'] .world-name-editor-actions button.secondary:disabled {
 .tracked-folder-modal-body .tracked-folder-list {
   max-height: min(56vh, 560px);
   padding-right: 6px;
+}
+
+.uninstall-modal-content {
+  width: min(480px, calc(100vw - 32px));
+}
+
+.uninstall-modal-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.uninstall-modal-actions .danger-button {
+  width: 100%;
 }
 
 .tracked-folder-item-path {
@@ -5218,7 +5242,7 @@ body::-webkit-scrollbar-button:end:increment {
 }
 
 .sidebar {
-  top: 184px !important;
+  top: 176px !important;
 }
 
 .app {

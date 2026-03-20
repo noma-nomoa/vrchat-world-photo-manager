@@ -1141,6 +1141,7 @@ function initDatabase(dbPath) {
   }
 
   return {
+    close: () => db.close(),
     insertOrUpdatePhoto,
     insertOrUpdatePhotos,
     getPhotoByHash,
