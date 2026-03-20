@@ -63,12 +63,21 @@
 body[data-theme="light"] {
   --bg-app: #eef3f9;
   --bg-app-tint: rgba(238, 243, 249, 0.72);
+  --surface-1-default: rgba(255, 255, 255, 0.74);
+  --surface-2-default: rgba(247, 250, 253, 0.70);
+  --surface-3-default: rgba(242, 246, 251, 0.64);
+  --surface-strong-default: rgba(255, 255, 255, 0.84);
+  --surface-1-image: rgba(255, 255, 255, 0.60);
+  --surface-2-image: rgba(247, 250, 253, 0.58);
+  --surface-3-image: rgba(242, 246, 251, 0.54);
+  --surface-strong-image: rgba(255, 255, 255, 0.72);
   --surface-1: rgba(255, 255, 255, 0.72);
   --surface-2: rgba(247, 250, 253, 0.68);
   --surface-3: rgba(242, 246, 251, 0.62);
   --surface-strong: rgba(255, 255, 255, 0.82);
   --border-default: rgba(199, 212, 229, 0.88);
   --border-strong: rgba(184, 200, 220, 0.96);
+  --border-image: rgba(198, 212, 232, 0.96);
   --text-primary: #182233;
   --text-secondary: #4f5f78;
   --text-muted: #73839b;
@@ -82,10 +91,11 @@ body[data-theme="light"] {
   --shadow-card-soft: 0 6px 16px rgba(22, 34, 53, 0.06);
   --shadow-selected: 0 0 0 1px rgba(78, 107, 255, 0.22), 0 8px 18px rgba(78, 107, 255, 0.12);
 
-  --bg-start: rgba(238, 243, 249, 0.72);
-  --bg-end: rgba(238, 243, 249, 0.76);
-  --bg-glow-1: rgba(78, 107, 255, 0.06);
-  --bg-glow-2: rgba(78, 107, 255, 0.025);
+  --bg-start: #eef3fa;
+  --bg-end: #e7eef8;
+  --bg-glow-1: rgba(180, 198, 255, 0.18);
+  --bg-glow-2: rgba(215, 225, 255, 0.14);
+  --bg-glow-3: rgba(214, 204, 255, 0.08);
 
   --surface-app: transparent;
   --surface-card: var(--surface-1);
@@ -114,6 +124,8 @@ body[data-theme="light"] {
   --danger-bg: var(--danger-soft-surface);
   --danger-line: var(--danger-border-surface);
 
+  --input-bg-default: rgba(248, 250, 253, 0.80);
+  --input-bg-image: rgba(248, 250, 253, 0.66);
   --input-bg: rgba(248, 250, 253, 0.78);
 
   --overlay: rgba(27, 36, 52, 0.28);
@@ -128,6 +140,8 @@ body[data-theme="light"] {
   --toast-bg: rgba(27, 36, 52, 0.94);
   --toast-text: #ffffff;
 
+  --shadow-panel-image: 0 8px 20px rgba(22, 34, 53, 0.08);
+  --shadow-card-image: 0 8px 20px rgba(22, 34, 53, 0.08);
   --shadow-soft: var(--shadow-panel);
   --shadow-card: var(--shadow-card-soft);
   --shadow-float: 0 10px 24px rgba(27, 36, 52, 0.08);
@@ -5862,4 +5876,246 @@ body[data-theme="light"] .modal-resolution-hero-badge {
   background: rgba(242, 246, 251, 0.74);
   border-color: var(--border-strong);
   color: var(--text-primary);
+}
+
+/* Light theme transparency refinement: keep geometry, split default/image surfaces */
+body[data-theme="light"] {
+  background:
+    radial-gradient(circle at top right, rgba(180, 198, 255, 0.18), transparent 28%),
+    radial-gradient(circle at left top, rgba(215, 225, 255, 0.14), transparent 30%),
+    linear-gradient(180deg, #eef3fa 0%, #e7eef8 100%);
+}
+
+body[data-theme="light"]:not(.has-custom-background) {
+  --surface-1: var(--surface-1-default);
+  --surface-2: var(--surface-2-default);
+  --surface-3: var(--surface-3-default);
+  --surface-strong: var(--surface-strong-default);
+  --input-bg: var(--input-bg-default);
+}
+
+body[data-theme="light"].has-custom-background {
+  --surface-1: var(--surface-1-image);
+  --surface-2: var(--surface-2-image);
+  --surface-3: var(--surface-3-image);
+  --surface-strong: var(--surface-strong-image);
+  --line: var(--border-image);
+  --line-strong: var(--border-image);
+  --input-bg: var(--input-bg-image);
+  --shadow-panel: var(--shadow-panel-image);
+  --shadow-card-soft: var(--shadow-card-image);
+  --shadow-card: var(--shadow-card-image);
+  --shadow-float: 0 8px 20px rgba(22, 34, 53, 0.08);
+}
+
+body[data-theme="light"]::before {
+  opacity: 0;
+}
+
+body[data-theme="light"].has-custom-background::before {
+  opacity: 0.22;
+}
+
+body[data-theme="light"].has-custom-background .page-header,
+body[data-theme="light"].has-custom-background .toolbar {
+  background: rgba(255, 255, 255, 0.76);
+  border-color: rgba(198, 212, 232, 0.94);
+  box-shadow: 0 8px 22px rgba(22, 34, 53, 0.07);
+}
+
+body[data-theme="light"].has-custom-background .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-text-input,
+body[data-theme="light"].has-custom-background .modal-photo-memo-input,
+body[data-theme="light"].has-custom-background .header-dropdown-text-input,
+body[data-theme="light"].has-custom-background .world-name-input-row input,
+body[data-theme="light"].has-custom-background #modal-world-url-input {
+  background: rgba(248, 250, 253, 0.70);
+  border-color: rgba(198, 212, 232, 0.96);
+  box-shadow: 0 4px 12px rgba(22, 34, 53, 0.05);
+}
+
+body[data-theme="light"] .page-header,
+body[data-theme="light"] .toolbar,
+body[data-theme="light"] .year-block,
+body[data-theme="light"] .sub-modal-content,
+body[data-theme="light"] .image-modal-content,
+body[data-theme="light"] .modal-meta-item,
+body[data-theme="light"] .modal-world-meta-block,
+body[data-theme="light"] .settings-overview-card,
+body[data-theme="light"] .settings-font-option-button,
+body[data-theme="light"] .settings-month-dropdown-button,
+body[data-theme="light"] .processing-progress,
+body[data-theme="light"] .header-dropdown-menu {
+  background: var(--surface-strong);
+  border-color: var(--line);
+  box-shadow: var(--shadow-panel);
+}
+
+body[data-theme="light"]:not(.has-custom-background) .page-header,
+body[data-theme="light"]:not(.has-custom-background) .toolbar,
+body[data-theme="light"]:not(.has-custom-background) .year-block,
+body[data-theme="light"]:not(.has-custom-background) .sub-modal-content,
+body[data-theme="light"]:not(.has-custom-background) .image-modal-content,
+body[data-theme="light"]:not(.has-custom-background) .modal-meta-item,
+body[data-theme="light"]:not(.has-custom-background) .modal-world-meta-block,
+body[data-theme="light"]:not(.has-custom-background) .settings-overview-card,
+body[data-theme="light"]:not(.has-custom-background) .settings-font-option-button,
+body[data-theme="light"]:not(.has-custom-background) .settings-month-dropdown-button,
+body[data-theme="light"]:not(.has-custom-background) .processing-progress,
+body[data-theme="light"]:not(.has-custom-background) .header-dropdown-menu,
+body[data-theme="light"]:not(.has-custom-background) .gallery-group,
+body[data-theme="light"]:not(.has-custom-background) .photo-card,
+body[data-theme="light"]:not(.has-custom-background) .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-text-input,
+body[data-theme="light"]:not(.has-custom-background) .modal-photo-memo-input,
+body[data-theme="light"]:not(.has-custom-background) .header-dropdown-text-input,
+body[data-theme="light"]:not(.has-custom-background) .world-name-input-row input,
+body[data-theme="light"]:not(.has-custom-background) #modal-world-url-input,
+body[data-theme="light"]:not(.has-custom-background) .drop-hint-always {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body[data-theme="light"].has-custom-background .page-header,
+body[data-theme="light"].has-custom-background .toolbar,
+body[data-theme="light"].has-custom-background .year-block,
+body[data-theme="light"].has-custom-background .sub-modal-content,
+body[data-theme="light"].has-custom-background .image-modal-content,
+body[data-theme="light"].has-custom-background .modal-meta-item,
+body[data-theme="light"].has-custom-background .modal-world-meta-block,
+body[data-theme="light"].has-custom-background .settings-overview-card,
+body[data-theme="light"].has-custom-background .settings-font-option-button,
+body[data-theme="light"].has-custom-background .settings-month-dropdown-button,
+body[data-theme="light"].has-custom-background .processing-progress,
+body[data-theme="light"].has-custom-background .header-dropdown-menu,
+body[data-theme="light"].has-custom-background .gallery-group,
+body[data-theme="light"].has-custom-background .photo-card,
+body[data-theme="light"].has-custom-background .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-text-input,
+body[data-theme="light"].has-custom-background .modal-photo-memo-input,
+body[data-theme="light"].has-custom-background .header-dropdown-text-input,
+body[data-theme="light"].has-custom-background .world-name-input-row input,
+body[data-theme="light"].has-custom-background #modal-world-url-input,
+body[data-theme="light"].has-custom-background .drop-hint-always {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+body[data-theme="light"] .year-block {
+  background: var(--surface-1);
+  border-color: var(--line);
+  box-shadow: var(--shadow-panel);
+}
+
+body[data-theme="light"].has-custom-background .year-block {
+  background: rgba(255, 255, 255, 0.54);
+  border-color: rgba(198, 212, 232, 0.96);
+  box-shadow: 0 8px 20px rgba(22, 34, 53, 0.08);
+}
+
+body[data-theme="light"] .year-button {
+  background: rgba(242, 246, 251, 0.52);
+}
+
+body[data-theme="light"] .year-left {
+  color: #243248;
+}
+
+body[data-theme="light"] .year-count,
+body[data-theme="light"] .month-count {
+  color: var(--text-muted);
+}
+
+body[data-theme="light"] .year-button:hover,
+body[data-theme="light"] .month-button:hover {
+  background: rgba(242, 246, 255, 0.82);
+}
+
+body[data-theme="light"] .year-button.active,
+body[data-theme="light"] .month-button.active {
+  background: linear-gradient(135deg, #5f79ff, #6e5cff);
+  border-color: rgba(184, 203, 255, 0.98);
+  box-shadow: var(--shadow-selected);
+}
+
+body[data-theme="light"] .year-button.active .year-left,
+body[data-theme="light"] .year-button.active .year-toggle,
+body[data-theme="light"] .month-button.active .month-name {
+  color: #ffffff;
+}
+
+body[data-theme="light"] .year-button.active .year-count,
+body[data-theme="light"] .month-button.active .month-count {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+body[data-theme="light"] .gallery-group {
+  background: rgba(248, 251, 254, 0.68);
+  border-color: rgba(214, 224, 238, 0.88);
+  box-shadow: 0 4px 14px rgba(27, 36, 52, 0.04);
+}
+
+body[data-theme="light"].has-custom-background .gallery-group {
+  background: rgba(248, 251, 254, 0.20);
+  border-color: rgba(198, 212, 232, 0.84);
+  box-shadow: 0 3px 8px rgba(22, 34, 53, 0.035);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body[data-theme="light"] .day-box {
+  background: rgba(238, 244, 255, 0.88);
+  border-color: rgba(198, 215, 255, 0.98);
+  color: #2848bc;
+}
+
+body[data-theme="light"] .photo-card {
+  background: rgba(255, 255, 255, 0.76);
+  border-color: rgba(215, 225, 238, 0.94);
+  box-shadow: var(--shadow-card);
+}
+
+body[data-theme="light"].has-custom-background .photo-card {
+  background: rgba(255, 255, 255, 0.54);
+  border-color: rgba(205, 218, 236, 0.94);
+  box-shadow: 0 8px 18px rgba(22, 34, 53, 0.08);
+}
+
+body[data-theme="light"] .photo-card.is-selected,
+body[data-theme="light"] .photo-card.is-keyboard-focused {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: #a9c1ff !important;
+  box-shadow: var(--shadow-selected) !important;
+}
+
+body[data-theme="light"].has-custom-background .photo-card.is-selected,
+body[data-theme="light"].has-custom-background .photo-card.is-keyboard-focused {
+  background: rgba(255, 255, 255, 0.60);
+}
+
+body[data-theme="light"] .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-text-input,
+body[data-theme="light"] .modal-photo-memo-input,
+body[data-theme="light"] .header-dropdown-text-input,
+body[data-theme="light"] .world-name-input-row input,
+body[data-theme="light"] #modal-world-url-input {
+  background: var(--input-bg);
+  border-color: rgba(212, 222, 234, 0.92);
+}
+
+body[data-theme="light"].has-custom-background .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-text-input,
+body[data-theme="light"].has-custom-background .modal-photo-memo-input,
+body[data-theme="light"].has-custom-background .header-dropdown-text-input,
+body[data-theme="light"].has-custom-background .world-name-input-row input,
+body[data-theme="light"].has-custom-background #modal-world-url-input {
+  border-color: rgba(198, 212, 232, 0.96);
+}
+
+body[data-theme="light"] .drop-hint-always {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(197, 213, 234, 0.96);
+  color: #5f718b;
+  box-shadow: var(--shadow-panel);
+}
+
+body[data-theme="light"].has-custom-background .drop-hint-always {
+  background: rgba(255, 255, 255, 0.56);
+  border-color: rgba(197, 213, 234, 0.96);
+  box-shadow: 0 8px 20px rgba(22, 34, 53, 0.08);
 }
