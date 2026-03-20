@@ -40,7 +40,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSidebarData: () => ipcRenderer.invoke('get-sidebar-data'),
   getLatestMonth: () => ipcRenderer.invoke('get-latest-month'),
   getTrackedFolders: () => ipcRenderer.invoke('get-tracked-folders'),
+  getBackgroundImagePreference: () =>
+    ipcRenderer.invoke('get-background-image-preference'),
   selectBackgroundImage: () => ipcRenderer.invoke('select-background-image'),
+  setBackgroundImagePreference: (filePath) =>
+    ipcRenderer.invoke('set-background-image-preference', { filePath }),
   addTrackedFolder: () => ipcRenderer.invoke('add-tracked-folder'),
   removeTrackedFolder: (folderPath) =>
     ipcRenderer.invoke('remove-tracked-folder', folderPath),

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, nativeImage, shell, Menu } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const os = require('node:os');
@@ -14,6 +14,7 @@ if (require('electron-squirrel-startup')) {
 
 let photoDb = null;
 let thumbnailDirPath = '';
+let preferencesFilePath = '';
 
 const APP_STORAGE_DIRNAME = 'vrchat-world-photo-manager';
 const THUMBNAIL_DIRNAME = 'thumbnails';
@@ -49,11 +50,78 @@ const PROCESSING_PROGRESS_CHANNEL = 'processing-progress';
 const WORLD_METADATA_UPDATED_CHANNEL = 'world-metadata-updated';
 const WORLD_METADATA_SYNC_OPERATION = 'world-metadata-sync';
 const WORLD_METADATA_SYNC_DELAY_MS = 1000;
+const DEFAULT_APP_PREFERENCES = Object.freeze({
+  backgroundImagePath: '',
+});
 
 const pendingWorldMetadataSyncTargets = new Map();
 const worldMetadataSyncSubscribers = new Set();
 let isWorldMetadataSyncRunning = false;
 let activeWorldMetadataSyncWorldId = null;
+
+// Lightweight app preferences are stored outside the renderer so they survive
+// reloads/restarts even if the file:// localStorage origin changes.
+function normalizeBackgroundImagePreferencePath(filePath) {
+  return typeof filePath === 'string' ? filePath.trim() : '';
+}
+
+async function readAppPreferences() {
+  if (!preferencesFilePath) {
+    return { ...DEFAULT_APP_PREFERENCES };
+  }
+
+  try {
+    const raw = await fs.readFile(preferencesFilePath, 'utf8');
+    const parsed = JSON.parse(raw);
+    return {
+      ...DEFAULT_APP_PREFERENCES,
+      ...(parsed && typeof parsed === 'object' ? parsed : {}),
+      backgroundImagePath: normalizeBackgroundImagePreferencePath(
+        parsed?.backgroundImagePath
+      ),
+    };
+  } catch {
+    return { ...DEFAULT_APP_PREFERENCES };
+  }
+}
+
+async function writeAppPreferences(nextPreferences) {
+  if (!preferencesFilePath) {
+    return { ...DEFAULT_APP_PREFERENCES };
+  }
+
+  const normalizedPreferences = {
+    ...DEFAULT_APP_PREFERENCES,
+    ...(nextPreferences && typeof nextPreferences === 'object'
+      ? nextPreferences
+      : {}),
+    backgroundImagePath: normalizeBackgroundImagePreferencePath(
+      nextPreferences?.backgroundImagePath
+    ),
+  };
+
+  await fs.writeFile(
+    preferencesFilePath,
+    JSON.stringify(normalizedPreferences, null, 2),
+    'utf8'
+  );
+
+  return normalizedPreferences;
+}
+
+async function getBackgroundImagePreference() {
+  const preferences = await readAppPreferences();
+  return preferences.backgroundImagePath;
+}
+
+async function setBackgroundImagePreference(filePath) {
+  const preferences = await readAppPreferences();
+  preferences.backgroundImagePath = normalizeBackgroundImagePreferencePath(
+    filePath
+  );
+  const savedPreferences = await writeAppPreferences(preferences);
+  return savedPreferences.backgroundImagePath;
+}
 
 function isSupportedImageFile(filePath) {
   return SUPPORTED_IMAGE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
@@ -3209,15 +3277,25 @@ function createWindow() {
     height: 920,
     minWidth: 1200,
     minHeight: 760,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
   });
 
+  // Hide and detach the stock menu bar so Windows doesn't keep a visible shell.
+  mainWindow.setMenuBarVisibility(false);
+  mainWindow.autoHideMenuBar = true;
+  if (typeof mainWindow.removeMenu === 'function') {
+    mainWindow.removeMenu();
+  }
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 }
 
 app.whenReady().then(async () => {
+  // Remove the stock Electron menu so the app ships with a cleaner surface.
+  Menu.setApplicationMenu(null);
+
   const dbDirPath = path.join(app.getPath('userData'), 'data');
   const appStorageRootPath = path.join(
     app.getPath('home'),
@@ -3225,6 +3303,7 @@ app.whenReady().then(async () => {
   );
 
   thumbnailDirPath = path.join(appStorageRootPath, THUMBNAIL_DIRNAME);
+  preferencesFilePath = path.join(dbDirPath, 'preferences.json');
 
   await ensureDir(dbDirPath);
   await ensureDir(appStorageRootPath);
@@ -3481,6 +3560,20 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('get-tracked-folders', async () => {
     return photoDb.getTrackedFolders();
+  });
+
+  ipcMain.handle('get-background-image-preference', async () => {
+    return {
+      ok: true,
+      filePath: await getBackgroundImagePreference(),
+    };
+  });
+
+  ipcMain.handle('set-background-image-preference', async (_event, payload) => {
+    return {
+      ok: true,
+      filePath: await setBackgroundImagePreference(payload?.filePath),
+    };
   });
 
   ipcMain.handle('select-background-image', async () => {

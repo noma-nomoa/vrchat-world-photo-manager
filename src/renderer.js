@@ -558,6 +558,18 @@ function getStoredBackgroundImagePath() {
   );
 }
 
+function cacheBackgroundImagePath(filePath) {
+  const normalizedPath = normalizeBackgroundImagePath(filePath);
+
+  if (!normalizedPath) {
+    localStorage.removeItem(BACKGROUND_IMAGE_STORAGE_KEY);
+    return '';
+  }
+
+  localStorage.setItem(BACKGROUND_IMAGE_STORAGE_KEY, normalizedPath);
+  return normalizedPath;
+}
+
 function buildBackgroundImageFileUrl(filePath) {
   const normalizedPath = normalizeBackgroundImagePath(filePath);
 
@@ -570,13 +582,12 @@ function buildBackgroundImageFileUrl(filePath) {
   return encodeURI(`file://${prefixedPath}`);
 }
 
-function applyBackgroundImagePreference(filePath) {
+function renderBackgroundImagePreference(filePath) {
   const normalizedPath = normalizeBackgroundImagePath(filePath);
 
   if (!normalizedPath) {
     document.body.classList.remove('has-custom-background');
     document.body.style.setProperty('--app-background-image', 'none');
-    localStorage.removeItem(BACKGROUND_IMAGE_STORAGE_KEY);
     return;
   }
 
@@ -585,11 +596,51 @@ function applyBackgroundImagePreference(filePath) {
     '--app-background-image',
     `url("${buildBackgroundImageFileUrl(normalizedPath)}")`
   );
-  localStorage.setItem(BACKGROUND_IMAGE_STORAGE_KEY, normalizedPath);
 }
 
-function initializeBackgroundImagePreference() {
-  applyBackgroundImagePreference(getStoredBackgroundImagePath());
+async function applyBackgroundImagePreference(filePath, options = {}) {
+  const { persist = true } = options;
+  const normalizedPath = normalizeBackgroundImagePath(filePath);
+
+  renderBackgroundImagePreference(normalizedPath);
+  cacheBackgroundImagePath(normalizedPath);
+
+  if (!persist || !window.electronAPI.setBackgroundImagePreference) {
+    return normalizedPath;
+  }
+
+  try {
+    const result = await window.electronAPI.setBackgroundImagePreference(
+      normalizedPath
+    );
+    const savedPath = normalizeBackgroundImagePath(result?.filePath);
+    renderBackgroundImagePreference(savedPath);
+    cacheBackgroundImagePath(savedPath);
+    return savedPath;
+  } catch {
+    return normalizedPath;
+  }
+}
+
+async function initializeBackgroundImagePreference() {
+  const cachedPath = getStoredBackgroundImagePath();
+  renderBackgroundImagePreference(cachedPath);
+
+  if (!window.electronAPI.getBackgroundImagePreference) {
+    cacheBackgroundImagePath(cachedPath);
+    return;
+  }
+
+  try {
+    const result = await window.electronAPI.getBackgroundImagePreference();
+    const persistedPath = normalizeBackgroundImagePath(result?.filePath);
+    renderBackgroundImagePreference(persistedPath);
+    cacheBackgroundImagePath(persistedPath);
+  } catch {
+    cacheBackgroundImagePath(cachedPath);
+  }
+
+  syncSettingsBackgroundUi();
 }
 
 function showToast(message) {
@@ -1313,13 +1364,13 @@ async function selectBackgroundImageFromSettings() {
     return;
   }
 
-  applyBackgroundImagePreference(result.filePath);
+  await applyBackgroundImagePreference(result.filePath);
   syncSettingsBackgroundUi();
   showToast('背景画像を更新しました');
 }
 
-function clearBackgroundImageFromSettings() {
-  applyBackgroundImagePreference('');
+async function clearBackgroundImageFromSettings() {
+  await applyBackgroundImagePreference('');
   syncSettingsBackgroundUi();
   showToast('背景画像をクリアしました');
 }
@@ -4143,7 +4194,9 @@ function triggerModalShellRestoreAnimation() {
   const prefersReducedMotion = window.matchMedia?.(
     '(prefers-reduced-motion: reduce)'
   )?.matches;
-  const targets = [topStickyShell, sidebar].filter(Boolean);
+  // Keep the lightweight sidebar polish, but avoid touching the sticky header
+  // after modal close because it reads as a flash / reload.
+  const targets = [sidebar].filter(Boolean);
 
   if (targets.length === 0 || prefersReducedMotion) {
     return;
@@ -4218,7 +4271,6 @@ function closeImageModal() {
     imageModal.classList.add('hidden');
     clearCurrentModalPhotoState();
     imageModalAnimationTimer = null;
-    triggerModalShellRestoreAnimation();
   };
 
   if (prefersReducedMotion) {
@@ -7524,8 +7576,8 @@ function bindSettingsModalControls() {
     await selectBackgroundImageFromSettings();
   });
 
-  clearBackgroundImageButton?.addEventListener('click', () => {
-    clearBackgroundImageFromSettings();
+  clearBackgroundImageButton?.addEventListener('click', async () => {
+    await clearBackgroundImageFromSettings();
   });
 
   addTrackedFolderButton?.addEventListener('click', async () => {

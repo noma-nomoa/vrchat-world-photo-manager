@@ -4551,8 +4551,13 @@ body[data-theme='light'] .processing-progress-track {
 }
 
 html {
-  overflow-y: auto;
-  scrollbar-gutter: stable;
+  overflow: hidden;
+  scrollbar-gutter: auto;
+  background: #08111e;
+}
+
+html:has(body[data-theme="light"]) {
+  background: #e7eef8;
 }
 
 .sidebar {
@@ -5167,9 +5172,10 @@ body::-webkit-scrollbar-button:end:increment {
 }
 
 .app {
-  width: calc(100% + 24px) !important;
-  margin-right: -24px !important;
-  padding-right: 24px !important;
+  width: calc(100% + 16px) !important;
+  margin-right: -16px !important;
+  padding-right: 16px !important;
+  box-sizing: border-box !important;
 }
 
 .app::-webkit-scrollbar,
@@ -5918,8 +5924,8 @@ body[data-theme="light"].has-custom-background::before {
 
 body[data-theme="light"].has-custom-background .page-header,
 body[data-theme="light"].has-custom-background .toolbar {
-  background: rgba(255, 255, 255, 0.76);
-  border-color: rgba(198, 212, 232, 0.94);
+  background: rgba(255, 255, 255, 0.74);
+  border-color: rgba(198, 212, 232, 0.96);
   box-shadow: 0 8px 22px rgba(22, 34, 53, 0.07);
 }
 
@@ -5928,7 +5934,7 @@ body[data-theme="light"].has-custom-background .modal-photo-memo-input,
 body[data-theme="light"].has-custom-background .header-dropdown-text-input,
 body[data-theme="light"].has-custom-background .world-name-input-row input,
 body[data-theme="light"].has-custom-background #modal-world-url-input {
-  background: rgba(248, 250, 253, 0.70);
+  background: rgba(248, 250, 253, 0.66);
   border-color: rgba(198, 212, 232, 0.96);
   box-shadow: 0 4px 12px rgba(22, 34, 53, 0.05);
 }
@@ -6005,8 +6011,8 @@ body[data-theme="light"] .year-block {
 }
 
 body[data-theme="light"].has-custom-background .year-block {
-  background: rgba(255, 255, 255, 0.54);
-  border-color: rgba(198, 212, 232, 0.96);
+  background: rgba(255, 255, 255, 0.48);
+  border-color: rgba(198, 212, 232, 0.98);
   box-shadow: 0 8px 20px rgba(22, 34, 53, 0.08);
 }
 
@@ -6053,9 +6059,9 @@ body[data-theme="light"] .gallery-group {
 }
 
 body[data-theme="light"].has-custom-background .gallery-group {
-  background: rgba(248, 251, 254, 0.20);
-  border-color: rgba(198, 212, 232, 0.84);
-  box-shadow: 0 3px 8px rgba(22, 34, 53, 0.035);
+  background: rgba(248, 251, 254, 0.14);
+  border-color: rgba(198, 212, 232, 0.90);
+  box-shadow: 0 4px 12px rgba(22, 34, 53, 0.05);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -6073,8 +6079,8 @@ body[data-theme="light"] .photo-card {
 }
 
 body[data-theme="light"].has-custom-background .photo-card {
-  background: rgba(255, 255, 255, 0.54);
-  border-color: rgba(205, 218, 236, 0.94);
+  background: rgba(255, 255, 255, 0.46);
+  border-color: rgba(205, 218, 236, 0.96);
   box-shadow: 0 8px 18px rgba(22, 34, 53, 0.08);
 }
 
@@ -6087,7 +6093,7 @@ body[data-theme="light"] .photo-card.is-keyboard-focused {
 
 body[data-theme="light"].has-custom-background .photo-card.is-selected,
 body[data-theme="light"].has-custom-background .photo-card.is-keyboard-focused {
-  background: rgba(255, 255, 255, 0.60);
+  background: rgba(255, 255, 255, 0.52);
 }
 
 body[data-theme="light"] .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-text-input,
@@ -6115,7 +6121,7 @@ body[data-theme="light"] .drop-hint-always {
 }
 
 body[data-theme="light"].has-custom-background .drop-hint-always {
-  background: rgba(255, 255, 255, 0.56);
-  border-color: rgba(197, 213, 234, 0.96);
+  background: rgba(255, 255, 255, 0.48);
+  border-color: rgba(197, 213, 234, 0.98);
   box-shadow: 0 8px 20px rgba(22, 34, 53, 0.08);
 }
