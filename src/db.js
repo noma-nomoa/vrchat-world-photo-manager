@@ -338,6 +338,11 @@ function initDatabase(dbPath) {
     FROM photos
     ORDER BY id ASC
   `);
+  const getAllPhotosWithWorldInfoStmt = db.prepare(`
+    SELECT *
+    FROM photos
+    ORDER BY taken_at_timestamp DESC, id DESC
+  `);
 
   const getTrackedFolderByPathStmt = db.prepare(`
     SELECT *
@@ -791,6 +796,10 @@ function initDatabase(dbPath) {
     return getAllPhotosStmt.all();
   }
 
+  function getAllPhotosWithWorldInfo() {
+    return getAllPhotosWithWorldInfoStmt.all();
+  }
+
   function getTrackedFolders() {
     return getTrackedFoldersStmt.all();
   }
@@ -1153,6 +1162,7 @@ function initDatabase(dbPath) {
     getPhotosByMonth,
     getPhotosByYear,
     getAllPhotos,
+    getAllPhotosWithWorldInfo,
     getPhotosByWorldId,
     getTrackedFolders,
     upsertTrackedFolder,

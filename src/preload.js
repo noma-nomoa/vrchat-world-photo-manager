@@ -41,6 +41,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getApplicationDataSummary: () =>
     ipcRenderer.invoke('get-application-data-summary'),
   getSidebarData: () => ipcRenderer.invoke('get-sidebar-data'),
+  getWorldSidebarData: (sortMode) =>
+    ipcRenderer.invoke('get-world-sidebar-data', sortMode),
   getLatestMonth: () => ipcRenderer.invoke('get-latest-month'),
   getTrackedFolders: () => ipcRenderer.invoke('get-tracked-folders'),
   getBackgroundImagePreference: () =>
@@ -60,6 +62,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPhotosByMonth: (year, month) =>
     ipcRenderer.invoke('get-photos-by-month', year, month),
   getPhotosByYear: (year) => ipcRenderer.invoke('get-photos-by-year', year),
+  getPhotosByWorldSelection: (selection) =>
+    ipcRenderer.invoke('get-photos-by-world-selection', selection),
   getWorldMetadata: (worldId) => ipcRenderer.invoke('get-world-metadata', worldId),
   getLabelCatalog: () => ipcRenderer.invoke('get-label-catalog'),
   getPhotoLabels: (photoId) => ipcRenderer.invoke('get-photo-labels', photoId),

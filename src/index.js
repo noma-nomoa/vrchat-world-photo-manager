@@ -2167,6 +2167,50 @@ async function prepareRowsForRenderer(rows) {
   return attachPhotoLabelsToRows(rowsWithAccurateOrientation);
 }
 
+function buildWorldSidebarData(sortMode = 'count') {
+  const rows = photoDb.getAllPhotosWithWorldInfo();
+  const worldMap = new Map();
+
+  for (const row of rows) {
+    const worldId =
+      normalizeWorldId(row.world_id) || parseWorldIdFromUrl(row.world_url);
+    const worldName =
+      normalizeDisplayWorldName(row.world_name_manual || row.world_name) ||
+      'ワールド名を取得できませんでした';
+    const worldKey = worldId ? `id:${worldId}` : `name:${worldName}`;
+    const existingEntry = worldMap.get(worldKey);
+
+    if (existingEntry) {
+      existingEntry.count += 1;
+      continue;
+    }
+
+    worldMap.set(worldKey, {
+      worldKey,
+      worldId: worldId || null,
+      worldName,
+      count: 1,
+    });
+  }
+
+  const entries = Array.from(worldMap.values());
+  entries.sort((leftEntry, rightEntry) => {
+    const leftName = leftEntry.worldName || '';
+    const rightName = rightEntry.worldName || '';
+
+    if (sortMode === 'name') {
+      return leftName.localeCompare(rightName, 'ja');
+    }
+
+    const countDelta = rightEntry.count - leftEntry.count;
+    return countDelta !== 0
+      ? countDelta
+      : leftName.localeCompare(rightName, 'ja');
+  });
+
+  return entries;
+}
+
 function toRendererWorldMetadata(row) {
   if (!row) {
     return null;
@@ -4112,6 +4156,10 @@ app.whenReady().then(async () => {
     return photoDb.getSidebarTree();
   });
 
+  ipcMain.handle('get-world-sidebar-data', async (_event, sortMode = 'count') => {
+    return buildWorldSidebarData(sortMode);
+  });
+
   ipcMain.handle('get-latest-month', async () => {
     return photoDb.getLatestMonth();
   });
@@ -4124,6 +4172,25 @@ app.whenReady().then(async () => {
   ipcMain.handle('get-photos-by-year', async (_event, year) => {
     const rows = await prepareRowsForRenderer(photoDb.getPhotosByYear(year));
     return rows.map(toRendererPhoto);
+  });
+
+  ipcMain.handle('get-photos-by-world-selection', async (_event, selection) => {
+    const normalizedWorldId = normalizeWorldId(selection?.worldId);
+    const normalizedWorldName =
+      normalizeDisplayWorldName(selection?.worldName) ||
+      'ワールド名を取得できませんでした';
+
+    const rows = normalizedWorldId
+      ? photoDb.getPhotosByWorldId(normalizedWorldId)
+      : photoDb.getAllPhotosWithWorldInfo().filter((row) => {
+          const rowWorldName =
+            normalizeDisplayWorldName(row.world_name_manual || row.world_name) ||
+            'ワールド名を取得できませんでした';
+          return rowWorldName === normalizedWorldName;
+        });
+
+    const preparedRows = await prepareRowsForRenderer(rows);
+    return preparedRows.map(toRendererPhoto);
   });
 
   ipcMain.handle('get-world-metadata', async (_event, worldId) => {

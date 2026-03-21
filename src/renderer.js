@@ -31,6 +31,9 @@ const mainContent = document.querySelector('.main-content');
 const dropOverlay = document.getElementById('drop-overlay');
 const topStickyShell = document.querySelector('.top-sticky-shell');
 const sidebar = document.querySelector('.sidebar');
+const sidebarHeader = document.querySelector('.sidebar-header');
+const sidebarHeaderTitle = sidebarHeader?.querySelector('h2');
+const sidebarHeaderDescription = sidebarHeader?.querySelector('p');
 
 // Keep the content area in a loading state until sidebar/month restoration
 // finishes so the empty-state shell does not flash on startup.
@@ -61,6 +64,8 @@ window.addEventListener('unhandledrejection', () => {
 const favoriteFilterButton = document.getElementById('favorite-filter-btn');
 const photoSortButton = document.getElementById('photo-sort-btn');
 const photoSortIcon = document.getElementById('photo-sort-icon');
+const photoDensityButton = document.getElementById('photo-density-btn');
+const photoDensityIcon = document.getElementById('photo-density-icon');
 const orientationFilterButton = document.getElementById(
   'orientation-filter-btn'
 );
@@ -228,6 +233,8 @@ const THEME_STORAGE_KEY = 'vrchat-world-photo-manager-theme';
 const FONT_STORAGE_KEY = 'vrchat-world-photo-manager-font';
 const BACKGROUND_IMAGE_STORAGE_KEY =
   'vrchat-world-photo-manager-background-image';
+const PHOTO_CARD_DENSITY_STORAGE_KEY =
+  'vrchat-world-photo-manager-photo-card-density';
 
 // Batch selection controls for the current month view.
 const selectionModeButton = document.getElementById('selection-mode-btn');
@@ -236,13 +243,18 @@ const bulkDeleteButton = document.getElementById('bulk-delete-btn');
 
 // Sidebar/month/gallery state for the active selection.
 let sidebarData = [];
+let worldSidebarData = [];
 let currentSelection = null;
 let currentPhotos = [];
 let allCurrentMonthPhotos = [];
+let currentSidebarMode = 'timeline';
+let currentWorldSidebarSort = 'count';
 let currentPhotoSortOrder = 'desc';
+let currentPhotoCardDensity = 'default';
 let currentModalPhoto = null;
 let imageModalAnimationTimer = null;
 let imageModalSwitchTimer = null;
+let photoCardDensityAnimationTimer = null;
 let modalShellRestoreTimer = null;
 let modalWorldMetadataRequestId = 0;
 let modalPhotoLabelsRequestId = 0;
@@ -269,6 +281,11 @@ let trackedFolderModal = null;
 let trackedFolderModalBackdrop = null;
 let trackedFolderModalClose = null;
 let trackedFolderModalBody = null;
+let worldLibraryModeButton = null;
+let sidebarHeaderControls = null;
+let sidebarSortCountButton = null;
+let sidebarSortNameButton = null;
+let sidebarHeaderControlsHideTimer = null;
 let modalResolutionHeroBadge = null;
 let modalTakenAtHero = null;
 let imageModalPrevButton = null;
@@ -323,6 +340,8 @@ let isImporting = false;
 let isWorldMetadataSyncing = false;
 let worldMetadataSyncResetTimer = null;
 let appUpdatePromptQueue = Promise.resolve();
+let lastTimelineSelection = null;
+let lastWorldSelection = null;
 
 // Expanded tree state and transient UI timers/overlays.
 const expandedYears = new Set();
@@ -409,7 +428,44 @@ function createYearSelection(year) {
   };
 }
 
+function createWorldSelection(worldKey, worldName, worldId = null) {
+  return {
+    mode: 'world',
+    worldKey,
+    worldName,
+    worldId:
+      typeof worldId === 'string' && worldId.trim().length > 0
+        ? worldId.trim()
+        : null,
+  };
+}
+
 function normalizeSelection(selection) {
+  if (selection?.mode === 'world') {
+    const normalizedWorldKey =
+      typeof selection.worldKey === 'string' && selection.worldKey.trim().length > 0
+        ? selection.worldKey.trim()
+        : null;
+    const normalizedWorldName =
+      typeof selection.worldName === 'string' && selection.worldName.trim().length > 0
+        ? selection.worldName.trim()
+        : null;
+    const normalizedWorldId =
+      typeof selection.worldId === 'string' && selection.worldId.trim().length > 0
+        ? selection.worldId.trim()
+        : null;
+
+    if (!normalizedWorldKey || !normalizedWorldName) {
+      return null;
+    }
+
+    return createWorldSelection(
+      normalizedWorldKey,
+      normalizedWorldName,
+      normalizedWorldId
+    );
+  }
+
   const normalizedYear = Number(selection?.year);
   const hasExplicitMonth =
     selection &&
@@ -437,12 +493,20 @@ function isYearSelection(selection = currentSelection) {
   return normalizeSelection(selection)?.mode === 'year';
 }
 
+function isWorldSelection(selection = currentSelection) {
+  return normalizeSelection(selection)?.mode === 'world';
+}
+
 function isSameSelection(leftSelection, rightSelection) {
   const left = normalizeSelection(leftSelection);
   const right = normalizeSelection(rightSelection);
 
   if (!left || !right) {
     return false;
+  }
+
+  if (left.mode === 'world' || right.mode === 'world') {
+    return left.mode === right.mode && left.worldKey === right.worldKey;
   }
 
   return (
@@ -459,6 +523,10 @@ function getSelectionLabelText(selection = currentSelection) {
     return '写真一覧';
   }
 
+  if (normalizedSelection.mode === 'world') {
+    return normalizedSelection.worldName;
+  }
+
   if (normalizedSelection.mode === 'year') {
     return String(normalizedSelection.year);
   }
@@ -471,6 +539,10 @@ function getDefaultSelectionEmptyMessage(selection = currentSelection) {
 
   if (!normalizedSelection) {
     return '表示する年または月を選択してください';
+  }
+
+  if (normalizedSelection.mode === 'world') {
+    return 'このワールドの写真はまだありません';
   }
 
   return normalizedSelection.mode === 'year'
@@ -661,6 +733,53 @@ function initializeFontPreference() {
   }
 
   applyFontPreference('standard');
+}
+
+// Card density is a visual-only preference. We preserve the existing card DOM
+// and let CSS decide how much metadata stays visible in compact mode.
+function applyPhotoCardDensityPreference(density) {
+  currentPhotoCardDensity = density === 'compact' ? 'compact' : 'default';
+  document.body.classList.toggle(
+    'compact-card-view',
+    currentPhotoCardDensity === 'compact'
+  );
+  localStorage.setItem(PHOTO_CARD_DENSITY_STORAGE_KEY, currentPhotoCardDensity);
+}
+
+function syncPhotoCardDensityUi() {
+  if (!photoDensityButton || !photoDensityIcon) {
+    return;
+  }
+
+  const isCompact = currentPhotoCardDensity === 'compact';
+  photoDensityButton.classList.toggle('is-active', isCompact);
+  photoDensityButton.setAttribute(
+    'aria-label',
+    isCompact ? '表示サイズ: コンパクト' : '表示サイズ: 標準'
+  );
+  photoDensityButton.title = isCompact
+    ? '表示サイズ: コンパクト'
+    : '表示サイズ: 標準';
+  photoDensityIcon.textContent = isCompact
+    ? 'view_compact_alt'
+    : 'view_comfy_alt';
+}
+
+function initializePhotoCardDensityPreference() {
+  const savedDensity = localStorage.getItem(PHOTO_CARD_DENSITY_STORAGE_KEY);
+  applyPhotoCardDensityPreference(savedDensity === 'compact' ? 'compact' : 'default');
+}
+
+function playPhotoCardDensityTransition() {
+  if (photoCardDensityAnimationTimer) {
+    clearTimeout(photoCardDensityAnimationTimer);
+  }
+
+  document.body.classList.add('is-density-switching');
+  photoCardDensityAnimationTimer = setTimeout(() => {
+    document.body.classList.remove('is-density-switching');
+    photoCardDensityAnimationTimer = null;
+  }, 320);
 }
 
 function normalizeBackgroundImagePath(filePath) {
@@ -2238,6 +2357,8 @@ function syncFavoriteFilterUi() {
       currentPhotoSortOrder === 'asc' ? 'arrow_upward_alt' : 'arrow_downward_alt';
   }
 
+  syncPhotoCardDensityUi();
+
   if (orientationFilterButton) {
     const orientationMeta = getOrientationFilterMeta(activeOrientationFilter);
     const label = `向きフィルタ: ${orientationMeta.shortLabel}`;
@@ -3149,6 +3270,21 @@ function syncSidebarSelectionState() {
     return false;
   }
 
+  if (currentSidebarMode === 'world') {
+    let hasWorldEntries = false;
+
+    for (const worldButton of sidebarTree.querySelectorAll('.world-sidebar-item')) {
+      const isActive =
+        isWorldSelection(currentSelection) &&
+        currentSelection.worldKey === worldButton.dataset.worldKey;
+
+      hasWorldEntries = true;
+      worldButton.classList.toggle('active', Boolean(isActive));
+    }
+
+    return hasWorldEntries;
+  }
+
   let hasSidebarEntries = false;
 
   for (const yearBlock of sidebarTree.querySelectorAll('.year-block')) {
@@ -3189,12 +3325,27 @@ function syncSidebarSelectionState() {
 function setCurrentSelectionValue(selection) {
   currentSelection = normalizeSelection(selection);
 
-  if (currentSelection?.year) {
+  if (!currentSelection) {
+    return;
+  }
+
+  if (currentSelection.mode === 'world') {
+    lastWorldSelection = currentSelection;
+    return;
+  }
+
+  lastTimelineSelection = currentSelection;
+
+  if (currentSelection.year) {
     expandedYears.add(currentSelection.year);
   }
 }
 
 function ensureExpandedYearsForSidebar() {
+  if (currentSidebarMode === 'world') {
+    return;
+  }
+
   if (expandedYears.size === 0) {
     for (const yearEntry of sidebarData) {
       expandedYears.add(yearEntry.year);
@@ -3216,6 +3367,148 @@ function syncSelectionLinkedUi({ forceSidebarRender = false } = {}) {
   }
 
   syncSelectionDependentSettingsUi();
+}
+
+function ensureSidebarWorldSortControls() {
+  if (!sidebarHeader || sidebarHeaderControls) {
+    return;
+  }
+
+  sidebarHeaderControls = document.createElement('div');
+  sidebarHeaderControls.className = 'sidebar-header-controls';
+
+  const sortToggleGroup = document.createElement('div');
+  sortToggleGroup.className = 'sidebar-sort-toggle-group';
+
+  sidebarSortCountButton = document.createElement('button');
+  sidebarSortCountButton.type = 'button';
+  sidebarSortCountButton.className = 'sidebar-sort-toggle';
+  sidebarSortCountButton.textContent = '撮影枚数順';
+
+  sidebarSortNameButton = document.createElement('button');
+  sidebarSortNameButton.type = 'button';
+  sidebarSortNameButton.className = 'sidebar-sort-toggle';
+  sidebarSortNameButton.textContent = '名前順';
+
+  sortToggleGroup.append(sidebarSortCountButton, sidebarSortNameButton);
+  sidebarHeaderControls.appendChild(sortToggleGroup);
+  sidebarHeader.appendChild(sidebarHeaderControls);
+}
+
+function syncWorldSidebarSortButtons() {
+  sidebarSortCountButton?.classList.toggle(
+    'is-active',
+    currentWorldSidebarSort === 'count'
+  );
+  sidebarSortNameButton?.classList.toggle(
+    'is-active',
+    currentWorldSidebarSort === 'name'
+  );
+}
+
+function setSidebarHeaderControlsVisible(isVisible) {
+  if (!sidebarHeaderControls) {
+    return;
+  }
+
+  if (sidebarHeaderControlsHideTimer) {
+    clearTimeout(sidebarHeaderControlsHideTimer);
+    sidebarHeaderControlsHideTimer = null;
+  }
+
+  if (sidebar?.classList.contains('is-mode-switching')) {
+    sidebarHeaderControls.hidden = !isVisible;
+    sidebarHeaderControls.classList.toggle('is-visible', isVisible);
+    return;
+  }
+
+  if (isVisible) {
+    sidebarHeaderControls.hidden = false;
+    requestAnimationFrame(() => {
+      sidebarHeaderControls?.classList.add('is-visible');
+    });
+    return;
+  }
+
+  sidebarHeaderControls.classList.remove('is-visible');
+  sidebarHeaderControlsHideTimer = setTimeout(() => {
+    if (sidebarHeaderControls) {
+      sidebarHeaderControls.hidden = true;
+    }
+    sidebarHeaderControlsHideTimer = null;
+  }, 920);
+}
+
+async function runSidebarModeSwitchTransition(action) {
+  if (!sidebar) {
+    await action();
+    return;
+  }
+
+  sidebar.classList.add('is-mode-switching');
+  await new Promise((resolve) => setTimeout(resolve, 260));
+  await action();
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  await new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+  sidebar.classList.remove('is-mode-switching');
+}
+
+async function runSidebarTreeRefreshTransition(action) {
+  if (!sidebar) {
+    await action();
+    return;
+  }
+
+  sidebar.classList.add('is-tree-switching');
+  // Wait until the old sidebar list has faded out enough before swapping
+  // the sorted content, otherwise both states appear to overlap.
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  await action();
+  await new Promise((resolve) => setTimeout(resolve, 70));
+  await new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+  sidebar.classList.remove('is-tree-switching');
+}
+
+function syncSidebarModeUi() {
+  if (sidebarHeaderTitle) {
+    sidebarHeaderTitle.textContent =
+      currentSidebarMode === 'world' ? 'ワールド' : '年月';
+  }
+
+  if (sidebarHeaderDescription) {
+    sidebarHeaderDescription.hidden = currentSidebarMode === 'world';
+  }
+
+  setSidebarHeaderControlsVisible(currentSidebarMode === 'world');
+
+  if (worldLibraryModeButton) {
+    worldLibraryModeButton.classList.toggle(
+      'is-active',
+      currentSidebarMode === 'world'
+    );
+    worldLibraryModeButton.innerHTML =
+      currentSidebarMode === 'world'
+        ? '<span class="material-symbols-outlined">calendar_month</span><span>年月一覧</span>'
+        : '<span class="material-symbols-outlined">public</span><span>ワールド一覧</span>';
+    worldLibraryModeButton.setAttribute(
+      'aria-label',
+      currentSidebarMode === 'world' ? '年月一覧へ戻る' : 'ワールド一覧を表示'
+    );
+    worldLibraryModeButton.setAttribute(
+      'title',
+      currentSidebarMode === 'world' ? '年月一覧へ戻る' : 'ワールド一覧を表示'
+    );
+  }
+
+  syncWorldSidebarSortButtons();
 }
 
 function applySidebarDeletionLocally(targetSelection, removedCount) {
@@ -3280,12 +3573,32 @@ function getLatestSelectionFromSidebarData() {
   return createMonthSelection(latestYearEntry.year, latestMonthEntry.month);
 }
 
+function getLatestWorldSelectionFromSidebarData() {
+  const latestWorldEntry = worldSidebarData[0];
+
+  if (!latestWorldEntry) {
+    return null;
+  }
+
+  return createWorldSelection(
+    latestWorldEntry.worldKey,
+    latestWorldEntry.worldName,
+    latestWorldEntry.worldId
+  );
+}
+
 // Sidebar restoration now supports both "year" and "month" selections.
 function hasSidebarSelection(selection) {
   const normalizedSelection = normalizeSelection(selection);
 
   if (!normalizedSelection) {
     return false;
+  }
+
+  if (normalizedSelection.mode === 'world') {
+    return worldSidebarData.some(
+      (worldEntry) => worldEntry.worldKey === normalizedSelection.worldKey
+    );
   }
 
   const matchingYearEntry = sidebarData.find(
@@ -3312,7 +3625,17 @@ async function selectSidebarSelectionIfAvailable(selection) {
     return false;
   }
 
-  if (normalizedSelection.mode === 'year') {
+  if (normalizedSelection.mode === 'world') {
+    const matchingWorldEntry = worldSidebarData.find(
+      (worldEntry) => worldEntry.worldKey === normalizedSelection.worldKey
+    );
+
+    if (!matchingWorldEntry) {
+      return false;
+    }
+
+    await selectWorld(matchingWorldEntry);
+  } else if (normalizedSelection.mode === 'year') {
     await selectYear(normalizedSelection.year);
   } else {
     await selectMonth(normalizedSelection.year, normalizedSelection.month);
@@ -3328,6 +3651,29 @@ async function restoreMonthViewAfterDataChange({
   fallbackSelection = null,
   clearWhenEmpty = true,
 } = {}) {
+  if (currentSidebarMode === 'world') {
+    if (await selectSidebarSelectionIfAvailable(preferredSelection)) {
+      return true;
+    }
+
+    if (await selectSidebarSelectionIfAvailable(fallbackSelection)) {
+      return true;
+    }
+
+    const latestWorldSelection = getLatestWorldSelectionFromSidebarData();
+
+    if (latestWorldSelection) {
+      await selectSidebarSelectionIfAvailable(latestWorldSelection);
+      return true;
+    }
+
+    if (clearWhenEmpty) {
+      clearMainContent();
+    }
+
+    return false;
+  }
+
   if (await selectSidebarSelectionIfAvailable(preferredSelection)) {
     return true;
   }
@@ -5310,7 +5656,18 @@ function initializeTopToolbarLayout() {
     worldNameFilterDropdown.classList.add('toolbar-world-filter');
     worldNameFilterDropdown.classList.add('is-static-toolbar-filter');
     toolbarLeftGroup.appendChild(worldNameFilterDropdown);
+
+    ensureSidebarWorldSortControls();
+
+    if (!worldLibraryModeButton) {
+      worldLibraryModeButton = document.createElement('button');
+      worldLibraryModeButton.type = 'button';
+      worldLibraryModeButton.className = 'small-action-button world-library-mode-btn';
+      toolbarLeftGroup.appendChild(worldLibraryModeButton);
+    }
+
     ensureStaticToolbarWorldFilterVisible();
+    syncSidebarModeUi();
   }
 
   if (regenerateThumbnailsButton && settingsMaintenanceSection) {
@@ -6287,6 +6644,48 @@ async function refreshCurrentMonthWithFilterAnimation() {
 
 function renderSidebar() {
   sidebarTree.innerHTML = '';
+  syncSidebarModeUi();
+
+  if (currentSidebarMode === 'world') {
+    if (worldSidebarData.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'sidebar-empty';
+      empty.textContent = 'ワールド情報付きの写真はまだありません';
+      sidebarTree.appendChild(empty);
+      return;
+    }
+
+    for (const worldEntry of worldSidebarData) {
+      const worldButton = document.createElement('button');
+      worldButton.type = 'button';
+      worldButton.className = 'world-sidebar-item';
+      worldButton.dataset.worldKey = worldEntry.worldKey;
+
+      const worldName = document.createElement('span');
+      worldName.className = 'world-sidebar-item-name';
+      worldName.textContent = worldEntry.worldName;
+
+      const worldCount = document.createElement('span');
+      worldCount.className = 'world-sidebar-item-count';
+      worldCount.textContent = `${worldEntry.count}枚`;
+
+      if (
+        isWorldSelection(currentSelection) &&
+        currentSelection.worldKey === worldEntry.worldKey
+      ) {
+        worldButton.classList.add('active');
+      }
+
+      worldButton.append(worldName, worldCount);
+      worldButton.addEventListener('click', async () => {
+        await selectWorld(worldEntry);
+      });
+
+      sidebarTree.appendChild(worldButton);
+    }
+
+    return;
+  }
 
   if (sidebarData.length === 0) {
     const empty = document.createElement('p');
@@ -6387,7 +6786,15 @@ function renderSidebar() {
 }
 
 async function refreshSidebar() {
-  sidebarData = await window.electronAPI.getSidebarData();
+  const [nextSidebarData, nextWorldSidebarData] = await Promise.all([
+    window.electronAPI.getSidebarData(),
+    window.electronAPI.getWorldSidebarData(currentWorldSidebarSort),
+  ]);
+
+  sidebarData = nextSidebarData;
+  worldSidebarData = Array.isArray(nextWorldSidebarData)
+    ? nextWorldSidebarData
+    : [];
   syncSelectionLinkedUi({ forceSidebarRender: true });
 }
 
@@ -6440,6 +6847,19 @@ async function selectYear(year) {
   );
 }
 
+async function selectWorld(worldEntry) {
+  const nextSelection = createWorldSelection(
+    worldEntry.worldKey,
+    worldEntry.worldName,
+    worldEntry.worldId
+  );
+
+  await selectPhotoScope(
+    () => window.electronAPI.getPhotosByWorldSelection(nextSelection),
+    nextSelection
+  );
+}
+
 async function selectMonth(year, month) {
   await selectPhotoScope(
     () => window.electronAPI.getPhotosByMonth(year, month),
@@ -6454,7 +6874,17 @@ async function selectCurrentSelection(selection = currentSelection) {
     return false;
   }
 
-  if (normalizedSelection.mode === 'year') {
+  if (normalizedSelection.mode === 'world') {
+    const matchingWorldEntry = worldSidebarData.find(
+      (worldEntry) => worldEntry.worldKey === normalizedSelection.worldKey
+    );
+
+    if (!matchingWorldEntry) {
+      return false;
+    }
+
+    await selectWorld(matchingWorldEntry);
+  } else if (normalizedSelection.mode === 'year') {
     await selectYear(normalizedSelection.year);
   } else {
     await selectMonth(normalizedSelection.year, normalizedSelection.month);
@@ -7597,6 +8027,14 @@ function bindHeaderFilterControls() {
     await syncCurrentPhotoFilterPresentation({ animate: false });
   });
 
+  photoDensityButton?.addEventListener('click', () => {
+    playPhotoCardDensityTransition();
+    applyPhotoCardDensityPreference(
+      currentPhotoCardDensity === 'compact' ? 'default' : 'compact'
+    );
+    syncPhotoCardDensityUi();
+  });
+
   orientationFilterButton?.addEventListener('click', (event) => {
     event.stopPropagation();
 
@@ -7677,6 +8115,67 @@ function bindHeaderFilterControls() {
 
     clearWorldNameFilterInputTimer();
     await applyWorldNameFilter('');
+  });
+
+  worldLibraryModeButton?.addEventListener('click', async () => {
+    await runSidebarModeSwitchTransition(async () => {
+      currentSidebarMode = currentSidebarMode === 'world' ? 'timeline' : 'world';
+      await refreshSidebar();
+
+      if (currentSidebarMode === 'world') {
+        const targetSelection =
+          lastWorldSelection || getLatestWorldSelectionFromSidebarData();
+
+        if (targetSelection) {
+          await selectSidebarSelectionIfAvailable(targetSelection);
+        } else {
+          resetCurrentMonthState();
+          clearSelectionState();
+          clearMainContent();
+          renderSidebar();
+        }
+        return;
+      }
+
+      await restoreMonthViewAfterDataChange({
+        preferredSelection: lastTimelineSelection,
+        fallbackSelection: getLatestSelectionFromSidebarData(),
+      });
+    });
+  });
+
+  sidebarSortCountButton?.addEventListener('click', async () => {
+    if (currentWorldSidebarSort === 'count') {
+      return;
+    }
+
+    currentWorldSidebarSort = 'count';
+    await runSidebarTreeRefreshTransition(async () => {
+      await refreshSidebar();
+
+      if (currentSidebarMode === 'world') {
+        await selectSidebarSelectionIfAvailable(
+          lastWorldSelection || currentSelection || getLatestWorldSelectionFromSidebarData()
+        );
+      }
+    });
+  });
+
+  sidebarSortNameButton?.addEventListener('click', async () => {
+    if (currentWorldSidebarSort === 'name') {
+      return;
+    }
+
+    currentWorldSidebarSort = 'name';
+    await runSidebarTreeRefreshTransition(async () => {
+      await refreshSidebar();
+
+      if (currentSidebarMode === 'world') {
+        await selectSidebarSelectionIfAvailable(
+          lastWorldSelection || currentSelection || getLatestWorldSelectionFromSidebarData()
+        );
+      }
+    });
   });
 }
 
@@ -8305,6 +8804,7 @@ function initializeRendererBindings() {
 function initializeRendererUi() {
   initializeTheme();
   initializeFontPreference();
+  initializePhotoCardDensityPreference();
   initializeBackgroundImagePreference();
   initializeImageModalUi();
   initializeWorldNameEditUi();
