@@ -59,6 +59,8 @@ window.addEventListener('unhandledrejection', () => {
 
 // Header filter controls.
 const favoriteFilterButton = document.getElementById('favorite-filter-btn');
+const photoSortButton = document.getElementById('photo-sort-btn');
+const photoSortIcon = document.getElementById('photo-sort-icon');
 const orientationFilterButton = document.getElementById(
   'orientation-filter-btn'
 );
@@ -237,6 +239,7 @@ let sidebarData = [];
 let currentSelection = null;
 let currentPhotos = [];
 let allCurrentMonthPhotos = [];
+let currentPhotoSortOrder = 'desc';
 let currentModalPhoto = null;
 let imageModalAnimationTimer = null;
 let imageModalSwitchTimer = null;
@@ -506,6 +509,82 @@ function splitTakenAtForCard(value) {
     dateText: dateText || '日時不明',
     timeText: timeText || '',
   };
+}
+
+function parsePhotoSortTimestamp(value) {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return null;
+  }
+
+  const match = value
+    .trim()
+    .match(
+      /^(\d{4})[/-](\d{2})[/-](\d{2})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/
+    );
+
+  if (!match) {
+    return null;
+  }
+
+  const [
+    ,
+    yearText,
+    monthText,
+    dayText,
+    hourText = '00',
+    minuteText = '00',
+    secondText = '00',
+  ] = match;
+
+  const timestamp = new Date(
+    Number(yearText),
+    Number(monthText) - 1,
+    Number(dayText),
+    Number(hourText),
+    Number(minuteText),
+    Number(secondText)
+  ).getTime();
+
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function getPhotoSortTimestamp(photo) {
+  return (
+    parsePhotoSortTimestamp(photo?.takenAt) ??
+    parsePhotoSortTimestamp(photo?.groupDate) ??
+    0
+  );
+}
+
+function comparePhotosForCurrentSortOrder(leftPhoto, rightPhoto) {
+  const timestampDiff =
+    getPhotoSortTimestamp(leftPhoto) - getPhotoSortTimestamp(rightPhoto);
+
+  if (timestampDiff !== 0) {
+    return currentPhotoSortOrder === 'asc' ? timestampDiff : -timestampDiff;
+  }
+
+  const idDiff = Number(leftPhoto?.id || 0) - Number(rightPhoto?.id || 0);
+
+  if (idDiff !== 0) {
+    return currentPhotoSortOrder === 'asc' ? idDiff : -idDiff;
+  }
+
+  return String(leftPhoto?.fileName || '').localeCompare(
+    String(rightPhoto?.fileName || ''),
+    'ja'
+  );
+}
+
+function sortPhotosForCurrentSortOrder(photos) {
+  return [...(Array.isArray(photos) ? photos : [])].sort(
+    comparePhotosForCurrentSortOrder
+  );
+}
+
+function setCurrentMonthPhotos(nextPhotos) {
+  allCurrentMonthPhotos = sortPhotosForCurrentSortOrder(nextPhotos);
+  applyCurrentPhotoFilter();
 }
 
 function updateThemeToggleIcon(themeName) {
@@ -1157,7 +1236,9 @@ function setAnimatedDropdownOpenState({
 
 
 function applyCurrentPhotoFilter() {
-  currentPhotos = allCurrentMonthPhotos.filter(photoMatchesCurrentFilters);
+  currentPhotos = sortPhotosForCurrentSortOrder(
+    allCurrentMonthPhotos.filter(photoMatchesCurrentFilters)
+  );
 }
 
 function getOrientationFilterMeta(filterValue) {
@@ -2142,6 +2223,21 @@ function syncFavoriteFilterUi() {
     favoriteFilterButton.setAttribute('title', label);
   }
 
+  if (photoSortButton) {
+    const isOldestFirst = currentPhotoSortOrder === 'asc';
+    const label = isOldestFirst ? '並び順: 古い順' : '並び順: 新しい順';
+
+    photoSortButton.classList.toggle('is-active', isOldestFirst);
+    photoSortButton.disabled = isImporting || !currentSelection;
+    photoSortButton.setAttribute('aria-label', label);
+    photoSortButton.setAttribute('title', label);
+  }
+
+  if (photoSortIcon) {
+    photoSortIcon.textContent =
+      currentPhotoSortOrder === 'asc' ? 'arrow_upward_alt' : 'arrow_downward_alt';
+  }
+
   if (orientationFilterButton) {
     const orientationMeta = getOrientationFilterMeta(activeOrientationFilter);
     const label = `向きフィルタ: ${orientationMeta.shortLabel}`;
@@ -2213,7 +2309,10 @@ async function syncCurrentPhotoFilterPresentation({ animate = true } = {}) {
 
   if (animate) {
     await refreshCurrentMonthWithFilterAnimation();
+    return;
   }
+
+  renderMonthGallery({ resetProgressive: true });
 }
 
 async function togglePhotoLabelFilter(normalizedName) {
@@ -2763,10 +2862,11 @@ function isPhotoVisibleAfterCurrentFilters(photoId) {
 }
 
 function updatePhotoInCurrentCollections(updatedPhoto) {
-  allCurrentMonthPhotos = allCurrentMonthPhotos.map((photo) =>
-    photo.id === updatedPhoto.id ? updatedPhoto : photo
+  setCurrentMonthPhotos(
+    allCurrentMonthPhotos.map((photo) =>
+      photo.id === updatedPhoto.id ? updatedPhoto : photo
+    )
   );
-  applyCurrentPhotoFilter();
 }
 
 function syncMonthGalleryAfterPhotoUpdate(updatedPhoto) {
@@ -2851,10 +2951,11 @@ function syncBatchPhotoUpdates(updatedPhotos, { refreshModal = true } = {}) {
     normalizedUpdates.map((photo) => [photo.id, photo])
   );
 
-  allCurrentMonthPhotos = allCurrentMonthPhotos.map(
-    (photo) => updatedPhotoMap.get(photo.id) || photo
+  setCurrentMonthPhotos(
+    allCurrentMonthPhotos.map(
+      (photo) => updatedPhotoMap.get(photo.id) || photo
+    )
   );
-  applyCurrentPhotoFilter();
   syncMonthGalleryAfterPhotoBatchUpdate(normalizedUpdates);
 
   const nextModalPhoto = currentModalPhoto
@@ -2873,12 +2974,13 @@ function clearThumbnailCacheInCurrentCollections() {
     return;
   }
 
-  allCurrentMonthPhotos = allCurrentMonthPhotos.map((photo) => ({
-    ...photo,
-    thumbnailPath: null,
-    thumbnailUrl: null,
-  }));
-  applyCurrentPhotoFilter();
+  setCurrentMonthPhotos(
+    allCurrentMonthPhotos.map((photo) => ({
+      ...photo,
+      thumbnailPath: null,
+      thumbnailUrl: null,
+    }))
+  );
 }
 
 function replaceRenderedPhotoCard(updatedPhoto) {
@@ -2900,19 +3002,17 @@ function replaceRenderedPhotoCard(updatedPhoto) {
 }
 
 function removePhotoFromCurrentCollections(photoId) {
-  allCurrentMonthPhotos = allCurrentMonthPhotos.filter(
-    (photo) => photo.id !== photoId
+  setCurrentMonthPhotos(
+    allCurrentMonthPhotos.filter((photo) => photo.id !== photoId)
   );
-  applyCurrentPhotoFilter();
 }
 
 function removePhotosFromCurrentCollections(photoIds) {
   const targetIdSet = new Set(photoIds);
 
-  allCurrentMonthPhotos = allCurrentMonthPhotos.filter(
-    (photo) => !targetIdSet.has(photo.id)
+  setCurrentMonthPhotos(
+    allCurrentMonthPhotos.filter((photo) => !targetIdSet.has(photo.id))
   );
-  applyCurrentPhotoFilter();
 }
 
 function removeRenderedPhotoCards(
@@ -6319,8 +6419,7 @@ async function selectPhotoScope(fetchPhotos, nextSelection) {
 
   setCurrentSelectionValue(nextSelection);
 
-  allCurrentMonthPhotos = photos;
-  applyCurrentPhotoFilter();
+  setCurrentMonthPhotos(photos);
 
   syncSelectionLinkedUi();
   stopScrollToTopAnimation();
@@ -6843,10 +6942,9 @@ async function toggleSelectedFavorites() {
     updatedPhotos.map((photo) => [photo.id, photo])
   );
 
-  allCurrentMonthPhotos = allCurrentMonthPhotos.map(
-    (photo) => updatedPhotoMap.get(photo.id) || photo
+  setCurrentMonthPhotos(
+    allCurrentMonthPhotos.map((photo) => updatedPhotoMap.get(photo.id) || photo)
   );
-  applyCurrentPhotoFilter();
   clearSelectionState();
   renderMonthGallery({ resetProgressive: true });
 
@@ -7487,6 +7585,16 @@ function bindHeaderFilterControls() {
 
     isFavoriteFilterOnly = !isFavoriteFilterOnly;
     await syncCurrentPhotoFilterPresentation();
+  });
+
+  photoSortButton?.addEventListener('click', async () => {
+    if (!currentSelection || isImporting) {
+      return;
+    }
+
+    currentPhotoSortOrder = currentPhotoSortOrder === 'asc' ? 'desc' : 'asc';
+    setCurrentMonthPhotos(allCurrentMonthPhotos);
+    await syncCurrentPhotoFilterPresentation({ animate: false });
   });
 
   orientationFilterButton?.addEventListener('click', (event) => {

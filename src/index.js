@@ -32,10 +32,26 @@ const APP_DISPLAY_NAME = 'WorldShot Log';
 const APP_TITLE = `${APP_DISPLAY_NAME} v${app.getVersion()}`;
 const APP_WINDOW_ICON_ICO_PATH = path.join(__dirname, '..', 'img', 'logo.ico');
 const APP_WINDOW_ICON_PNG_PATH = path.join(__dirname, '..', 'img', 'logo.png');
+const APP_LOCAL_DATA_ROOT =
+  process.env.LOCALAPPDATA || path.join(app.getPath('appData'), '..', 'Local');
+const APP_SESSION_DATA_PATH = path.join(
+  APP_LOCAL_DATA_ROOT,
+  APP_DISPLAY_NAME,
+  'SessionData'
+);
+const APP_DISK_CACHE_PATH = path.join(APP_SESSION_DATA_PATH, 'Cache');
 
 app.setName(APP_DISPLAY_NAME);
 
-const APP_STORAGE_DIRNAME = 'vrchat-world-photo-manager';
+// Electron/Chromium cache data should live in a dedicated local-only path so it
+// does not collide with renamed roaming app folders or fail while moving cache
+// directories during startup.
+fsSync.mkdirSync(APP_DISK_CACHE_PATH, { recursive: true });
+app.setPath('sessionData', APP_SESSION_DATA_PATH);
+app.commandLine.appendSwitch('disk-cache-dir', APP_DISK_CACHE_PATH);
+
+const LEGACY_APP_STORAGE_DIRNAME = 'vrchat-world-photo-manager';
+const APP_STORAGE_DIRNAME = APP_DISPLAY_NAME;
 const THUMBNAIL_DIRNAME = 'thumbnails';
 const THUMBNAIL_SIZE = 320;
 const THUMBNAIL_EXTENSION = '.jpg';
@@ -157,6 +173,141 @@ function getDatabaseDirectoryPath() {
   return preferencesFilePath ? path.dirname(preferencesFilePath) : '';
 }
 
+function getThumbnailStorageRootPath(dirname = APP_STORAGE_DIRNAME) {
+  return path.join(app.getPath('home'), dirname);
+}
+
+function getManagedThumbnailRootPaths() {
+  return Array.from(
+    new Set(
+      [APP_STORAGE_DIRNAME, LEGACY_APP_STORAGE_DIRNAME]
+        .filter(Boolean)
+        .map((dirname) => getThumbnailStorageRootPath(dirname))
+    )
+  );
+}
+
+function getManagedThumbnailDirectoryPaths() {
+  return getManagedThumbnailRootPaths().map((rootPath) =>
+    path.join(rootPath, THUMBNAIL_DIRNAME)
+  );
+}
+
+async function migrateLegacyThumbnailStorage() {
+  const legacyRootPath = getThumbnailStorageRootPath(LEGACY_APP_STORAGE_DIRNAME);
+  const nextRootPath = getThumbnailStorageRootPath(APP_STORAGE_DIRNAME);
+
+  if (legacyRootPath === nextRootPath) {
+    return;
+  }
+
+  try {
+    await fs.access(legacyRootPath);
+  } catch {
+    return;
+  }
+
+  try {
+    await fs.access(nextRootPath);
+    // If the new root already exists, prefer keeping it and just clean up any
+    // orphaned legacy thumbnails later via regeneration/maintenance actions.
+    return;
+  } catch {
+    // New storage root does not exist yet, so we can migrate the legacy cache.
+  }
+
+  try {
+    await fs.rename(legacyRootPath, nextRootPath);
+  } catch {
+    await ensureDir(nextRootPath);
+
+    const legacyThumbnailPath = path.join(legacyRootPath, THUMBNAIL_DIRNAME);
+    const nextThumbnailPath = path.join(nextRootPath, THUMBNAIL_DIRNAME);
+
+    try {
+      await ensureDir(nextThumbnailPath);
+      const entries = await fs.readdir(legacyThumbnailPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        if (!entry.isFile()) {
+          continue;
+        }
+
+        const sourcePath = path.join(legacyThumbnailPath, entry.name);
+        const destinationPath = path.join(nextThumbnailPath, entry.name);
+
+        try {
+          await fs.access(destinationPath);
+        } catch {
+          await fs.rename(sourcePath, destinationPath);
+        }
+      }
+
+      await fs.rm(legacyRootPath, {
+        recursive: true,
+        force: true,
+        maxRetries: 2,
+        retryDelay: 120,
+      });
+    } catch {
+      // Thumbnail cache is disposable. If migration fails, startup continues and
+      // thumbnails can be recreated later.
+    }
+  }
+}
+
+function rebaseManagedThumbnailPath(thumbnailPath) {
+  if (typeof thumbnailPath !== 'string' || thumbnailPath.trim().length === 0) {
+    return null;
+  }
+
+  const normalizedTargetPath = path.resolve(thumbnailPath);
+  const legacyThumbnailDirectoryPath = path.resolve(
+    path.join(getThumbnailStorageRootPath(LEGACY_APP_STORAGE_DIRNAME), THUMBNAIL_DIRNAME)
+  );
+
+  if (
+    normalizedTargetPath !== legacyThumbnailDirectoryPath &&
+    !normalizedTargetPath.startsWith(`${legacyThumbnailDirectoryPath}${path.sep}`)
+  ) {
+    return null;
+  }
+
+  const currentThumbnailDirectoryPath = path.resolve(
+    path.join(getThumbnailStorageRootPath(APP_STORAGE_DIRNAME), THUMBNAIL_DIRNAME)
+  );
+  const relativeThumbnailPath = path.relative(
+    legacyThumbnailDirectoryPath,
+    normalizedTargetPath
+  );
+
+  return path.join(currentThumbnailDirectoryPath, relativeThumbnailPath);
+}
+
+async function reconcileManagedThumbnailPaths() {
+  if (!photoDb?.getAllPhotos || !photoDb?.updateThumbnailPath) {
+    return;
+  }
+
+  const rows = photoDb.getAllPhotos();
+
+  for (const row of rows) {
+    const rebasedThumbnailPath = rebaseManagedThumbnailPath(row?.thumbnail_path);
+
+    if (!rebasedThumbnailPath || rebasedThumbnailPath === row.thumbnail_path) {
+      continue;
+    }
+
+    try {
+      await fs.access(rebasedThumbnailPath);
+      photoDb.updateThumbnailPath(row.id, rebasedThumbnailPath);
+    } catch {
+      // Thumbnail cache is disposable. If a migrated file is missing, the row can
+      // be refreshed later by regeneration or maintenance actions.
+    }
+  }
+}
+
 function getSquirrelUpdateExecutablePath() {
   return path.resolve(path.dirname(process.execPath), '..', 'Update.exe');
 }
@@ -175,7 +326,10 @@ async function closePhotoDatabaseForUninstall() {
 }
 
 async function deleteAppDataForUninstall() {
-  const targets = [getDatabaseDirectoryPath(), thumbnailDirPath].filter(Boolean);
+  const targets = [
+    getDatabaseDirectoryPath(),
+    ...getManagedThumbnailRootPaths(),
+  ].filter(Boolean);
 
   for (const targetPath of targets) {
     await fs.rm(targetPath, {
@@ -1613,12 +1767,26 @@ function isManagedThumbnailPath(thumbnailPath) {
   }
 
   const normalizedTarget = path.resolve(thumbnailPath);
-  const normalizedThumbnailDir = path.resolve(thumbnailDirPath);
+  return getManagedThumbnailDirectoryPaths().some((managedDirectoryPath) => {
+    const normalizedManagedDirectory = path.resolve(managedDirectoryPath);
+    return (
+      normalizedTarget === normalizedManagedDirectory ||
+      normalizedTarget.startsWith(`${normalizedManagedDirectory}${path.sep}`)
+    );
+  });
+}
 
-  return (
-    normalizedTarget === normalizedThumbnailDir ||
-    normalizedTarget.startsWith(`${normalizedThumbnailDir}${path.sep}`)
-  );
+async function resetManagedThumbnailDirectories() {
+  for (const managedThumbnailDirectoryPath of getManagedThumbnailDirectoryPaths()) {
+    await fs.rm(managedThumbnailDirectoryPath, {
+      recursive: true,
+      force: true,
+      maxRetries: 2,
+      retryDelay: 120,
+    });
+  }
+
+  await ensureDir(thumbnailDirPath);
 }
 
 async function regenerateManagedThumbnails(targetSelection = null, progressReporter = null) {
@@ -1737,8 +1905,7 @@ async function clearManagedThumbnailCache(progressReporter = null) {
   let clearedCount = 0;
 
   try {
-    await fs.rm(thumbnailDirPath, { recursive: true, force: true });
-    await ensureDir(thumbnailDirPath);
+    await resetManagedThumbnailDirectories();
   } catch (error) {
     throw new Error(`サムネイル保存先を初期化できませんでした: ${error.message}`);
   }
@@ -1892,8 +2059,7 @@ async function resetApplicationData(progressReporter = null) {
   });
 
   try {
-    await fs.rm(thumbnailDirPath, { recursive: true, force: true });
-    await ensureDir(thumbnailDirPath);
+    await resetManagedThumbnailDirectories();
   } catch (error) {
     throw new Error(`サムネイル保存先を初期化できませんでした: ${error.message}`);
   }
@@ -3762,10 +3928,9 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
 
   const dbDirPath = path.join(app.getPath('userData'), 'data');
-  const appStorageRootPath = path.join(
-    app.getPath('home'),
-    APP_STORAGE_DIRNAME
-  );
+  const appStorageRootPath = getThumbnailStorageRootPath(APP_STORAGE_DIRNAME);
+
+  await migrateLegacyThumbnailStorage();
 
   thumbnailDirPath = path.join(appStorageRootPath, THUMBNAIL_DIRNAME);
   preferencesFilePath = path.join(dbDirPath, 'preferences.json');
@@ -3775,6 +3940,7 @@ app.whenReady().then(async () => {
   await ensureDir(thumbnailDirPath);
 
   photoDb = initDatabase(path.join(dbDirPath, 'app.sqlite'));
+  await reconcileManagedThumbnailPaths();
 
   ipcMain.handle('import-images', async (event) => {
     const result = await dialog.showOpenDialog({

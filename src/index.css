@@ -4235,6 +4235,21 @@ body[data-theme='light'] .favorite-filter-icon-button.is-active {
   color: #c78500;
 }
 
+.photo-sort-icon-button {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-sort-icon-button .material-symbols-outlined {
+  font-size: 21px;
+  line-height: 1;
+  font-variation-settings: 'FILL' 0, 'wght' 500, 'opsz' 24;
+}
+
 /* =========================================
    選択件数バッジ
 ========================================= */
