@@ -575,18 +575,20 @@ body[data-theme="light"] .month-button.active {
 
 .main-header {
   margin-bottom: 18px;
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
   column-gap: 12px;
+  row-gap: 12px;
 }
 
 .main-header > div:first-child {
   position: relative;
   display: flex;
-  align-items: flex-end;
+  align-items: baseline;
   gap: 8px;
-  min-width: max-content;
+  min-width: 0;
+  flex: 1 1 auto;
   white-space: nowrap;
 }
 
@@ -595,6 +597,10 @@ body[data-theme="light"] .month-button.active {
   font-size: 30px;
   line-height: 1;
   color: var(--text-0);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .main-header p {
@@ -3403,8 +3409,43 @@ body[data-theme='light'] .favorite-toggle-button.is-active {
   gap: 8px;
   min-height: 42px;
   min-width: 0;
+  margin-left: auto;
   white-space: nowrap;
   overflow: visible;
+}
+
+.main-header:not(.is-actions-stacked) {
+  align-items: flex-end;
+}
+
+.main-header:not(.is-actions-stacked) .main-header-actions {
+  width: auto;
+  max-width: none;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.main-header.is-actions-stacked {
+  align-items: flex-start;
+  row-gap: 8px;
+}
+
+.main-header.is-actions-stacked .main-header-actions {
+  width: 100%;
+  justify-content: flex-start;
+  margin-left: 0;
+}
+
+@media (max-width: 1320px) {
+  .main-header {
+    row-gap: 8px;
+  }
+}
+
+@media (max-width: 1360px) {
+  .main-header-actions {
+    max-width: 100%;
+  }
 }
 
 .header-filter-button {

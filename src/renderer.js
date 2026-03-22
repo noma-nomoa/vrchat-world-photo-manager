@@ -28,6 +28,9 @@ const currentMonthCount = document.getElementById('current-month-count');
 const monthGalleryEmpty = document.getElementById('month-gallery-empty');
 const monthGalleryList = document.getElementById('month-gallery-list');
 const mainContent = document.querySelector('.main-content');
+const mainHeader = document.querySelector('.main-header');
+const mainHeaderTitleGroup = mainHeader?.firstElementChild;
+const mainHeaderActions = mainHeader?.querySelector('.main-header-actions');
 const dropOverlay = document.getElementById('drop-overlay');
 const topStickyShell = document.querySelector('.top-sticky-shell');
 const sidebar = document.querySelector('.sidebar');
@@ -45,6 +48,76 @@ appRoot?.setAttribute('aria-busy', 'true');
 function forceClearInitializationState() {
   appRoot?.classList.remove('is-app-initializing');
   appRoot?.setAttribute('aria-busy', 'false');
+}
+
+let syncMainHeaderLayoutFrame = 0;
+
+function measureInlineChildrenWidth(container) {
+  if (!container) {
+    return 0;
+  }
+
+  const styles = window.getComputedStyle(container);
+  const gap =
+    Number.parseFloat(styles.columnGap || styles.gap || '0') ||
+    Number.parseFloat(styles.rowGap || '0') ||
+    0;
+  const visibleChildren = Array.from(container.children).filter((child) => {
+    const childStyles = window.getComputedStyle(child);
+    return (
+      !child.hasAttribute('hidden') &&
+      childStyles.display !== 'none' &&
+      childStyles.visibility !== 'hidden'
+    );
+  });
+
+  if (visibleChildren.length === 0) {
+    return 0;
+  }
+
+  const childrenWidth = visibleChildren.reduce((total, child) => {
+    return total + child.getBoundingClientRect().width;
+  }, 0);
+
+  return childrenWidth + gap * Math.max(visibleChildren.length - 1, 0);
+}
+
+function syncMainHeaderResponsiveLayout() {
+  if (!mainHeader || !mainHeaderTitleGroup || !mainHeaderActions) {
+    return;
+  }
+
+  // Measure the header in its unstacked state first; otherwise the stacked
+  // layout's 100% action row width keeps forcing itself to stay stacked.
+  mainHeader.classList.remove('is-actions-stacked');
+
+  const availableWidth = mainHeader.clientWidth;
+  const mainHeaderGap =
+    Number.parseFloat(
+      window.getComputedStyle(mainHeader).columnGap ||
+        window.getComputedStyle(mainHeader).gap ||
+        '0'
+    ) || 0;
+  const stackThresholdPx = 96;
+  const titleWidth = measureInlineChildrenWidth(mainHeaderTitleGroup);
+  const actionsWidth = measureInlineChildrenWidth(mainHeaderActions);
+  const shouldStackActions =
+    availableWidth > 0 &&
+    titleWidth + actionsWidth + mainHeaderGap >
+      availableWidth + stackThresholdPx;
+
+  mainHeader.classList.toggle('is-actions-stacked', shouldStackActions);
+}
+
+function scheduleMainHeaderResponsiveLayout() {
+  if (syncMainHeaderLayoutFrame) {
+    cancelAnimationFrame(syncMainHeaderLayoutFrame);
+  }
+
+  syncMainHeaderLayoutFrame = requestAnimationFrame(() => {
+    syncMainHeaderLayoutFrame = 0;
+    syncMainHeaderResponsiveLayout();
+  });
 }
 
 const appInitializationFailsafeTimer = setTimeout(() => {
@@ -2321,6 +2394,7 @@ function setAnimatedMonthCountText(nextText, { animate = true } = {}) {
     animate,
     durationMs: 2840,
   });
+  scheduleMainHeaderResponsiveLayout();
 }
 
 function setAnimatedMonthLabelText(nextText, { animate = true } = {}) {
@@ -2328,6 +2402,7 @@ function setAnimatedMonthLabelText(nextText, { animate = true } = {}) {
     animate,
     durationMs: 2320,
   });
+  scheduleMainHeaderResponsiveLayout();
 }
 
 function syncFavoriteFilterUi() {
@@ -6202,6 +6277,7 @@ function initializeProgressiveMonthGalleryLoading() {
   window.addEventListener('scroll', scheduleMonthGalleryLoadCheck, true);
   window.addEventListener('resize', () => {
     scheduleMonthGalleryLoadCheck({ immediate: true });
+    scheduleMainHeaderResponsiveLayout();
   });
 }
 
@@ -8817,6 +8893,7 @@ function initializeRendererUi() {
   initializeDragAndDropImport();
   initializeProgressiveMonthGalleryLoading();
   initializeScrollToTopAnimationInterrupts();
+  scheduleMainHeaderResponsiveLayout();
 }
 
 bootstrapRenderer();

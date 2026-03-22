@@ -32,23 +32,45 @@ const APP_DISPLAY_NAME = 'WorldShot Log';
 const APP_TITLE = `${APP_DISPLAY_NAME} v${app.getVersion()}`;
 const APP_WINDOW_ICON_ICO_PATH = path.join(__dirname, '..', 'img', 'logo.ico');
 const APP_WINDOW_ICON_PNG_PATH = path.join(__dirname, '..', 'img', 'logo.png');
+const APP_ROAMING_DATA_ROOT = app.getPath('appData');
+const APP_USER_DATA_PATH = path.join(APP_ROAMING_DATA_ROOT, APP_DISPLAY_NAME);
 const APP_LOCAL_DATA_ROOT =
   process.env.LOCALAPPDATA || path.join(app.getPath('appData'), '..', 'Local');
-const APP_SESSION_DATA_PATH = path.join(
-  APP_LOCAL_DATA_ROOT,
-  APP_DISPLAY_NAME,
-  'SessionData'
+const APP_DEV_SESSION_DATA_ROOT = path.join(
+  os.tmpdir(),
+  `${APP_DISPLAY_NAME}-DevSessionData`
 );
+const APP_SESSION_DATA_PATH = app.isPackaged
+  ? path.join(APP_LOCAL_DATA_ROOT, APP_DISPLAY_NAME, 'SessionData')
+  : path.join(APP_DEV_SESSION_DATA_ROOT, `${Date.now()}-${process.pid}`);
 const APP_DISK_CACHE_PATH = path.join(APP_SESSION_DATA_PATH, 'Cache');
 
 app.setName(APP_DISPLAY_NAME);
+app.setPath('userData', APP_USER_DATA_PATH);
 
 // Electron/Chromium cache data should live in a dedicated local-only path so it
 // does not collide with renamed roaming app folders or fail while moving cache
 // directories during startup.
+for (const staleCachePath of [
+  path.join(APP_USER_DATA_PATH, 'Cache'),
+  path.join(APP_USER_DATA_PATH, 'GPUCache'),
+  path.join(APP_USER_DATA_PATH, 'Code Cache'),
+  path.join(APP_USER_DATA_PATH, 'DawnCache'),
+  path.join(APP_USER_DATA_PATH, 'DawnGraphiteCache'),
+]) {
+  try {
+    fsSync.rmSync(staleCachePath, { recursive: true, force: true });
+  } catch {
+    // Browser caches are disposable. If cleanup fails, Chromium can still try
+    // to recreate them under the dedicated sessionData path below.
+  }
+}
+fsSync.mkdirSync(APP_SESSION_DATA_PATH, { recursive: true });
 fsSync.mkdirSync(APP_DISK_CACHE_PATH, { recursive: true });
 app.setPath('sessionData', APP_SESSION_DATA_PATH);
 app.commandLine.appendSwitch('disk-cache-dir', APP_DISK_CACHE_PATH);
+app.commandLine.appendSwitch('disable-http-cache');
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 
 const LEGACY_APP_STORAGE_DIRNAME = 'vrchat-world-photo-manager';
 const APP_STORAGE_DIRNAME = APP_DISPLAY_NAME;
