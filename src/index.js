@@ -843,17 +843,21 @@ function isExifReaderTagEnvelope(rawValue) {
   );
 }
 
+function isScalarTagTextValue(rawValue) {
+  return (
+    typeof rawValue === 'string' ||
+    typeof rawValue === 'number' ||
+    typeof rawValue === 'boolean' ||
+    typeof rawValue === 'bigint'
+  );
+}
+
 function collectTagTextCandidates(rawValue, visited = new Set()) {
   if (rawValue == null) {
     return [];
   }
 
-  if (
-    typeof rawValue === 'string' ||
-    typeof rawValue === 'number' ||
-    typeof rawValue === 'boolean' ||
-    typeof rawValue === 'bigint'
-  ) {
+  if (isScalarTagTextValue(rawValue)) {
     return [String(rawValue)];
   }
 
@@ -871,6 +875,13 @@ function collectTagTextCandidates(rawValue, visited = new Set()) {
     const valueCandidates = collectTagTextCandidates(rawValue.value, visited);
 
     if (valueCandidates.length > 0) {
+      if (isScalarTagTextValue(rawValue.value)) {
+        return [
+          ...valueCandidates,
+          ...collectTagTextCandidates(rawValue.description, visited),
+        ];
+      }
+
       return valueCandidates;
     }
 
