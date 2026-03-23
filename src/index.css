@@ -5262,7 +5262,6 @@ body[data-theme='light'] .world-sidebar-item:hover {
   margin-bottom: 0;
   position: relative;
   overflow: visible;
-  z-index: 40;
 }
 
 .settings-month-select {
