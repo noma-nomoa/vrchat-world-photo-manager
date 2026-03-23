@@ -170,6 +170,7 @@ const worldNameFilterInput = document.getElementById('world-name-filter-input');
 const worldNameFilterClearButton = document.getElementById(
   'world-name-filter-clear-btn'
 );
+const worldNameFilterSearchButton = worldNameFilterClearButton;
 
 // Photo detail modal and its primary content areas.
 const imageModal = document.getElementById('image-modal');
@@ -400,10 +401,17 @@ let activePhotoLabelFilters = [];
 let photoLabelFilterMode = 'or';
 let isPhotoLabelFilterMenuOpen = false;
 let photoLabelFilterMenuCloseTimer = null;
+let activeToolbarSearchScope = 'world';
+let draftToolbarSearchScope = 'world';
 let activeWorldNameFilter = '';
 let isWorldNameFilterMenuOpen = false;
 let worldNameFilterMenuCloseTimer = null;
 let worldNameFilterInputTimer = null;
+let toolbarSearchScopeDropdown = null;
+let toolbarSearchScopeButton = null;
+let toolbarSearchScopeMenu = null;
+let isToolbarSearchScopeMenuOpen = false;
+let toolbarSearchScopeMenuCloseTimer = null;
 let isSelectionMode = false;
 const selectedPhotoIds = new Set();
 let lastSelectionAnchorPhotoId = null;
@@ -481,6 +489,26 @@ const PHOTO_LABEL_PRESET_COLORS = [
   '#EF4444',
   '#06B6D4',
 ];
+const TOOLBAR_SEARCH_SCOPE_META = {
+  world: {
+    label: 'ワールド',
+    buttonLabel: 'World',
+    placeholder: 'World名を入力',
+    summaryPrefix: 'World',
+  },
+  memo: {
+    label: 'メモ',
+    buttonLabel: 'メモ',
+    placeholder: 'メモを入力',
+    summaryPrefix: 'メモ',
+  },
+  printNote: {
+    label: 'プリントのノート',
+    buttonLabel: 'プリント',
+    placeholder: 'プリントのノートを入力',
+    summaryPrefix: 'プリントのノート',
+  },
+};
 
 function pad2(value) {
   return String(value).padStart(2, '0');
@@ -2074,6 +2102,10 @@ function normalizeWorldNameFilterText(value) {
   return value.trim();
 }
 
+function getToolbarSearchScopeMeta(scope = draftToolbarSearchScope) {
+  return TOOLBAR_SEARCH_SCOPE_META[scope] || TOOLBAR_SEARCH_SCOPE_META.world;
+}
+
 function getNormalizedWorldNameFilterText(value) {
   return normalizeWorldNameFilterText(value)
     .normalize('NFKC')
@@ -2081,11 +2113,15 @@ function getNormalizedWorldNameFilterText(value) {
 }
 
 function getWorldNameFilterSummaryText({ includePrefix = true } = {}) {
+  const scopeMeta = getToolbarSearchScopeMeta(activeToolbarSearchScope);
+
   if (!activeWorldNameFilter) {
-    return includePrefix ? 'World: すべて' : 'すべて';
+    return includePrefix ? `${scopeMeta.summaryPrefix}: すべて` : 'すべて';
   }
 
-  return includePrefix ? `World: ${activeWorldNameFilter}` : activeWorldNameFilter;
+  return includePrefix
+    ? `${scopeMeta.summaryPrefix}: ${activeWorldNameFilter}`
+    : activeWorldNameFilter;
 }
 
 function getWorldNameFilterButtonText() {
@@ -2113,6 +2149,171 @@ function ensureStaticToolbarWorldFilterVisible() {
   worldNameFilterMenu.hidden = false;
   worldNameFilterDropdown.classList.remove('is-open');
   worldNameFilterButton?.setAttribute('aria-expanded', 'false');
+}
+
+function syncToolbarSearchInputUi() {
+  const scopeMeta = getToolbarSearchScopeMeta();
+  const selectionDependentDisabled = isImporting || !currentSelection;
+
+  if (worldNameFilterInput) {
+    worldNameFilterInput.placeholder = scopeMeta.placeholder;
+    worldNameFilterInput.disabled = selectionDependentDisabled;
+  }
+
+  if (worldNameFilterSearchButton) {
+    worldNameFilterSearchButton.textContent = '検索';
+    worldNameFilterSearchButton.disabled = selectionDependentDisabled;
+    worldNameFilterSearchButton.setAttribute('title', '検索を実行');
+  }
+
+  if (toolbarSearchScopeButton) {
+    toolbarSearchScopeButton.disabled = selectionDependentDisabled;
+    toolbarSearchScopeButton.setAttribute(
+      'title',
+      selectionDependentDisabled
+        ? '写真を選択すると利用できます'
+        : '検索対象を切り替え'
+    );
+  }
+}
+
+function renderToolbarSearchScopeMenu() {
+  if (!toolbarSearchScopeButton || !toolbarSearchScopeMenu) {
+    return;
+  }
+
+  const scopeMeta = getToolbarSearchScopeMeta();
+  toolbarSearchScopeButton.innerHTML = `
+    <span class="toolbar-search-scope-button-label">${escapeHtml(
+      scopeMeta.buttonLabel
+    )}</span>
+    <span class="material-symbols-outlined orientation-filter-chevron">expand_more</span>
+  `;
+
+  toolbarSearchScopeMenu.innerHTML = '';
+
+  Object.entries(TOOLBAR_SEARCH_SCOPE_META).forEach(([scope, meta]) => {
+    const isActive = scope === draftToolbarSearchScope;
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'header-dropdown-item';
+    item.dataset.toolbarSearchScope = scope;
+    item.setAttribute('role', 'menuitemradio');
+    item.setAttribute('aria-checked', isActive ? 'true' : 'false');
+    item.classList.toggle('is-active', isActive);
+
+    const label = document.createElement('span');
+    label.className = 'header-dropdown-item-label';
+    label.textContent = meta.label;
+    item.appendChild(label);
+
+    const check = document.createElement('span');
+    check.className = 'material-symbols-outlined header-dropdown-check';
+    check.textContent = 'check';
+    item.appendChild(check);
+
+    toolbarSearchScopeMenu.appendChild(item);
+  });
+}
+
+function setToolbarSearchScopeMenuOpen(isOpen) {
+  const nextOpen = Boolean(isOpen) && !isImporting && Boolean(currentSelection);
+  if (nextOpen) {
+    closeManagedDropdownsExcept(toolbarSearchScopeDropdown);
+  }
+  isToolbarSearchScopeMenuOpen = nextOpen;
+  setAnimatedDropdownOpenState({
+    dropdown: toolbarSearchScopeDropdown,
+    button: toolbarSearchScopeButton,
+    menu: toolbarSearchScopeMenu,
+    isOpen: nextOpen,
+    closeTimerRef: {
+      get current() {
+        return toolbarSearchScopeMenuCloseTimer;
+      },
+      set current(value) {
+        toolbarSearchScopeMenuCloseTimer = value;
+      },
+    },
+  });
+}
+
+function closeToolbarSearchScopeMenu() {
+  setToolbarSearchScopeMenuOpen(false);
+}
+
+async function setToolbarSearchScope(nextScope) {
+  const normalizedScope = TOOLBAR_SEARCH_SCOPE_META[nextScope]
+    ? nextScope
+    : 'world';
+
+  if (draftToolbarSearchScope === normalizedScope) {
+    closeToolbarSearchScopeMenu();
+    return;
+  }
+
+  draftToolbarSearchScope = normalizedScope;
+  renderToolbarSearchScopeMenu();
+  syncToolbarSearchInputUi();
+  closeToolbarSearchScopeMenu();
+  worldNameFilterInput?.focus({ preventScroll: true });
+}
+
+async function submitWorldNameFilter({ focusCards = false } = {}) {
+  const nextValue = worldNameFilterInput?.value || '';
+  const normalizedValue = normalizeWorldNameFilterText(nextValue);
+  const previousSearchScope = activeToolbarSearchScope;
+  const previousFilterValue = activeWorldNameFilter;
+  const didScopeChange = previousSearchScope !== draftToolbarSearchScope;
+
+  clearWorldNameFilterInputTimer();
+  activeToolbarSearchScope = draftToolbarSearchScope;
+
+  if (
+    currentSelection &&
+    didScopeChange &&
+    previousFilterValue === normalizedValue &&
+    normalizedValue.length > 0
+  ) {
+    if (worldNameFilterInput) {
+      worldNameFilterInput.value = normalizedValue;
+    }
+    await syncCurrentPhotoFilterPresentation({ animate: false });
+  } else {
+    await applyWorldNameFilter(nextValue, { animate: false });
+
+    if (
+      currentSelection &&
+      didScopeChange &&
+      previousFilterValue === normalizedValue &&
+      normalizedValue.length === 0
+    ) {
+      syncFavoriteFilterUi();
+    }
+  }
+
+  if (!focusCards) {
+    return;
+  }
+
+  closeToolbarSearchScopeMenu();
+  worldNameFilterInput?.blur();
+  worldNameFilterSearchButton?.blur();
+
+  requestAnimationFrame(() => {
+    syncKeyboardFocusedPhotoCard({ force: true });
+  });
+}
+
+function isToolbarSearchInteractionActive() {
+  const activeElement = document.activeElement;
+
+  return Boolean(
+    activeElement &&
+      (activeElement === worldNameFilterInput ||
+        worldNameFilterMenu?.contains(activeElement) ||
+        toolbarSearchScopeDropdown?.contains(activeElement))
+  );
 }
 
 function setWorldNameFilterMenuOpen(isOpen) {
@@ -2182,6 +2383,11 @@ function getManagedDropdownClosers() {
       isOpen: () => isWorldNameFilterMenuOpen,
       dropdown: worldNameFilterDropdown,
       close: closeWorldNameFilterMenu,
+    },
+    {
+      isOpen: () => isToolbarSearchScopeMenuOpen,
+      dropdown: toolbarSearchScopeDropdown,
+      close: closeToolbarSearchScopeMenu,
     },
     {
       isOpen: () => isRegenerateThumbnailMonthMenuOpen,
@@ -2265,6 +2471,34 @@ function getPhotoOrientationTier(photo) {
   return null;
 }
 
+function getToolbarSearchTargetText(photo) {
+  if (!photo) {
+    return '';
+  }
+
+  if (activeToolbarSearchScope === 'memo') {
+    return [photo.memoText]
+      .filter(Boolean)
+      .join(' ')
+      .normalize('NFKC')
+      .toLocaleLowerCase('ja-JP');
+  }
+
+  if (activeToolbarSearchScope === 'printNote') {
+    return [photo.printNoteText]
+      .filter(Boolean)
+      .join(' ')
+      .normalize('NFKC')
+      .toLocaleLowerCase('ja-JP');
+  }
+
+  return [photo.worldName, photo.rawWorldName, photo.worldId]
+    .filter(Boolean)
+    .join(' ')
+    .normalize('NFKC')
+    .toLocaleLowerCase('ja-JP');
+}
+
 function photoMatchesCurrentFilters(photo) {
   if (isFavoriteFilterOnly && !photo.isFavorite) {
     return false;
@@ -2299,15 +2533,7 @@ function photoMatchesCurrentFilters(photo) {
   }
 
   if (activeWorldNameFilter) {
-    const targetText = [
-      photo.worldName,
-      photo.rawWorldName,
-      photo.worldId,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .normalize('NFKC')
-      .toLocaleLowerCase('ja-JP');
+    const targetText = getToolbarSearchTargetText(photo);
 
     if (!targetText.includes(getNormalizedWorldNameFilterText(activeWorldNameFilter))) {
       return false;
@@ -2473,6 +2699,24 @@ function syncFavoriteFilterUi() {
     photoLabelFilterLabel.textContent = 'ラベル';
   }
 
+  if (worldNameFilterButton) {
+    const label = `検索: ${getWorldNameFilterSummaryText({
+      includePrefix: true,
+    })}`;
+
+    worldNameFilterButton.classList.toggle(
+      'is-active',
+      activeWorldNameFilter.length > 0
+    );
+    worldNameFilterButton.disabled = isImporting || !currentSelection;
+    worldNameFilterButton.setAttribute('aria-label', label);
+    worldNameFilterButton.setAttribute('title', label);
+  }
+
+  if (worldNameFilterLabel) {
+    worldNameFilterLabel.textContent = getToolbarSearchScopeMeta().buttonLabel;
+  }
+
   for (const item of orientationFilterItems) {
     const isActive = item.dataset.orientationFilter === activeOrientationFilter;
     item.classList.toggle('is-active', isActive);
@@ -2480,10 +2724,13 @@ function syncFavoriteFilterUi() {
   }
 
   renderPhotoLabelFilterMenu();
+  renderToolbarSearchScopeMenu();
+  syncToolbarSearchInputUi();
 
   if (isImporting || !currentSelection) {
     closeOrientationFilterMenu();
     closePhotoLabelFilterMenu();
+    closeToolbarSearchScopeMenu();
   }
 
   if (!currentSelection) {
@@ -2553,15 +2800,21 @@ async function setPhotoLabelFilterMode(nextMode) {
   await syncCurrentPhotoFilterPresentation();
 }
 
-async function applyWorldNameFilter(nextValue) {
+async function applyWorldNameFilter(nextValue, { animate = true } = {}) {
   const normalizedValue = normalizeWorldNameFilterText(nextValue);
 
   if (!currentSelection || activeWorldNameFilter === normalizedValue) {
+    if (worldNameFilterInput && worldNameFilterInput.value !== normalizedValue) {
+      worldNameFilterInput.value = normalizedValue;
+    }
     return;
   }
 
   activeWorldNameFilter = normalizedValue;
-  await syncCurrentPhotoFilterPresentation();
+  if (worldNameFilterInput) {
+    worldNameFilterInput.value = normalizedValue;
+  }
+  await syncCurrentPhotoFilterPresentation({ animate });
 }
 
 function scheduleWorldNameFilterApply(nextValue) {
@@ -2763,7 +3016,11 @@ function setKeyboardFocusedPhoto(photoId, { scroll = true } = {}) {
   return true;
 }
 
-function syncKeyboardFocusedPhotoCard() {
+function syncKeyboardFocusedPhotoCard({ force = false } = {}) {
+  if (!force && isToolbarSearchInteractionActive()) {
+    return;
+  }
+
   const visibleCards = getRenderedVisiblePhotoCards();
 
   if (visibleCards.length === 0) {
@@ -5793,6 +6050,37 @@ function initializeTopToolbarLayout() {
     worldNameFilterDropdown.classList.add('is-static-toolbar-filter');
     toolbarLeftGroup.appendChild(worldNameFilterDropdown);
 
+    const inputPanel = worldNameFilterMenu?.querySelector(
+      '.header-dropdown-input-panel'
+    );
+
+    if (inputPanel && !toolbarSearchScopeDropdown) {
+      toolbarSearchScopeDropdown = document.createElement('div');
+      toolbarSearchScopeDropdown.className =
+        'header-dropdown toolbar-search-scope-dropdown';
+      inputPanel.insertBefore(toolbarSearchScopeDropdown, worldNameFilterInput);
+
+      toolbarSearchScopeButton = document.createElement('button');
+      toolbarSearchScopeButton.type = 'button';
+      toolbarSearchScopeButton.className =
+        'header-dropdown-clear-button toolbar-search-scope-button';
+      toolbarSearchScopeButton.setAttribute('aria-haspopup', 'menu');
+      toolbarSearchScopeButton.setAttribute('aria-expanded', 'false');
+      toolbarSearchScopeDropdown.appendChild(toolbarSearchScopeButton);
+
+      toolbarSearchScopeMenu = document.createElement('div');
+      toolbarSearchScopeMenu.className =
+        'header-dropdown-menu toolbar-search-scope-menu';
+      toolbarSearchScopeMenu.setAttribute('role', 'menu');
+      toolbarSearchScopeMenu.hidden = true;
+      toolbarSearchScopeDropdown.appendChild(toolbarSearchScopeMenu);
+    }
+
+    if (worldNameFilterSearchButton) {
+      worldNameFilterSearchButton.textContent = '検索';
+      worldNameFilterSearchButton.classList.add('toolbar-search-submit-button');
+    }
+
     ensureSidebarWorldSortControls();
 
     if (!worldLibraryModeButton) {
@@ -5803,6 +6091,8 @@ function initializeTopToolbarLayout() {
     }
 
     ensureStaticToolbarWorldFilterVisible();
+    renderToolbarSearchScopeMenu();
+    syncToolbarSearchInputUi();
     syncSidebarModeUi();
   }
 
@@ -7220,6 +7510,9 @@ function syncBusyAffectedFilterActions(isBusy) {
   setElementDisabledState(favoriteFilterButton, selectionDependentDisabled);
   setElementDisabledState(orientationFilterButton, selectionDependentDisabled);
   setElementDisabledState(worldNameFilterButton, selectionDependentDisabled);
+  setElementDisabledState(worldNameFilterInput, selectionDependentDisabled);
+  setElementDisabledState(worldNameFilterSearchButton, selectionDependentDisabled);
+  setElementDisabledState(toolbarSearchScopeButton, selectionDependentDisabled);
   setElementDisabledState(selectionModeButton, selectionDependentDisabled);
 }
 
@@ -8228,30 +8521,46 @@ function bindHeaderFilterControls() {
     await togglePhotoLabelFilter(target.dataset.photoLabelFilter || '');
   });
 
-  worldNameFilterInput?.addEventListener('input', (event) => {
-    scheduleWorldNameFilterApply(event.target.value);
+  toolbarSearchScopeButton?.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!currentSelection || isImporting) {
+      return;
+    }
+
+    setToolbarSearchScopeMenuOpen(!isToolbarSearchScopeMenuOpen);
   });
 
-  worldNameFilterInput?.addEventListener('keydown', async (event) => {
-    if (event.key !== 'Enter') {
+  toolbarSearchScopeMenu?.addEventListener('click', async (event) => {
+    const target = event.target.closest('[data-toolbar-search-scope]');
+
+    if (!target) {
       return;
     }
 
     event.preventDefault();
-    clearWorldNameFilterInputTimer();
-    await applyWorldNameFilter(event.currentTarget.value);
+    event.stopPropagation();
+    await setToolbarSearchScope(target.dataset.toolbarSearchScope || 'world');
   });
 
-  worldNameFilterClearButton?.addEventListener('click', async (event) => {
-    event.stopPropagation();
+  worldNameFilterInput?.addEventListener('input', () => {
+    clearWorldNameFilterInputTimer();
+  });
 
-    if (worldNameFilterInput) {
-      worldNameFilterInput.value = '';
-      worldNameFilterInput.focus({ preventScroll: true });
+  worldNameFilterInput?.addEventListener('keydown', async (event) => {
+    if (event.key !== 'Enter' || event.isComposing || event.keyCode === 229) {
+      return;
     }
 
-    clearWorldNameFilterInputTimer();
-    await applyWorldNameFilter('');
+    event.preventDefault();
+    await submitWorldNameFilter({ focusCards: true });
+  });
+
+  worldNameFilterSearchButton?.addEventListener('click', async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    await submitWorldNameFilter({ focusCards: true });
   });
 
   worldLibraryModeButton?.addEventListener('click', async () => {
