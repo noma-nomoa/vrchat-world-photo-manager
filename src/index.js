@@ -1572,29 +1572,42 @@ function extractWorldInfo(tags, fileBuffer, rawBufferWorldInfo = null) {
 
 function extractPhotoPrintNote(tags) {
   const flatTags = {};
+  const printNoteCandidates = [];
+  const preferredKeys = [
+    'XMP-dc:Title',
+    'dc:Title',
+    'Title',
+    'XPTitle',
+    'Windows XP Title',
+    'IPTC:ObjectName',
+    'ObjectName',
+    'Object Name',
+    'XMP-photoshop:Headline',
+    'Headline',
+  ];
+  const fallbackMatcher =
+    /(?:^|[: _-])(title|xptitle|objectname|object name|headline)(?:$|[: _-])/;
 
   for (const [key, tag] of Object.entries(tags || {})) {
-    flatTags[key] = normalizeTagValue(tag);
+    const normalizedValue = normalizeTagValue(tag);
+    flatTags[key] = normalizedValue;
+
+    if (
+      normalizedValue &&
+      (preferredKeys.includes(key) || fallbackMatcher.test(key.toLowerCase()))
+    ) {
+      printNoteCandidates.push(normalizedValue);
+    }
   }
 
-  const printNoteEntry = pickPreferredTag(
-    flatTags,
-    [
-      'XMP-dc:Title',
-      'dc:Title',
-      'Title',
-      'XPTitle',
-      'Windows XP Title',
-      'IPTC:ObjectName',
-      'ObjectName',
-      'Object Name',
-      'XMP-photoshop:Headline',
-      'Headline',
-    ],
-    /(?:^|[: _-])(title|xptitle|objectname|object name|headline)(?:$|[: _-])/
+  const printNoteEntry = pickPreferredTag(flatTags, preferredKeys, fallbackMatcher);
+  const preferredPrintNoteText = pickBestTextCandidate(
+    printNoteCandidates.length > 0
+      ? printNoteCandidates
+      : [printNoteEntry?.value || null]
   );
 
-  return normalizePhotoPrintNoteText(printNoteEntry?.value || null);
+  return normalizePhotoPrintNoteText(preferredPrintNoteText);
 }
 
 function loadExifTagsSafely(fileBuffer) {
