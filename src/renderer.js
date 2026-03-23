@@ -410,6 +410,7 @@ let worldNameFilterInputTimer = null;
 let toolbarSearchScopeDropdown = null;
 let toolbarSearchScopeButton = null;
 let toolbarSearchScopeMenu = null;
+let toolbarSearchClearButton = null;
 let isToolbarSearchScopeMenuOpen = false;
 let toolbarSearchScopeMenuCloseTimer = null;
 let isSelectionMode = false;
@@ -2154,6 +2155,9 @@ function ensureStaticToolbarWorldFilterVisible() {
 function syncToolbarSearchInputUi() {
   const scopeMeta = getToolbarSearchScopeMeta();
   const selectionDependentDisabled = isImporting || !currentSelection;
+  const hasDraftSearch =
+    normalizeWorldNameFilterText(worldNameFilterInput?.value || '').length > 0;
+  const hasActiveSearch = activeWorldNameFilter.length > 0;
 
   if (worldNameFilterInput) {
     worldNameFilterInput.placeholder = scopeMeta.placeholder;
@@ -2164,6 +2168,13 @@ function syncToolbarSearchInputUi() {
     worldNameFilterSearchButton.textContent = '検索';
     worldNameFilterSearchButton.disabled = selectionDependentDisabled;
     worldNameFilterSearchButton.setAttribute('title', '検索を実行');
+  }
+
+  if (toolbarSearchClearButton) {
+    toolbarSearchClearButton.textContent = 'クリア';
+    toolbarSearchClearButton.disabled =
+      selectionDependentDisabled || (!hasDraftSearch && !hasActiveSearch);
+    toolbarSearchClearButton.setAttribute('title', '検索をクリア');
   }
 
   if (toolbarSearchScopeButton) {
@@ -2303,6 +2314,23 @@ async function submitWorldNameFilter({ focusCards = false } = {}) {
   requestAnimationFrame(() => {
     syncKeyboardFocusedPhotoCard({ force: true });
   });
+}
+
+async function clearWorldNameFilter({ keepFocus = true } = {}) {
+  if (worldNameFilterInput) {
+    worldNameFilterInput.value = '';
+  }
+
+  clearWorldNameFilterInputTimer();
+  closeToolbarSearchScopeMenu();
+  await applyWorldNameFilter('', { animate: false });
+  syncToolbarSearchInputUi();
+
+  if (keepFocus) {
+    requestAnimationFrame(() => {
+      worldNameFilterInput?.focus({ preventScroll: true });
+    });
+  }
 }
 
 function isToolbarSearchInteractionActive() {
@@ -6082,6 +6110,23 @@ function initializeTopToolbarLayout() {
       worldNameFilterSearchButton.classList.add('toolbar-search-submit-button');
     }
 
+    if (inputPanel && !toolbarSearchClearButton) {
+      toolbarSearchClearButton = document.createElement('button');
+      toolbarSearchClearButton.type = 'button';
+      toolbarSearchClearButton.className =
+        'header-dropdown-clear-button toolbar-search-clear-button';
+      toolbarSearchClearButton.textContent = 'クリア';
+
+      if (worldNameFilterSearchButton?.nextSibling) {
+        inputPanel.insertBefore(
+          toolbarSearchClearButton,
+          worldNameFilterSearchButton.nextSibling
+        );
+      } else {
+        inputPanel.appendChild(toolbarSearchClearButton);
+      }
+    }
+
     ensureSidebarWorldSortControls();
 
     if (!worldLibraryModeButton) {
@@ -7513,6 +7558,7 @@ function syncBusyAffectedFilterActions(isBusy) {
   setElementDisabledState(worldNameFilterButton, selectionDependentDisabled);
   setElementDisabledState(worldNameFilterInput, selectionDependentDisabled);
   setElementDisabledState(worldNameFilterSearchButton, selectionDependentDisabled);
+  setElementDisabledState(toolbarSearchClearButton, selectionDependentDisabled);
   setElementDisabledState(toolbarSearchScopeButton, selectionDependentDisabled);
   setElementDisabledState(selectionModeButton, selectionDependentDisabled);
 }
@@ -8547,6 +8593,7 @@ function bindHeaderFilterControls() {
 
   worldNameFilterInput?.addEventListener('input', () => {
     clearWorldNameFilterInputTimer();
+    syncToolbarSearchInputUi();
   });
 
   worldNameFilterInput?.addEventListener('keydown', async (event) => {
@@ -8562,6 +8609,12 @@ function bindHeaderFilterControls() {
     event.preventDefault();
     event.stopPropagation();
     await submitWorldNameFilter({ focusCards: true });
+  });
+
+  toolbarSearchClearButton?.addEventListener('click', async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    await clearWorldNameFilter({ keepFocus: true });
   });
 
   worldLibraryModeButton?.addEventListener('click', async () => {

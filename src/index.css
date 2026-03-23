@@ -5021,7 +5021,7 @@ body::-webkit-scrollbar-thumb:hover,
 }
 
 .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-input-panel {
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: stretch;
   padding: 0;
 }
