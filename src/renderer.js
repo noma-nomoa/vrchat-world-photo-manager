@@ -6460,7 +6460,18 @@ function initializeTopToolbarLayout() {
       worldLibraryModeButton = document.createElement('button');
       worldLibraryModeButton.type = 'button';
       worldLibraryModeButton.className = 'small-action-button world-library-mode-btn';
-      toolbarLeftGroup.appendChild(worldLibraryModeButton);
+    }
+
+    if (worldLibraryModeButton && sidebarHeader) {
+      const sidebarModeButtonAnchor = sidebarHeaderTitle || sidebarHeader.firstChild;
+
+      if (worldLibraryModeButton.parentElement !== sidebarHeader) {
+        if (sidebarModeButtonAnchor) {
+          sidebarHeader.insertBefore(worldLibraryModeButton, sidebarModeButtonAnchor);
+        } else {
+          sidebarHeader.appendChild(worldLibraryModeButton);
+        }
+      }
     }
 
     ensureStaticToolbarWorldFilterVisible();
