@@ -192,6 +192,7 @@ const modalWorldTags = document.getElementById('modal-world-tags');
 const modalPhotoMemoInput = document.getElementById('modal-photo-memo-input');
 const modalPhotoMemoSaveButton = document.getElementById('modal-photo-memo-save-btn');
 const modalPhotoMemoStatus = document.getElementById('modal-photo-memo-status');
+const modalPhotoMemoBlock = modalPhotoMemoInput?.closest('.modal-world-meta-block');
 
 const modalWorldLink = document.getElementById('modal-world-link');
 const modalOpenWorldButton = document.getElementById('modal-open-world-btn');
@@ -360,11 +361,14 @@ let sidebarSortCountButton = null;
 let sidebarSortNameButton = null;
 let sidebarHeaderControlsHideTimer = null;
 let modalResolutionHeroBadge = null;
+let modalPrintNoteHeroBadge = null;
 let modalTakenAtHero = null;
 let imageModalPrevButton = null;
 let imageModalNextButton = null;
 let modalPhotoLabelsBlock = null;
 let modalPhotoLabelsList = null;
+let modalPrintNoteBlock = null;
+let modalPrintNoteValue = null;
 let openPhotoLabelEditorButton = null;
 let photoLabelModal = null;
 let photoLabelBackdrop = null;
@@ -3825,6 +3829,8 @@ function populateModal(item) {
     modalTakenAtHero.classList.toggle('is-hidden', !hasTakenAt);
   }
 
+  renderModalPrintNote(item);
+
   modalResolutionTier?.parentElement?.classList.add('is-hidden');
   modalTakenAt?.parentElement?.classList.add('is-hidden');
   modalFileName.textContent = item.fileName || 'ファイル名不明';
@@ -4024,6 +4030,32 @@ function renderModalPhotoLabels() {
 
   if (openPhotoLabelEditorButton) {
     openPhotoLabelEditorButton.disabled = !currentModalPhoto;
+  }
+}
+
+function getNormalizedModalPrintNoteText(item = currentModalPhoto) {
+  if (typeof item?.printNoteText !== 'string') {
+    return '';
+  }
+
+  return item.printNoteText.trim();
+}
+
+function renderModalPrintNote(item = currentModalPhoto) {
+  const printNoteText = getNormalizedModalPrintNoteText(item);
+  const hasPrintNote = printNoteText.length > 0;
+
+  if (modalPrintNoteValue) {
+    modalPrintNoteValue.textContent = hasPrintNote ? printNoteText : '';
+  }
+
+  if (modalPrintNoteBlock) {
+    modalPrintNoteBlock.classList.toggle('is-hidden', !hasPrintNote);
+  }
+
+  if (modalPrintNoteHeroBadge) {
+    modalPrintNoteHeroBadge.textContent = 'プリント';
+    modalPrintNoteHeroBadge.classList.toggle('is-hidden', !hasPrintNote);
   }
 }
 
@@ -4544,6 +4576,7 @@ function clearCurrentModalPhotoState() {
   setWorldNameEditStatus('');
   setModalPhotoMemoStatus('');
   setModalPhotoMemoSaveButtonBusy(false);
+  renderModalPrintNote(null);
 
   if (imageModalInfo) {
     imageModalInfo.scrollTop = 0;
@@ -5293,6 +5326,12 @@ function initializeImageModalUi() {
       'modal-world-label modal-resolution-hero-badge is-hidden';
     badgeRow.appendChild(modalResolutionHeroBadge);
 
+    modalPrintNoteHeroBadge = document.createElement('span');
+    modalPrintNoteHeroBadge.className =
+      'modal-world-label modal-print-note-hero-badge is-hidden';
+    modalPrintNoteHeroBadge.textContent = 'プリント';
+    badgeRow.appendChild(modalPrintNoteHeroBadge);
+
     if (!modalFavoriteButton) {
       modalFavoriteButton = document.createElement('button');
       modalFavoriteButton.id = 'modal-favorite-btn';
@@ -5660,6 +5699,28 @@ function initializePhotoLabelUi() {
   photoLabelSaveButton?.addEventListener('click', async () => {
     await savePhotoLabels();
   });
+}
+
+function initializeModalPrintNoteUi() {
+  if (modalPrintNoteBlock || !modalPhotoLabelsBlock || !modalPhotoMemoBlock) {
+    return;
+  }
+
+  modalPrintNoteBlock = document.createElement('div');
+  modalPrintNoteBlock.className =
+    'modal-world-meta-block modal-print-note-block is-hidden';
+
+  const title = document.createElement('p');
+  title.className = 'modal-world-meta-title';
+  title.textContent = 'プリントのノート';
+  modalPrintNoteBlock.appendChild(title);
+
+  modalPrintNoteValue = document.createElement('p');
+  modalPrintNoteValue.className =
+    'modal-world-description modal-print-note-value';
+  modalPrintNoteBlock.appendChild(modalPrintNoteValue);
+
+  modalPhotoLabelsBlock.insertAdjacentElement('afterend', modalPrintNoteBlock);
 }
 
 async function loadTrackedFoldersForSettings() {
@@ -8885,6 +8946,7 @@ function initializeRendererUi() {
   initializeImageModalUi();
   initializeWorldNameEditUi();
   initializePhotoLabelUi();
+  initializeModalPrintNoteUi();
   initializeModalCloseIcons();
   ensureSettingsBackgroundSection();
   initializeSettingsTrackedFolderUi();

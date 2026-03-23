@@ -921,6 +921,23 @@ function normalizeTagValue(tag) {
   return pickBestTextCandidate([tag.value, tag.description]);
 }
 
+function normalizePhotoPrintNoteText(value) {
+  const sanitized = sanitizeExtractedText(repairUtf8Mojibake(value));
+
+  if (!sanitized) {
+    return null;
+  }
+
+  return sanitized
+    .replace(/\u2044/g, '/')
+    .replace(/[\u201c\u201d\uFF02]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/\uFFFD/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .normalize('NFC');
+}
+
 // Only treat the exact "{}" placeholder as missing so unusual but real names still render.
 function hasMeaningfulWorldNameContent(value) {
   if (typeof value !== 'string') {
@@ -1442,6 +1459,41 @@ function extractWorldInfo(tags, fileBuffer, rawBufferWorldInfo = null) {
     worldName,
     worldUrl,
   };
+}
+
+function extractPhotoPrintNote(tags) {
+  const flatTags = {};
+
+  for (const [key, tag] of Object.entries(tags || {})) {
+    flatTags[key] = normalizeTagValue(tag);
+  }
+
+  const printNoteEntry = pickPreferredTag(
+    flatTags,
+    [
+      'XMP-dc:Title',
+      'dc:Title',
+      'Title',
+      'XPTitle',
+      'Windows XP Title',
+      'IPTC:ObjectName',
+      'ObjectName',
+      'Object Name',
+      'XMP-photoshop:Headline',
+      'Headline',
+    ],
+    /(?:^|[: _-])(title|xptitle|objectname|object name|headline)(?:$|[: _-])/
+  );
+
+  return normalizePhotoPrintNoteText(printNoteEntry?.value || null);
+}
+
+function loadExifTagsSafely(fileBuffer) {
+  try {
+    return ExifReader.load(fileBuffer);
+  } catch {
+    return {};
+  }
 }
 
 
@@ -2140,6 +2192,7 @@ function toRendererPhoto(row) {
     imageHeight: row.image_height,
     resolutionTier: row.resolution_tier,
     orientationTier: derivedOrientationTier,
+    printNoteText: row.print_note_text || '',
     memoText: row.memo_text || '',
     photoLabels: resolvedPhotoLabels
       .map(toRendererPhotoLabel)
@@ -2295,16 +2348,7 @@ async function buildPhotoRecord(filePath) {
   const rawWorldInfo = extractWorldInfoFromRawBuffer(fileBuffer);
   const takenAtFromFileName = parseVrchatFilenameDate(filePath);
   const imageDetailsFromFileName = parseImageDimensionsFromFilename(filePath);
-  const needsExifTags =
-    !takenAtFromFileName ||
-    !rawWorldInfo.worldId ||
-    !rawWorldInfo.worldName;
-
-  let tags = null;
-
-  if (needsExifTags) {
-    tags = ExifReader.load(fileBuffer);
-  }
+  const tags = loadExifTagsSafely(fileBuffer);
 
   const fileHash = createHash('sha256').update(fileBuffer).digest('hex');
   const thumbnailPathPromise = createThumbnail(filePath, fileHash, {
@@ -2312,9 +2356,10 @@ async function buildPhotoRecord(filePath) {
   });
   const takenAtDate =
     takenAtFromFileName ||
-    extractTakenAtFromTags(tags || {}) ||
+    extractTakenAtFromTags(tags) ||
     (await fs.stat(filePath)).mtime;
   const worldInfo = extractWorldInfo(tags, fileBuffer, rawWorldInfo);
+  const printNoteText = extractPhotoPrintNote(tags);
   const resolvedImageDetails = imageDetailsFromFileName
     ? {
         imageWidth: imageDetailsFromFileName.imageWidth,
@@ -2353,6 +2398,7 @@ async function buildPhotoRecord(filePath) {
     imageHeight: resolvedImageDetails.imageHeight,
     resolutionTier: resolvedImageDetails.resolutionTier,
     orientationTier: resolvedImageDetails.orientationTier,
+    printNoteText,
     memoText: null,
     createdAt: nowIso,
     updatedAt: nowIso,
@@ -3820,7 +3866,7 @@ async function rereadWorldInfoFromPhotoId(photoId, options = {}) {
     }
 
     const fileBuffer = await fs.readFile(accessiblePhoto.filePath);
-    const tags = ExifReader.load(fileBuffer);
+    const tags = loadExifTagsSafely(fileBuffer);
     localWorldInfo = extractWorldInfo(tags, fileBuffer);
   } catch {
     if (!pendingWorldId && !pendingWorldUrl && !row.world_id && !row.world_url) {

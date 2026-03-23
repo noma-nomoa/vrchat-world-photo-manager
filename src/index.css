@@ -1036,6 +1036,12 @@ body[data-theme="light"] .month-button.active {
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.24);
 }
 
+.modal-print-note-hero-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--text-1);
+}
+
 .modal-hero-favorite-button {
   width: 26px;
   height: 26px;
@@ -1059,6 +1065,8 @@ body[data-theme="light"] .month-button.active {
 
 .modal-hero-taken-at.is-hidden,
 .modal-resolution-hero-badge.is-hidden,
+.modal-print-note-hero-badge.is-hidden,
+.modal-print-note-block.is-hidden,
 .modal-meta-item.is-hidden {
   display: none !important;
 }

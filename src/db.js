@@ -119,6 +119,7 @@ function initDatabase(dbPath) {
       image_height INTEGER,
       resolution_tier TEXT,
       orientation_tier TEXT,
+      print_note_text TEXT,
       memo_text TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -196,6 +197,7 @@ function initDatabase(dbPath) {
   ensureColumn(db, 'photos', 'image_height INTEGER');
   ensureColumn(db, 'photos', 'resolution_tier TEXT');
   ensureColumn(db, 'photos', 'orientation_tier TEXT');
+  ensureColumn(db, 'photos', 'print_note_text TEXT');
   ensureColumn(db, 'photos', 'memo_text TEXT');
   ensureColumn(db, 'tags', 'color_hex TEXT');
   db.exec(`
@@ -248,6 +250,7 @@ function initDatabase(dbPath) {
       image_height,
       resolution_tier,
       orientation_tier,
+      print_note_text,
       memo_text,
       created_at,
       updated_at
@@ -270,6 +273,7 @@ function initDatabase(dbPath) {
       @imageHeight,
       @resolutionTier,
       @orientationTier,
+      @printNoteText,
       @memoText,
       @createdAt,
       @updatedAt
@@ -295,6 +299,7 @@ function initDatabase(dbPath) {
       image_height = excluded.image_height,
       resolution_tier = excluded.resolution_tier,
       orientation_tier = excluded.orientation_tier,
+      print_note_text = excluded.print_note_text,
       memo_text = CASE
         WHEN excluded.memo_text IS NULL THEN memo_text
         ELSE excluded.memo_text
