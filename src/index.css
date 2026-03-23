@@ -5253,7 +5253,7 @@ body[data-theme='light'] .world-sidebar-item:hover {
 
 .settings-utility-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 168px;
+  grid-template-columns: minmax(0, 1fr) 236px;
   align-items: stretch;
   gap: 10px;
   margin-top: 0;
@@ -5354,10 +5354,21 @@ body[data-theme='light'] .world-sidebar-item:hover {
   z-index: 4000;
 }
 
-.settings-section-header .small-action-button,
-.settings-utility-actions .small-action-button {
+.settings-section-header .small-action-button {
   min-width: 168px;
   width: 168px;
+  height: 46px;
+  min-height: 46px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.settings-utility-actions .small-action-button {
+  min-width: 236px;
+  width: 236px;
   height: 46px;
   min-height: 46px;
   padding: 0 18px;
