@@ -832,6 +832,17 @@ function repairUtf8Mojibake(value) {
   return best;
 }
 
+function isExifReaderTagEnvelope(rawValue) {
+  return (
+    rawValue &&
+    typeof rawValue === 'object' &&
+    !Array.isArray(rawValue) &&
+    (Object.prototype.hasOwnProperty.call(rawValue, 'value') ||
+      Object.prototype.hasOwnProperty.call(rawValue, 'description') ||
+      Object.prototype.hasOwnProperty.call(rawValue, 'attributes'))
+  );
+}
+
 function collectTagTextCandidates(rawValue, visited = new Set()) {
   if (rawValue == null) {
     return [];
@@ -856,25 +867,23 @@ function collectTagTextCandidates(rawValue, visited = new Set()) {
 
   visited.add(rawValue);
 
-  if (Array.isArray(rawValue)) {
-    const nested = rawValue.flatMap((item) =>
-      collectTagTextCandidates(item, visited)
-    );
+  if (isExifReaderTagEnvelope(rawValue)) {
+    const valueCandidates = collectTagTextCandidates(rawValue.value, visited);
 
-    if (nested.length > 1) {
-      nested.push(nested.join(', '));
+    if (valueCandidates.length > 0) {
+      return valueCandidates;
     }
 
-    return nested;
+    return collectTagTextCandidates(rawValue.description, visited);
+  }
+
+  if (Array.isArray(rawValue)) {
+    return rawValue.flatMap((item) => collectTagTextCandidates(item, visited));
   }
 
   const nested = Object.values(rawValue).flatMap((item) =>
     collectTagTextCandidates(item, visited)
   );
-
-  if (nested.length > 1) {
-    nested.push(nested.join(', '));
-  }
 
   if (nested.length > 0) {
     return nested;
@@ -917,9 +926,17 @@ function pickBestTextCandidate(rawValues) {
       candidates.add(stringValue);
       candidates.add(repairUtf8Mojibake(stringValue));
 
+      const strippedNulls = stringValue.replace(/\u0000+/g, '');
+      candidates.add(strippedNulls);
+      candidates.add(repairUtf8Mojibake(strippedNulls));
+
       const strippedControls = stringValue.replace(/[\u0000-\u001f\u007f]+/g, ' ');
       candidates.add(strippedControls);
       candidates.add(repairUtf8Mojibake(strippedControls));
+
+      const removedControls = stringValue.replace(/[\u0000-\u001f\u007f]+/g, '');
+      candidates.add(removedControls);
+      candidates.add(repairUtf8Mojibake(removedControls));
     }
   }
 
@@ -953,11 +970,22 @@ function normalizeWorldId(value) {
   return /^wrld_[0-9a-f-]+$/i.test(trimmed) ? trimmed : null;
 }
 
+function isNumericTagValueArray(value) {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((item) => typeof item === 'number' && Number.isFinite(item))
+  );
+}
 
 function normalizeTagValue(tag) {
   if (!tag) return null;
 
-  return pickBestTextCandidate([tag.value, tag.description]);
+  const valueCandidate = isNumericTagValueArray(tag.value)
+    ? null
+    : pickBestTextCandidate([tag.value]);
+
+  return valueCandidate || pickBestTextCandidate([tag.description]);
 }
 
 function normalizePhotoPrintNoteText(value) {
@@ -989,6 +1017,19 @@ function shouldRepairStoredPrintNote(value) {
   }
 
   if (/^\[object\s+[^\]]+\]$/i.test(trimmed)) {
+    return true;
+  }
+
+  const commaSeparatedSegments = trimmed
+    .split(/\s*,\s*/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  if (
+    commaSeparatedSegments.some((segment) =>
+      /^(?:x-default|[a-z]{2,3}(?:-[a-z0-9]{2,8})+)$/i.test(segment)
+    )
+  ) {
     return true;
   }
 
