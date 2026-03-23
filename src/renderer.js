@@ -491,7 +491,7 @@ const PHOTO_LABEL_PRESET_COLORS = [
 ];
 const TOOLBAR_SEARCH_SCOPE_META = {
   world: {
-    label: 'ワールド',
+    label: 'World',
     buttonLabel: 'World',
     placeholder: 'World名を入力',
     summaryPrefix: 'World',
@@ -4295,7 +4295,8 @@ function getNormalizedModalPrintNoteText(item = currentModalPhoto) {
     return '';
   }
 
-  return item.printNoteText.trim();
+  const normalized = item.printNoteText.trim();
+  return /^\[object\s+[^\]]+\]$/i.test(normalized) ? '' : normalized;
 }
 
 function renderModalPrintNote(item = currentModalPhoto) {

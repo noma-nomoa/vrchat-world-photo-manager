@@ -832,24 +832,59 @@ function repairUtf8Mojibake(value) {
   return best;
 }
 
-function stringifyTagValue(rawValue) {
+function collectTagTextCandidates(rawValue, visited = new Set()) {
   if (rawValue == null) {
-    return null;
+    return [];
   }
+
+  if (
+    typeof rawValue === 'string' ||
+    typeof rawValue === 'number' ||
+    typeof rawValue === 'boolean' ||
+    typeof rawValue === 'bigint'
+  ) {
+    return [String(rawValue)];
+  }
+
+  if (typeof rawValue !== 'object') {
+    return [String(rawValue)];
+  }
+
+  if (visited.has(rawValue)) {
+    return [];
+  }
+
+  visited.add(rawValue);
 
   if (Array.isArray(rawValue)) {
-    return rawValue.join(', ');
-  }
+    const nested = rawValue.flatMap((item) =>
+      collectTagTextCandidates(item, visited)
+    );
 
-  if (typeof rawValue === 'object') {
-    try {
-      return JSON.stringify(rawValue);
-    } catch {
-      return String(rawValue);
+    if (nested.length > 1) {
+      nested.push(nested.join(', '));
     }
+
+    return nested;
   }
 
-  return String(rawValue);
+  const nested = Object.values(rawValue).flatMap((item) =>
+    collectTagTextCandidates(item, visited)
+  );
+
+  if (nested.length > 1) {
+    nested.push(nested.join(', '));
+  }
+
+  if (nested.length > 0) {
+    return nested;
+  }
+
+  try {
+    return [JSON.stringify(rawValue)];
+  } catch {
+    return [];
+  }
 }
 
 function sanitizeExtractedText(value) {
@@ -863,6 +898,10 @@ function sanitizeExtractedText(value) {
     .replace(/\s{2,}/g, ' ')
     .trim();
 
+  if (/^\[object\s+[^\]]+\]$/i.test(sanitized)) {
+    return null;
+  }
+
   return sanitized.length > 0 ? sanitized : null;
 }
 
@@ -870,18 +909,18 @@ function pickBestTextCandidate(rawValues) {
   const candidates = new Set();
 
   for (const rawValue of rawValues) {
-    const stringValue = stringifyTagValue(rawValue);
+    for (const stringValue of collectTagTextCandidates(rawValue)) {
+      if (!stringValue) {
+        continue;
+      }
 
-    if (!stringValue) {
-      continue;
+      candidates.add(stringValue);
+      candidates.add(repairUtf8Mojibake(stringValue));
+
+      const strippedControls = stringValue.replace(/[\u0000-\u001f\u007f]+/g, ' ');
+      candidates.add(strippedControls);
+      candidates.add(repairUtf8Mojibake(strippedControls));
     }
-
-    candidates.add(stringValue);
-    candidates.add(repairUtf8Mojibake(stringValue));
-
-    const strippedControls = stringValue.replace(/[\u0000-\u001f\u007f]+/g, ' ');
-    candidates.add(strippedControls);
-    candidates.add(repairUtf8Mojibake(strippedControls));
   }
 
   let best = null;
@@ -936,6 +975,24 @@ function normalizePhotoPrintNoteText(value) {
     .replace(/\s{2,}/g, ' ')
     .trim()
     .normalize('NFC');
+}
+
+function shouldRepairStoredPrintNote(value) {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return false;
+  }
+
+  if (/^\[object\s+[^\]]+\]$/i.test(trimmed)) {
+    return true;
+  }
+
+  return /^\{.*(?:x-default|xml:lang|lang=).*\}$/i.test(trimmed);
 }
 
 // Only treat the exact "{}" placeholder as missing so unusual but real names still render.
@@ -1822,6 +1879,29 @@ async function ensurePhotoOrientationMetadata(row) {
   };
 }
 
+async function ensurePhotoPrintNoteMetadata(row) {
+  if (
+    !row ||
+    !Number.isInteger(row.id) ||
+    !shouldRepairStoredPrintNote(row.print_note_text) ||
+    !(await pathExists(row.file_path))
+  ) {
+    return row;
+  }
+
+  try {
+    const fileBuffer = await fs.readFile(row.file_path);
+    const nextPrintNoteText = extractPhotoPrintNote(loadExifTagsSafely(fileBuffer));
+    const savedRow = photoDb.updatePhotoPrintNote(row.id, nextPrintNoteText);
+    return savedRow || {
+      ...row,
+      print_note_text: nextPrintNoteText,
+    };
+  } catch {
+    return row;
+  }
+}
+
 async function pathExists(targetPath) {
   if (typeof targetPath !== 'string' || targetPath.trim().length === 0) {
     return false;
@@ -2192,7 +2272,7 @@ function toRendererPhoto(row) {
     imageHeight: row.image_height,
     resolutionTier: row.resolution_tier,
     orientationTier: derivedOrientationTier,
-    printNoteText: row.print_note_text || '',
+    printNoteText: normalizePhotoPrintNoteText(row.print_note_text) || '',
     memoText: row.memo_text || '',
     photoLabels: resolvedPhotoLabels
       .map(toRendererPhotoLabel)
@@ -2238,8 +2318,11 @@ async function prepareRowsForRenderer(rows) {
   const rowsWithAccurateOrientation = await Promise.all(
     normalizedRows.map((row) => ensurePhotoOrientationMetadata(row))
   );
+  const rowsWithResolvedPrintNotes = await Promise.all(
+    rowsWithAccurateOrientation.map((row) => ensurePhotoPrintNoteMetadata(row))
+  );
 
-  return attachPhotoLabelsToRows(rowsWithAccurateOrientation);
+  return attachPhotoLabelsToRows(rowsWithResolvedPrintNotes);
 }
 
 function buildWorldSidebarData(sortMode = 'count') {

@@ -3706,6 +3706,9 @@ body[data-theme='light'] .header-dropdown-item.is-active {
 
 .toolbar-search-scope-dropdown {
   position: relative;
+  display: flex;
+  align-items: stretch;
+  align-self: stretch;
 }
 
 .toolbar-search-scope-button {
@@ -3714,6 +3717,8 @@ body[data-theme='light'] .header-dropdown-item.is-active {
   justify-content: space-between;
   gap: 6px;
   min-width: 112px;
+  min-height: 44px;
+  padding: 0 16px;
   white-space: nowrap;
 }
 
@@ -3732,6 +3737,24 @@ body[data-theme='light'] .header-dropdown-item.is-active {
   right: auto;
   min-width: 188px;
   transform-origin: top left;
+}
+
+.toolbar-search-scope-menu .header-dropdown-item.is-active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(79, 140, 255, 0.24);
+}
+
+.toolbar-search-scope-menu .header-dropdown-item.is-active:hover {
+  transform: translateY(0);
+}
+
+.toolbar-search-scope-menu .header-dropdown-item.is-active .header-dropdown-check {
+  color: #ffffff;
+}
+
+body[data-theme='light'] .toolbar-search-scope-menu .header-dropdown-item.is-active {
+  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.16);
 }
 
 .header-dropdown-mode-toggle {
@@ -4904,12 +4927,12 @@ body::-webkit-scrollbar-thumb:hover,
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1 1 360px;
-  min-width: min(360px, 100%);
+  flex: 1 1 560px;
+  min-width: min(520px, 100%);
 }
 
 .toolbar-world-filter {
-  width: min(420px, 100%);
+  width: min(620px, 100%);
 }
 
 .toolbar-world-filter .world-name-filter-button {
@@ -5394,7 +5417,7 @@ body[data-theme='light'] .world-sidebar-item:hover {
 
 .toolbar {
   display: grid !important;
-  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr) !important;
+  grid-template-columns: minmax(320px, 620px) minmax(0, 1fr) !important;
   align-items: center !important;
   gap: 16px !important;
   flex-wrap: nowrap !important;
@@ -5405,7 +5428,7 @@ body[data-theme='light'] .world-sidebar-item:hover {
   align-items: center !important;
   width: 100% !important;
   min-width: 0 !important;
-  max-width: 420px !important;
+  max-width: 620px !important;
   gap: 12px !important;
 }
 

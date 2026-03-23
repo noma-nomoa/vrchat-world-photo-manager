@@ -567,6 +567,14 @@ function initDatabase(dbPath) {
     WHERE id = ?
   `);
 
+  const updatePhotoPrintNoteStmt = db.prepare(`
+    UPDATE photos
+    SET
+      print_note_text = ?,
+      updated_at = ?
+    WHERE id = ?
+  `);
+
   const deleteAllPhotosStmt = db.prepare(`
     DELETE FROM photos
   `);
@@ -1122,6 +1130,21 @@ function initDatabase(dbPath) {
     return getPhotoByIdStmt.get(photoId) || null;
   }
 
+  function updatePhotoPrintNote(photoId, printNoteText) {
+    const normalizedPrintNote =
+      typeof printNoteText === 'string' && printNoteText.trim().length > 0
+        ? printNoteText.replace(/\r\n/g, '\n').trim()
+        : null;
+
+    updatePhotoPrintNoteStmt.run(
+      normalizedPrintNote,
+      new Date().toISOString(),
+      photoId
+    );
+
+    return getPhotoByIdStmt.get(photoId) || null;
+  }
+
   // Settings and maintenance surfaces use this lightweight summary to show
   // the current persisted footprint without triggering heavy scans.
   function getApplicationDataSummary() {
@@ -1190,6 +1213,7 @@ function initDatabase(dbPath) {
     updateImageMetadata,
     updatePhotoFileLocation,
     updatePhotoMemo,
+    updatePhotoPrintNote,
     getApplicationDataSummary,
     resetApplicationData,
   };
