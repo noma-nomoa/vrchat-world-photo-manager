@@ -6527,6 +6527,51 @@ body[data-theme="light"].has-custom-background .drop-hint-always {
   -webkit-backdrop-filter: blur(6px);
 }
 
+#settings-modal .settings-month-dropdown {
+  z-index: 320;
+}
+
+#settings-modal .settings-month-dropdown.is-open {
+  z-index: 16000;
+}
+
+#settings-modal .settings-month-dropdown-menu {
+  z-index: 16000;
+  background: rgba(10, 16, 28, 0.985);
+  border-color: rgba(91, 141, 255, 0.22);
+  box-shadow:
+    0 24px 48px rgba(5, 10, 22, 0.58),
+    0 0 0 1px rgba(91, 141, 255, 0.1);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+#settings-modal .settings-month-dropdown-menu .header-dropdown-item {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+#settings-modal .settings-month-dropdown-menu .header-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body[data-theme="light"] #settings-modal .settings-month-dropdown-menu {
+  background: rgba(255, 255, 255, 0.995);
+  border-color: rgba(37, 99, 235, 0.18);
+  box-shadow:
+    0 18px 36px rgba(15, 23, 42, 0.16),
+    0 0 0 1px rgba(37, 99, 235, 0.06);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body[data-theme="light"] #settings-modal .settings-month-dropdown-menu .header-dropdown-item {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+body[data-theme="light"] #settings-modal .settings-month-dropdown-menu .header-dropdown-item:hover {
+  background: #f4f7fc;
+}
+
 body[data-theme="light"] .year-block {
   background: var(--surface-1);
   border-color: var(--line);
