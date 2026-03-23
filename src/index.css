@@ -5246,6 +5246,11 @@ body[data-theme='light'] .world-sidebar-item:hover {
   box-shadow: var(--shadow-soft) !important;
 }
 
+.settings-utility-actions-stack {
+  display: grid;
+  gap: 10px;
+}
+
 .settings-utility-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 168px;

@@ -344,6 +344,7 @@ let settingsBackgroundSection = null;
 let settingsBackgroundMeta = null;
 let selectBackgroundImageButton = null;
 let clearBackgroundImageButton = null;
+let settingsUtilityActionsStack = null;
 let regenerateThumbnailMonthSelect = null;
 let regenerateThumbnailMonthDropdown = null;
 let regenerateThumbnailMonthButton = null;
@@ -352,6 +353,14 @@ let regenerateThumbnailMonthMenu = null;
 let regenerateThumbnailMonthValue = '';
 let isRegenerateThumbnailMonthMenuOpen = false;
 let regenerateThumbnailMonthMenuCloseTimer = null;
+let reimportRegisteredPhotoMonthSelect = null;
+let reimportRegisteredPhotoMonthDropdown = null;
+let reimportRegisteredPhotoMonthButton = null;
+let reimportRegisteredPhotoMonthLabel = null;
+let reimportRegisteredPhotoMonthMenu = null;
+let reimportRegisteredPhotoMonthValue = '';
+let isReimportRegisteredPhotoMonthMenuOpen = false;
+let reimportRegisteredPhotoMonthMenuCloseTimer = null;
 let trackedFolderSettingsSection = null;
 let trackedFolderSettingsActions = null;
 let openTrackedFolderListButton = null;
@@ -1198,6 +1207,16 @@ function getSidebarMonthOptions() {
   );
 }
 
+function hasSelectableMonthOptions(selectElement) {
+  if (!selectElement || selectElement.disabled) {
+    return false;
+  }
+
+  return Array.from(selectElement.options || []).some(
+    (option) => typeof option.value === 'string' && option.value.trim().length > 0
+  );
+}
+
 function renderRegenerateThumbnailMonthOptions() {
   if (!regenerateThumbnailMonthSelect) {
     return;
@@ -1249,9 +1268,7 @@ function renderRegenerateThumbnailMonthOptions() {
 }
 
 function setRegenerateThumbnailMonthMenuOpen(isOpen) {
-  const hasOptions = Boolean(
-    regenerateThumbnailMonthSelect && regenerateThumbnailMonthSelect.options.length > 0
-  );
+  const hasOptions = hasSelectableMonthOptions(regenerateThumbnailMonthSelect);
   const nextOpen = Boolean(isOpen) && !isImporting && hasOptions;
   if (nextOpen) {
     closeManagedDropdownsExcept(regenerateThumbnailMonthDropdown);
@@ -1307,6 +1324,13 @@ function syncRegenerateThumbnailMonthDropdownFromSelect() {
   regenerateThumbnailMonthSelect.value = regenerateThumbnailMonthValue;
   regenerateThumbnailMonthLabel.textContent =
     selectedOption?.textContent || '再生成する月を選択';
+
+  if (!regenerateThumbnailMonthValue) {
+    regenerateThumbnailMonthButton.disabled = true;
+    closeRegenerateThumbnailMonthMenu();
+    return;
+  }
+
   regenerateThumbnailMonthButton.disabled = false;
 
   options.forEach((option) => {
@@ -1348,29 +1372,220 @@ function syncRegenerateThumbnailMonthDropdownFromSelect() {
   });
 }
 
+function renderReimportRegisteredPhotoMonthOptions() {
+  if (!reimportRegisteredPhotoMonthSelect) {
+    return;
+  }
+
+  const monthOptions = getSidebarMonthOptions();
+  const preferredValue =
+    isMonthSelection(currentSelection) &&
+    monthOptions.some(
+      (option) =>
+        option.year === currentSelection.year &&
+        option.month === currentSelection.month
+    )
+      ? `${currentSelection.year}-${pad2(currentSelection.month)}`
+      : reimportRegisteredPhotoMonthSelect.value;
+
+  reimportRegisteredPhotoMonthSelect.innerHTML = '';
+
+  if (monthOptions.length === 0) {
+    const emptyOption = document.createElement('option');
+    emptyOption.value = '';
+    emptyOption.textContent = '対象月がありません';
+    reimportRegisteredPhotoMonthSelect.appendChild(emptyOption);
+    reimportRegisteredPhotoMonthSelect.disabled = true;
+    syncReimportRegisteredPhotoMonthDropdownFromSelect();
+    return;
+  }
+
+  monthOptions.forEach((option) => {
+    const selectOption = document.createElement('option');
+    selectOption.value = `${option.year}-${pad2(option.month)}`;
+    selectOption.textContent = `${option.year}年${option.month}月 (${option.count}枚)`;
+    reimportRegisteredPhotoMonthSelect.appendChild(selectOption);
+  });
+
+  reimportRegisteredPhotoMonthSelect.disabled = false;
+
+  if (
+    typeof preferredValue === 'string' &&
+    preferredValue.length > 0 &&
+    monthOptions.some(
+      (option) => `${option.year}-${pad2(option.month)}` === preferredValue
+    )
+  ) {
+    reimportRegisteredPhotoMonthSelect.value = preferredValue;
+  }
+
+  syncReimportRegisteredPhotoMonthDropdownFromSelect();
+}
+
+function setReimportRegisteredPhotoMonthMenuOpen(isOpen) {
+  const hasOptions = hasSelectableMonthOptions(reimportRegisteredPhotoMonthSelect);
+  const nextOpen = Boolean(isOpen) && !isImporting && hasOptions;
+  if (nextOpen) {
+    closeManagedDropdownsExcept(reimportRegisteredPhotoMonthDropdown);
+  }
+  isReimportRegisteredPhotoMonthMenuOpen = nextOpen;
+  setAnimatedDropdownOpenState({
+    dropdown: reimportRegisteredPhotoMonthDropdown,
+    button: reimportRegisteredPhotoMonthButton,
+    menu: reimportRegisteredPhotoMonthMenu,
+    isOpen: nextOpen,
+    closeTimerRef: {
+      get current() {
+        return reimportRegisteredPhotoMonthMenuCloseTimer;
+      },
+      set current(value) {
+        reimportRegisteredPhotoMonthMenuCloseTimer = value;
+      },
+    },
+  });
+}
+
+function closeReimportRegisteredPhotoMonthMenu() {
+  setReimportRegisteredPhotoMonthMenuOpen(false);
+}
+
+function syncReimportRegisteredPhotoMonthDropdownFromSelect() {
+  if (
+    !reimportRegisteredPhotoMonthSelect ||
+    !reimportRegisteredPhotoMonthDropdown ||
+    !reimportRegisteredPhotoMonthButton ||
+    !reimportRegisteredPhotoMonthLabel ||
+    !reimportRegisteredPhotoMonthMenu
+  ) {
+    return;
+  }
+
+  const options = Array.from(reimportRegisteredPhotoMonthSelect.options);
+  reimportRegisteredPhotoMonthValue = reimportRegisteredPhotoMonthSelect.value || '';
+  reimportRegisteredPhotoMonthMenu.innerHTML = '';
+
+  if (options.length === 0) {
+    reimportRegisteredPhotoMonthLabel.textContent = '対象月がありません';
+    reimportRegisteredPhotoMonthButton.disabled = true;
+    closeReimportRegisteredPhotoMonthMenu();
+    return;
+  }
+
+  const selectedOption =
+    options.find((option) => option.value === reimportRegisteredPhotoMonthValue) ||
+    options[0];
+
+  reimportRegisteredPhotoMonthValue = selectedOption?.value || '';
+  reimportRegisteredPhotoMonthSelect.value = reimportRegisteredPhotoMonthValue;
+  reimportRegisteredPhotoMonthLabel.textContent =
+    selectedOption?.textContent || '再取り込みする月を選択';
+
+  if (!reimportRegisteredPhotoMonthValue) {
+    reimportRegisteredPhotoMonthButton.disabled = true;
+    closeReimportRegisteredPhotoMonthMenu();
+    return;
+  }
+
+  reimportRegisteredPhotoMonthButton.disabled = false;
+
+  options.forEach((option) => {
+    const isActive = option.value === reimportRegisteredPhotoMonthValue;
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'header-dropdown-item header-dropdown-item-with-meta';
+    item.classList.toggle('is-active', isActive);
+    item.dataset.reimportRegisteredPhotoMonth = option.value;
+    item.setAttribute('role', 'menuitemradio');
+    item.setAttribute('aria-checked', isActive ? 'true' : 'false');
+
+    const matched = option.textContent?.match(/^(.+?)\s*\((\d+)枚\)$/);
+    const labelText = matched?.[1] || option.textContent || '';
+    const countText = matched?.[2] || '';
+
+    const itemLabel = document.createElement('span');
+    itemLabel.className = 'header-dropdown-item-label';
+    itemLabel.textContent = labelText;
+    item.appendChild(itemLabel);
+
+    const itemSide = document.createElement('span');
+    itemSide.className = 'header-dropdown-item-side';
+
+    if (countText) {
+      const count = document.createElement('span');
+      count.className = 'header-dropdown-meta-badge';
+      count.textContent = countText;
+      itemSide.appendChild(count);
+    }
+
+    const check = document.createElement('span');
+    check.className = 'material-symbols-outlined header-dropdown-check';
+    check.textContent = 'check';
+    itemSide.appendChild(check);
+
+    item.appendChild(itemSide);
+    reimportRegisteredPhotoMonthMenu.appendChild(item);
+  });
+}
+
 function syncSettingsUtilityActionsUi() {
-  const hasMonthOptions = Boolean(
-    regenerateThumbnailMonthSelect &&
-      regenerateThumbnailMonthSelect.options.length > 0
+  const hasThumbnailMonthOptions = hasSelectableMonthOptions(
+    regenerateThumbnailMonthSelect
+  );
+  const hasReimportMonthOptions = hasSelectableMonthOptions(
+    reimportRegisteredPhotoMonthSelect
   );
 
   if (regenerateThumbnailMonthSelect) {
-    regenerateThumbnailMonthSelect.disabled = isImporting || !hasMonthOptions;
+    regenerateThumbnailMonthSelect.disabled =
+      isImporting || !hasThumbnailMonthOptions;
   }
 
   if (regenerateThumbnailMonthButton) {
-    regenerateThumbnailMonthButton.disabled = isImporting || !hasMonthOptions;
+    regenerateThumbnailMonthButton.disabled =
+      isImporting || !hasThumbnailMonthOptions;
     regenerateThumbnailMonthButton.setAttribute(
       'title',
-      hasMonthOptions ? 'サムネイルを再生成する月を選択' : '対象月がありません'
+      hasThumbnailMonthOptions
+        ? 'サムネイルを再生成する月を選択'
+        : '対象月がありません'
     );
   }
 
   if (regenerateThumbnailsButton) {
-    regenerateThumbnailsButton.disabled = isImporting || !hasMonthOptions;
+    regenerateThumbnailsButton.disabled =
+      isImporting || !hasThumbnailMonthOptions;
     regenerateThumbnailsButton.setAttribute(
       'title',
-      hasMonthOptions ? '選択中の月のサムネイルを再生成' : '再生成できる月がありません'
+      hasThumbnailMonthOptions
+        ? '選択中の月のサムネイルを再生成'
+        : '再生成できる月がありません'
+    );
+  }
+
+  if (reimportRegisteredPhotoMonthSelect) {
+    reimportRegisteredPhotoMonthSelect.disabled =
+      isImporting || !hasReimportMonthOptions;
+  }
+
+  if (reimportRegisteredPhotoMonthButton) {
+    reimportRegisteredPhotoMonthButton.disabled =
+      isImporting || !hasReimportMonthOptions;
+    reimportRegisteredPhotoMonthButton.setAttribute(
+      'title',
+      hasReimportMonthOptions
+        ? '情報を再取り込みする月を選択'
+        : '対象月がありません'
+    );
+  }
+
+  if (reimportRegisteredPhotosButton) {
+    reimportRegisteredPhotosButton.disabled =
+      isImporting || !hasReimportMonthOptions;
+    reimportRegisteredPhotosButton.setAttribute(
+      'title',
+      hasReimportMonthOptions
+        ? '選択中の月の登録画像を現在の解析ロジックで再取り込み'
+        : '再取り込みできる月がありません'
     );
   }
 }
@@ -1517,25 +1732,55 @@ function closeTrackedFolderModal() {
   });
 }
 
-function ensureSettingsUtilityActionsContainer() {
+function ensureSettingsUtilityActionsStack() {
   if (!settingsMaintenanceSection) {
     return null;
   }
 
-  let utilityActions = settingsMaintenanceSection.querySelector(
-    '.settings-utility-actions'
+  let utilityActionsStack = settingsMaintenanceSection.querySelector(
+    '.settings-utility-actions-stack'
   );
   const utilityAnchor = settingsMaintenanceActions;
+
+  if (!utilityActionsStack) {
+    utilityActionsStack = document.createElement('div');
+    utilityActionsStack.className = 'settings-utility-actions-stack';
+    settingsMaintenanceSection.insertBefore(
+      utilityActionsStack,
+      utilityAnchor || null
+    );
+  } else if (
+    utilityAnchor &&
+    utilityActionsStack.nextElementSibling !== utilityAnchor
+  ) {
+    settingsMaintenanceSection.insertBefore(utilityActionsStack, utilityAnchor);
+  }
+
+  settingsUtilityActionsStack = utilityActionsStack;
+  return utilityActionsStack;
+}
+
+function ensureSettingsUtilityActionsContainer(groupName = 'thumbnails') {
+  const utilityActionsStack = ensureSettingsUtilityActionsStack();
+
+  if (!utilityActionsStack) {
+    return null;
+  }
+
+  const normalizedGroupName =
+    typeof groupName === 'string' && groupName.trim().length > 0
+      ? groupName.trim()
+      : 'thumbnails';
+
+  let utilityActions = Array.from(utilityActionsStack.children).find(
+    (element) => element.dataset?.settingsUtilityGroup === normalizedGroupName
+  );
 
   if (!utilityActions) {
     utilityActions = document.createElement('div');
     utilityActions.className = 'settings-utility-actions';
-    settingsMaintenanceSection.insertBefore(utilityActions, utilityAnchor || null);
-  } else if (
-    utilityAnchor &&
-    utilityActions.nextElementSibling !== utilityAnchor
-  ) {
-    settingsMaintenanceSection.insertBefore(utilityActions, utilityAnchor);
+    utilityActions.dataset.settingsUtilityGroup = normalizedGroupName;
+    utilityActionsStack.appendChild(utilityActions);
   }
 
   return utilityActions;
@@ -1882,6 +2127,80 @@ function ensureRegenerateThumbnailMonthDropdown(utilityActions) {
     regenerateThumbnailMonthSelect.value = regenerateThumbnailMonthValue;
     syncRegenerateThumbnailMonthDropdownFromSelect();
     closeRegenerateThumbnailMonthMenu();
+  });
+}
+
+function ensureReimportRegisteredPhotoMonthDropdown(utilityActions) {
+  if (!utilityActions) {
+    return;
+  }
+
+  if (!reimportRegisteredPhotoMonthSelect) {
+    const monthSelect = document.createElement('select');
+    monthSelect.className = 'settings-month-select';
+    monthSelect.setAttribute('aria-label', '情報再取り込みの対象月');
+    utilityActions.appendChild(monthSelect);
+    reimportRegisteredPhotoMonthSelect = monthSelect;
+  }
+
+  if (reimportRegisteredPhotoMonthDropdown) {
+    return;
+  }
+
+  const monthDropdown = document.createElement('div');
+  monthDropdown.className = 'header-dropdown settings-month-dropdown';
+
+  const monthButton = document.createElement('button');
+  monthButton.type = 'button';
+  monthButton.className = 'header-filter-button settings-month-dropdown-button';
+  monthButton.setAttribute('aria-haspopup', 'menu');
+  monthButton.setAttribute('aria-expanded', 'false');
+  monthButton.setAttribute('aria-label', '情報再取り込みの対象月');
+
+  const monthLabel = document.createElement('span');
+  monthLabel.className = 'settings-month-dropdown-label';
+  monthLabel.textContent = '再取り込みする月を選択';
+  monthButton.appendChild(monthLabel);
+
+  const chevron = document.createElement('span');
+  chevron.className = 'material-symbols-outlined orientation-filter-chevron';
+  chevron.textContent = 'expand_more';
+  monthButton.appendChild(chevron);
+
+  const monthMenu = document.createElement('div');
+  monthMenu.className = 'header-dropdown-menu settings-month-dropdown-menu';
+  monthMenu.hidden = true;
+  monthMenu.setAttribute('role', 'menu');
+
+  monthDropdown.appendChild(monthButton);
+  monthDropdown.appendChild(monthMenu);
+  utilityActions.appendChild(monthDropdown);
+
+  reimportRegisteredPhotoMonthDropdown = monthDropdown;
+  reimportRegisteredPhotoMonthButton = monthButton;
+  reimportRegisteredPhotoMonthLabel = monthLabel;
+  reimportRegisteredPhotoMonthMenu = monthMenu;
+
+  monthButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setReimportRegisteredPhotoMonthMenuOpen(
+      !isReimportRegisteredPhotoMonthMenuOpen
+    );
+  });
+
+  monthMenu.addEventListener('click', (event) => {
+    const target = event.target.closest('[data-reimport-registered-photo-month]');
+
+    if (!target || !reimportRegisteredPhotoMonthSelect) {
+      return;
+    }
+
+    event.stopPropagation();
+    reimportRegisteredPhotoMonthValue =
+      target.dataset.reimportRegisteredPhotoMonth || '';
+    reimportRegisteredPhotoMonthSelect.value = reimportRegisteredPhotoMonthValue;
+    syncReimportRegisteredPhotoMonthDropdownFromSelect();
+    closeReimportRegisteredPhotoMonthMenu();
   });
 }
 
@@ -2424,6 +2743,11 @@ function getManagedDropdownClosers() {
       isOpen: () => isRegenerateThumbnailMonthMenuOpen,
       dropdown: regenerateThumbnailMonthDropdown,
       close: closeRegenerateThumbnailMonthMenu,
+    },
+    {
+      isOpen: () => isReimportRegisteredPhotoMonthMenuOpen,
+      dropdown: reimportRegisteredPhotoMonthDropdown,
+      close: closeReimportRegisteredPhotoMonthMenu,
     },
     {
       isOpen: () => isPhotoLabelCatalogMenuOpen,
@@ -5431,17 +5755,6 @@ function syncSettingsMaintenanceUi() {
     );
   }
 
-  if (reimportRegisteredPhotosButton) {
-    const hasAnyRegistration = sidebarData.length > 0;
-    reimportRegisteredPhotosButton.disabled = isImporting || !hasAnyRegistration;
-    reimportRegisteredPhotosButton.setAttribute(
-      'title',
-      hasAnyRegistration
-        ? '既存登録画像の情報を現在の解析ロジックで更新'
-        : '再取り込みする登録がありません'
-    );
-  }
-
   if (resetDatabaseButton) {
     const hasAnyPersistedData =
       sidebarData.length > 0 || trackedFolders.length > 0;
@@ -6159,13 +6472,26 @@ function initializeTopToolbarLayout() {
   if (regenerateThumbnailsButton && settingsMaintenanceSection) {
     // Settings owns thumbnail regeneration so the toolbar stays focused on
     // browsing/searching. The month selector is created once and reused.
-    const utilityActions = ensureSettingsUtilityActionsContainer();
+    const utilityActions = ensureSettingsUtilityActionsContainer('thumbnails');
     ensureRegenerateThumbnailMonthDropdown(utilityActions);
 
     regenerateThumbnailsButton.classList.remove('secondary-toolbar-button');
     regenerateThumbnailsButton.classList.add('small-action-button');
     utilityActions.appendChild(regenerateThumbnailsButton);
     renderRegenerateThumbnailMonthOptions();
+  }
+
+  if (reimportRegisteredPhotosButton && settingsMaintenanceSection) {
+    const utilityActions = ensureSettingsUtilityActionsContainer('reimport');
+    ensureReimportRegisteredPhotoMonthDropdown(utilityActions);
+
+    reimportRegisteredPhotosButton.classList.remove(
+      'secondary',
+      'settings-maintenance-button'
+    );
+    reimportRegisteredPhotosButton.classList.add('small-action-button');
+    utilityActions.appendChild(reimportRegisteredPhotosButton);
+    renderReimportRegisteredPhotoMonthOptions();
   }
 }
 
@@ -6273,6 +6599,7 @@ function closeSettingsModal() {
       closeUninstallModal();
       closeTrackedFolderModal();
       closeRegenerateThumbnailMonthMenu();
+      closeReimportRegisteredPhotoMonthMenu();
       if (settingsModalBody) {
         settingsModalBody.scrollTop = 0;
       }
@@ -6282,6 +6609,7 @@ function closeSettingsModal() {
 
 function syncSelectionDependentSettingsUi() {
   renderRegenerateThumbnailMonthOptions();
+  renderReimportRegisteredPhotoMonthOptions();
   syncSettingsUtilityActionsUi();
   syncSettingsMaintenanceUi();
   syncSettingsUninstallUi();
@@ -8159,7 +8487,8 @@ async function clearThumbnailCacheFromSettings() {
   });
 }
 
-async function reimportRegisteredPhotosFromSettings() {
+async function reimportRegisteredPhotosFromSettings(targetYear, targetMonth) {
+  const targetSelection = createMonthSelection(targetYear, targetMonth);
   const fallbackSelection = currentSelection ? { ...currentSelection } : null;
 
   const result = await runSettingsMaintenanceAction({
@@ -8170,22 +8499,24 @@ async function reimportRegisteredPhotosFromSettings() {
     confirmOptions: {
       title: '既存画像の情報を再取り込み',
       message:
-        '登録済み画像から現在の解析ロジックで画像情報を再取得します。World情報、プリントのノート、解像度などは更新されますが、メモ・ラベル・手動のWorld名は保持されます。続行しますか？',
+        `${targetSelection.year}年${targetSelection.month}月の登録済み画像から現在の解析ロジックで画像情報を再取得します。World情報、プリントのノート、解像度などは更新されますが、メモ・ラベル・手動のWorld名は保持されます。続行しますか？`,
       confirmText: '再取り込みする',
     },
-    busyStatus: '既存画像の情報を再取り込み中...',
+    busyStatus: `${targetSelection.year}年${targetSelection.month}月の情報を再取り込み中...`,
     progressMessage: '既存画像の情報を再取り込み中...',
-    run: () => window.electronAPI.reimportRegisteredPhotos(),
+    run: () => window.electronAPI.reimportRegisteredPhotos(targetSelection),
     onSuccess: async (currentResult) => {
       await restorePhotoDataSelectionFromResult(currentResult, fallbackSelection);
     },
     buildSuccessStatus: (currentResult) => {
       if (currentResult.emptyReimport) {
-        return '再取り込み対象の登録画像はありません';
+        return `${targetSelection.year}年${targetSelection.month}月: 再取り込み対象の登録画像はありません`;
       }
 
       return [
-        `再取り込み: ${currentResult.importedCount || 0}件反映`,
+        `${targetSelection.year}年${targetSelection.month}月: ${
+          currentResult.importedCount || 0
+        }件反映`,
         currentResult.updatedCount > 0
           ? `更新 ${currentResult.updatedCount}件`
           : null,
@@ -8201,7 +8532,7 @@ async function reimportRegisteredPhotosFromSettings() {
         return `再取り込み: ${currentResult.failedCount}件失敗しました`;
       }
 
-      return '既存画像の情報を再取り込みしました';
+      return `${targetSelection.year}年${targetSelection.month}月の情報を再取り込みしました`;
     },
     buildErrorStatus: (message) => `再取り込みに失敗しました: ${message}`,
     buildErrorToast: (message) => `再取り込みに失敗しました: ${message}`,
@@ -9082,7 +9413,15 @@ function bindSettingsModalControls() {
   });
 
   reimportRegisteredPhotosButton?.addEventListener('click', async () => {
-    await reimportRegisteredPhotosFromSettings();
+    const selectedMonthValue = reimportRegisteredPhotoMonthSelect?.value || '';
+
+    if (!/^\d{4}-\d{2}$/.test(selectedMonthValue)) {
+      showToast('再取り込みする月を選択してください');
+      return;
+    }
+
+    const [targetYear, targetMonth] = selectedMonthValue.split('-').map(Number);
+    await reimportRegisteredPhotosFromSettings(targetYear, targetMonth);
   });
 
   resetDatabaseButton?.addEventListener('click', async () => {

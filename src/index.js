@@ -3222,11 +3222,29 @@ async function refreshTrackedFolderImports(
   });
 }
 
-async function reimportRegisteredPhotos(progressReporter = null) {
+async function reimportRegisteredPhotos(targetSelection, progressReporter = null) {
+  const normalizedTargetSelection =
+    Number.isInteger(targetSelection?.year) && Number.isInteger(targetSelection?.month)
+      ? {
+          year: targetSelection.year,
+          month: targetSelection.month,
+        }
+      : null;
+
+  if (!normalizedTargetSelection) {
+    return createRegisteredPhotoReimportResult({
+      ok: false,
+      message: '再取り込みする年月を指定してください',
+    });
+  }
+
   const registeredPhotoPaths = Array.from(
     new Set(
       photoDb
-        .getAllPhotos()
+        .getPhotosByMonth(
+          normalizedTargetSelection.year,
+          normalizedTargetSelection.month
+        )
         .map((row) => normalizeKnownFilePath(row?.file_path))
         .filter(
           (filePath) =>
@@ -3240,6 +3258,8 @@ async function reimportRegisteredPhotos(progressReporter = null) {
   if (registeredPhotoPaths.length === 0) {
     return createRegisteredPhotoReimportResult({
       emptyReimport: true,
+      selectedMonth: normalizedTargetSelection,
+      targetMonth: normalizedTargetSelection,
     });
   }
 
@@ -3247,7 +3267,8 @@ async function reimportRegisteredPhotos(progressReporter = null) {
 
   return createRegisteredPhotoReimportResult({
     ...importResult,
-    selectedMonth: null,
+    selectedMonth: normalizedTargetSelection,
+    targetMonth: normalizedTargetSelection,
     registeredPhotoCount: registeredPhotoPaths.length,
   });
 }
@@ -4570,14 +4591,14 @@ app.whenReady().then(async () => {
     }
   });
 
-  ipcMain.handle('reimport-registered-photos', async (event) => {
+  ipcMain.handle('reimport-registered-photos', async (event, payload) => {
     try {
       const progressReporter = createProcessingProgressReporter(
         event.sender,
         'reimport-registered-photos'
       );
 
-      return await reimportRegisteredPhotos(progressReporter);
+      return await reimportRegisteredPhotos(payload, progressReporter);
     } catch (error) {
       return createRegisteredPhotoReimportResult({
         ok: false,
