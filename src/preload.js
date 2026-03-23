@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   regenerateThumbnails: (payload) =>
     ipcRenderer.invoke('regenerate-thumbnails', payload),
+  reimportRegisteredPhotos: () =>
+    ipcRenderer.invoke('reimport-registered-photos'),
   deletePhoto: (photoId) => ipcRenderer.invoke('delete-photo', { photoId }),
   deletePhotos: (photoIds) => ipcRenderer.invoke('delete-photos', { photoIds }),
   deletePhotosByMonth: (payload) =>

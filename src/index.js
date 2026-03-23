@@ -2599,6 +2599,16 @@ function createTrackedFolderRefreshResult(overrides = {}) {
   };
 }
 
+function createRegisteredPhotoReimportResult(overrides = {}) {
+  return {
+    ok: true,
+    emptyReimport: false,
+    registeredPhotoCount: 0,
+    ...createImportSummaryResult(),
+    ...overrides,
+  };
+}
+
 // File access and path recovery return the same payload shape so open/show
 // callers can share the same success handling.
 function createResolvedPhotoAccessResult(
@@ -3209,6 +3219,36 @@ async function refreshTrackedFolderImports(
     missingFolderPaths,
     skippedKnownCount,
     backfilledTrackedFolderCount,
+  });
+}
+
+async function reimportRegisteredPhotos(progressReporter = null) {
+  const registeredPhotoPaths = Array.from(
+    new Set(
+      photoDb
+        .getAllPhotos()
+        .map((row) => normalizeKnownFilePath(row?.file_path))
+        .filter(
+          (filePath) =>
+            typeof filePath === 'string' &&
+            filePath.trim().length > 0 &&
+            isSupportedImageFile(filePath)
+        )
+    )
+  );
+
+  if (registeredPhotoPaths.length === 0) {
+    return createRegisteredPhotoReimportResult({
+      emptyReimport: true,
+    });
+  }
+
+  const importResult = await importManyFiles(registeredPhotoPaths, progressReporter);
+
+  return createRegisteredPhotoReimportResult({
+    ...importResult,
+    selectedMonth: null,
+    registeredPhotoCount: registeredPhotoPaths.length,
   });
 }
 
@@ -4524,6 +4564,22 @@ app.whenReady().then(async () => {
       return await refreshTrackedFolderImports(folderPaths, progressReporter);
     } catch (error) {
       return createTrackedFolderRefreshResult({
+        ok: false,
+        message: error.message,
+      });
+    }
+  });
+
+  ipcMain.handle('reimport-registered-photos', async (event) => {
+    try {
+      const progressReporter = createProcessingProgressReporter(
+        event.sender,
+        'reimport-registered-photos'
+      );
+
+      return await reimportRegisteredPhotos(progressReporter);
+    } catch (error) {
+      return createRegisteredPhotoReimportResult({
         ok: false,
         message: error.message,
       });

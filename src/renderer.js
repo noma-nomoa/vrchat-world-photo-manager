@@ -261,6 +261,9 @@ const deleteAllRegistrationsButton = document.getElementById(
 const clearThumbnailCacheButton = document.getElementById(
   'clear-thumbnail-cache-btn'
 );
+const reimportRegisteredPhotosButton = document.getElementById(
+  'reimport-registered-photos-btn'
+);
 const resetDatabaseButton = document.getElementById('reset-database-btn');
 const settingsUninstallLaunchButton = document.getElementById(
   'settings-uninstall-launch-btn'
@@ -5428,6 +5431,17 @@ function syncSettingsMaintenanceUi() {
     );
   }
 
+  if (reimportRegisteredPhotosButton) {
+    const hasAnyRegistration = sidebarData.length > 0;
+    reimportRegisteredPhotosButton.disabled = isImporting || !hasAnyRegistration;
+    reimportRegisteredPhotosButton.setAttribute(
+      'title',
+      hasAnyRegistration
+        ? '既存登録画像の情報を現在の解析ロジックで更新'
+        : '再取り込みする登録がありません'
+    );
+  }
+
   if (resetDatabaseButton) {
     const hasAnyPersistedData =
       sidebarData.length > 0 || trackedFolders.length > 0;
@@ -8145,6 +8159,57 @@ async function clearThumbnailCacheFromSettings() {
   });
 }
 
+async function reimportRegisteredPhotosFromSettings() {
+  const fallbackSelection = currentSelection ? { ...currentSelection } : null;
+
+  const result = await runSettingsMaintenanceAction({
+    isBlocked: () =>
+      isImporting ||
+      sidebarData.length === 0 ||
+      !window.electronAPI.reimportRegisteredPhotos,
+    confirmOptions: {
+      title: '既存画像の情報を再取り込み',
+      message:
+        '登録済み画像から現在の解析ロジックで画像情報を再取得します。World情報、プリントのノート、解像度などは更新されますが、メモ・ラベル・手動のWorld名は保持されます。続行しますか？',
+      confirmText: '再取り込みする',
+    },
+    busyStatus: '既存画像の情報を再取り込み中...',
+    progressMessage: '既存画像の情報を再取り込み中...',
+    run: () => window.electronAPI.reimportRegisteredPhotos(),
+    onSuccess: async (currentResult) => {
+      await restorePhotoDataSelectionFromResult(currentResult, fallbackSelection);
+    },
+    buildSuccessStatus: (currentResult) => {
+      if (currentResult.emptyReimport) {
+        return '再取り込み対象の登録画像はありません';
+      }
+
+      return [
+        `再取り込み: ${currentResult.importedCount || 0}件反映`,
+        currentResult.updatedCount > 0
+          ? `更新 ${currentResult.updatedCount}件`
+          : null,
+        currentResult.failedCount > 0
+          ? `失敗 ${currentResult.failedCount}件`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' / ');
+    },
+    buildSuccessToast: (currentResult) => {
+      if (currentResult.failedCount > 0) {
+        return `再取り込み: ${currentResult.failedCount}件失敗しました`;
+      }
+
+      return '既存画像の情報を再取り込みしました';
+    },
+    buildErrorStatus: (message) => `再取り込みに失敗しました: ${message}`,
+    buildErrorToast: (message) => `再取り込みに失敗しました: ${message}`,
+  });
+
+  await queueWorldMetadataSyncForResult(result);
+}
+
 async function resetDatabaseFromSettings() {
   await runSettingsMaintenanceAction({
     isBlocked: () =>
@@ -9014,6 +9079,10 @@ function bindSettingsModalControls() {
 
   clearThumbnailCacheButton?.addEventListener('click', async () => {
     await clearThumbnailCacheFromSettings();
+  });
+
+  reimportRegisteredPhotosButton?.addEventListener('click', async () => {
+    await reimportRegisteredPhotosFromSettings();
   });
 
   resetDatabaseButton?.addEventListener('click', async () => {
