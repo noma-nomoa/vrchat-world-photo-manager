@@ -16,7 +16,7 @@
     "lint": "echo \"No linting configured\""
   },
   "keywords": [],
-  "author": "tyusk",
+  "author": "nooma",
   "license": "MIT",
   "dependencies": {
     "better-sqlite3": "^12.8.0",

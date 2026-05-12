@@ -27,7 +27,7 @@ module.exports = {
     executableName: WINDOWS_EXECUTABLE_NAME,
     icon: WINDOWS_ICON_PATH,
     win32metadata: {
-      CompanyName: 'tyusk',
+      CompanyName: 'nooma',
       FileDescription: 'WorldShot Log',
       InternalName: WINDOWS_EXECUTABLE_NAME,
       OriginalFilename: `${WINDOWS_EXECUTABLE_NAME}.exe`,
