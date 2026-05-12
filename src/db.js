@@ -1,6 +1,73 @@
 const Database = require('better-sqlite3');
 
 const SQLITE_VARIABLE_LIMIT = 900;
+
+const BACKUP_TABLE_COLUMNS = Object.freeze({
+  photos: [
+    'id',
+    'file_path',
+    'file_name',
+    'file_hash',
+    'taken_at',
+    'taken_at_timestamp',
+    'group_date',
+    'year',
+    'month',
+    'day',
+    'world_id',
+    'world_name',
+    'world_name_manual',
+    'world_url',
+    'thumbnail_path',
+    'image_width',
+    'image_height',
+    'resolution_tier',
+    'orientation_tier',
+    'print_note_text',
+    'memo_text',
+    'created_at',
+    'updated_at',
+    'is_favorite',
+  ],
+  tracked_folders: [
+    'id',
+    'folder_path',
+    'created_at',
+    'updated_at',
+    'last_imported_at',
+  ],
+  world_metadata_cache: [
+    'world_id',
+    'source_url',
+    'world_name_official',
+    'world_description',
+    'world_tags_json',
+    'author_id',
+    'author_name',
+    'release_status',
+    'image_url',
+    'thumbnail_image_url',
+    'fetch_status',
+    'fetch_error',
+    'fetched_at',
+    'last_attempted_at',
+    'created_at',
+    'updated_at',
+  ],
+  tags: [
+    'id',
+    'name',
+    'normalized_name',
+    'color_hex',
+    'created_at',
+    'updated_at',
+  ],
+  photo_tags: ['photo_id', 'tag_id', 'created_at'],
+});
+
+function quoteSqlIdentifier(identifier) {
+  return `"${String(identifier).replace(/"/g, '""')}"`;
+}
 const DEFAULT_TAG_COLOR_PALETTE = [
   '#6D5EF6',
   '#4F8CFF',
@@ -577,6 +644,10 @@ function initDatabase(dbPath) {
 
   const deleteAllPhotosStmt = db.prepare(`
     DELETE FROM photos
+  `);
+
+  const deleteAllPhotoTagsStmt = db.prepare(`
+    DELETE FROM photo_tags
   `);
 
   const deleteAllTrackedFoldersStmt = db.prepare(`
@@ -1160,12 +1231,124 @@ function initDatabase(dbPath) {
     };
   }
 
+  function getBackupTableRows(tableName, orderBy = '') {
+    const quotedTableName = quoteSqlIdentifier(tableName);
+    const suffix =
+      typeof orderBy === 'string' && orderBy.trim().length > 0
+        ? ` ORDER BY ${orderBy}`
+        : '';
+
+    return db.prepare(`SELECT * FROM ${quotedTableName}${suffix}`).all();
+  }
+
+  function createBackupSnapshot() {
+    return {
+      schemaVersion: 1,
+      tables: {
+        photos: getBackupTableRows('photos', 'id ASC'),
+        tracked_folders: getBackupTableRows('tracked_folders', 'id ASC'),
+        world_metadata_cache: getBackupTableRows(
+          'world_metadata_cache',
+          'world_id ASC'
+        ),
+        tags: getBackupTableRows('tags', 'id ASC'),
+        photo_tags: getBackupTableRows('photo_tags', 'photo_id ASC, tag_id ASC'),
+      },
+      counts: getApplicationDataSummary(),
+    };
+  }
+
+  function insertBackupRows(tableName, rows) {
+    const allowedColumns = BACKUP_TABLE_COLUMNS[tableName];
+
+    if (!Array.isArray(allowedColumns) || !Array.isArray(rows) || rows.length === 0) {
+      return 0;
+    }
+
+    const quotedTableName = quoteSqlIdentifier(tableName);
+    let insertedCount = 0;
+
+    for (const row of rows) {
+      if (!row || typeof row !== 'object') {
+        continue;
+      }
+
+      const columns = allowedColumns.filter((columnName) =>
+        Object.prototype.hasOwnProperty.call(row, columnName)
+      );
+
+      if (columns.length === 0) {
+        continue;
+      }
+
+      const values = columns.map((columnName) => row[columnName]);
+      const quotedColumns = columns.map(quoteSqlIdentifier).join(', ');
+      const placeholders = columns.map(() => '?').join(', ');
+
+      db.prepare(
+        `INSERT INTO ${quotedTableName} (${quotedColumns}) VALUES (${placeholders})`
+      ).run(...values);
+      insertedCount += 1;
+    }
+
+    return insertedCount;
+  }
+
+  function restoreBackupSnapshot(snapshot) {
+    const tables = snapshot?.tables || snapshot?.data?.tables || {};
+
+    if (!tables || typeof tables !== 'object') {
+      throw new Error('バックアップデータの形式が正しくありません');
+    }
+
+    const photoRows = Array.isArray(tables.photos) ? tables.photos : [];
+    const trackedFolderRows = Array.isArray(tables.tracked_folders)
+      ? tables.tracked_folders
+      : [];
+    const worldMetadataRows = Array.isArray(tables.world_metadata_cache)
+      ? tables.world_metadata_cache
+      : [];
+    const tagRows = Array.isArray(tables.tags) ? tables.tags : [];
+    const photoTagRows = Array.isArray(tables.photo_tags)
+      ? tables.photo_tags
+      : [];
+
+    const beforeCounts = getApplicationDataSummary();
+    const restoreTxn = db.transaction(() => {
+      deleteAllPhotoTagsStmt.run();
+      deleteAllPhotosStmt.run();
+      deleteAllTrackedFoldersStmt.run();
+      deleteAllWorldMetadataCacheStmt.run();
+      deleteAllTagsStmt.run();
+      resetSqliteSequenceStmt.run();
+
+      insertBackupRows('photos', photoRows);
+      insertBackupRows('tracked_folders', trackedFolderRows);
+      insertBackupRows('world_metadata_cache', worldMetadataRows);
+      insertBackupRows('tags', tagRows);
+      insertBackupRows('photo_tags', photoTagRows);
+    });
+
+    restoreTxn();
+
+    return {
+      beforeCounts,
+      afterCounts: getApplicationDataSummary(),
+      restoredPhotoCount: photoRows.length,
+      restoredTrackedFolderCount: trackedFolderRows.length,
+      restoredWorldCacheCount: worldMetadataRows.length,
+      restoredTagCount: tagRows.length,
+      restoredPhotoTagCount: photoTagRows.length,
+    };
+  }
+
   // Reset helpers live in the DB layer so destructive maintenance work has a
   // single place to audit instead of scattering direct DELETEs across the app.
   function resetApplicationData() {
     const counts = getApplicationDataSummary();
 
     const txn = db.transaction(() => {
+      deleteAllPhotoTagsStmt.run();
       deleteAllPhotosStmt.run();
       deleteAllTrackedFoldersStmt.run();
       deleteAllWorldMetadataCacheStmt.run();
@@ -1215,6 +1398,8 @@ function initDatabase(dbPath) {
     updatePhotoMemo,
     updatePhotoPrintNote,
     getApplicationDataSummary,
+    createBackupSnapshot,
+    restoreBackupSnapshot,
     resetApplicationData,
   };
 }

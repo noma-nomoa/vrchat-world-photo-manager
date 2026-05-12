@@ -117,6 +117,28 @@ const APP_UPDATE_SERVICE_BASE_URL = 'https://update.electronjs.org';
 const DEFAULT_APP_PREFERENCES = Object.freeze({
   backgroundImagePath: '',
 });
+const APP_DATA_BACKUP_SCHEMA_VERSION = 1;
+const PHOTO_CATALOG_EXPORT_COLUMNS = Object.freeze([
+  ['id', 'ID'],
+  ['fileName', 'File Name'],
+  ['filePath', 'File Path'],
+  ['takenAt', 'Taken At'],
+  ['groupDate', 'Group Date'],
+  ['year', 'Year'],
+  ['month', 'Month'],
+  ['day', 'Day'],
+  ['worldId', 'World ID'],
+  ['worldName', 'World Name'],
+  ['worldUrl', 'World URL'],
+  ['isFavorite', 'Favorite'],
+  ['labels', 'Labels'],
+  ['memoText', 'Memo'],
+  ['printNoteText', 'Print Note'],
+  ['imageWidth', 'Image Width'],
+  ['imageHeight', 'Image Height'],
+  ['resolutionTier', 'Resolution'],
+  ['orientationTier', 'Orientation'],
+]);
 
 const pendingWorldMetadataSyncTargets = new Map();
 const worldMetadataSyncSubscribers = new Set();
@@ -193,6 +215,389 @@ async function setBackgroundImagePreference(filePath) {
 
 function getDatabaseDirectoryPath() {
   return preferencesFilePath ? path.dirname(preferencesFilePath) : '';
+}
+
+function formatFileTimestamp(date = new Date()) {
+  const pad = (value) => String(value).padStart(2, '0');
+
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+    '-',
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+  ].join('');
+}
+
+function buildExportDefaultPath(fileName) {
+  return path.join(app.getPath('documents'), fileName);
+}
+
+function getBackupCounts(snapshot) {
+  const counts = snapshot?.data?.counts || snapshot?.counts || {};
+  const tables = snapshot?.data?.tables || snapshot?.tables || {};
+
+  return {
+    photoCount:
+      Number(counts.photoCount) ||
+      (Array.isArray(tables.photos) ? tables.photos.length : 0),
+    trackedFolderCount:
+      Number(counts.trackedFolderCount) ||
+      (Array.isArray(tables.tracked_folders)
+        ? tables.tracked_folders.length
+        : 0),
+    worldCacheCount:
+      Number(counts.worldCacheCount) ||
+      (Array.isArray(tables.world_metadata_cache)
+        ? tables.world_metadata_cache.length
+        : 0),
+    tagCount:
+      Number(counts.tagCount) ||
+      (Array.isArray(tables.tags) ? tables.tags.length : 0),
+  };
+}
+
+function csvEscape(value) {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  const text = String(value);
+
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  return text;
+}
+
+function buildCsvContent(rows, columns) {
+  const header = columns.map(([, label]) => csvEscape(label)).join(',');
+  const body = rows.map((row) =>
+    columns.map(([key]) => csvEscape(row[key])).join(',')
+  );
+
+  return [header, ...body].join('\r\n');
+}
+
+function createPhotoCatalogExportRows() {
+  const rows = attachPhotoLabelsToRows(photoDb.getAllPhotosWithWorldInfo());
+
+  return rows.map((row) => {
+    const worldMetadata = row.world_id
+      ? photoDb.getWorldMetadataByWorldId(row.world_id)
+      : null;
+    const labels = (Array.isArray(row.photo_labels) ? row.photo_labels : [])
+      .map(toRendererPhotoLabel)
+      .filter(Boolean);
+    const labelNames = labels.map((label) => label.name).filter(Boolean);
+    const worldName =
+      normalizeDisplayWorldName(row.world_name_manual || row.world_name) ||
+      normalizeOfficialWorldText(worldMetadata?.world_name_official) ||
+      '';
+
+    return {
+      id: row.id,
+      fileName: row.file_name || '',
+      filePath: row.file_path || '',
+      takenAt: row.taken_at || '',
+      groupDate: row.group_date || '',
+      year: row.year || '',
+      month: row.month || '',
+      day: row.day || '',
+      worldId: row.world_id || '',
+      worldName,
+      worldUrl: row.world_url || buildWorldUrlFromId(row.world_id) || '',
+      isFavorite: row.is_favorite ? 'true' : 'false',
+      labels: labelNames.join('; '),
+      memoText: row.memo_text || '',
+      printNoteText: normalizePhotoPrintNoteText(row.print_note_text) || '',
+      imageWidth: row.image_width || '',
+      imageHeight: row.image_height || '',
+      resolutionTier: row.resolution_tier || '',
+      orientationTier: row.orientation_tier || '',
+    };
+  });
+}
+
+function createHealthIssue(row, message, extra = {}) {
+  return {
+    photoId: row.id,
+    fileName: row.file_name || '',
+    filePath: row.file_path || '',
+    worldId: row.world_id || '',
+    worldName:
+      normalizeDisplayWorldName(row.world_name_manual || row.world_name) || '',
+    message,
+    ...extra,
+  };
+}
+
+function pushHealthIssue(target, issue, limit = 50) {
+  if (target.length < limit) {
+    target.push(issue);
+  }
+}
+
+function getWorldMetadataHealthIssue(row) {
+  const normalizedWorldId =
+    normalizeWorldId(row.world_id) || parseWorldIdFromUrl(row.world_url);
+
+  if (!normalizedWorldId) {
+    return null;
+  }
+
+  const metadataRow = photoDb.getWorldMetadataByWorldId(normalizedWorldId);
+
+  if (metadataRow && metadataRow.fetch_status === 'success') {
+    return null;
+  }
+
+  return {
+    worldId: normalizedWorldId,
+    fetchStatus: metadataRow?.fetch_status || 'missing',
+    message:
+      metadataRow?.fetch_error ||
+      (metadataRow
+        ? `Worldメタデータ取得状態: ${metadataRow.fetch_status || 'unknown'}`
+        : 'Worldメタデータが未取得です'),
+  };
+}
+
+async function checkApplicationDataHealth() {
+  const rows = photoDb.getAllPhotosWithWorldInfo();
+  const issues = {
+    missingOriginalFiles: [],
+    missingThumbnails: [],
+    missingWorldInfo: [],
+    worldMetadataIssues: [],
+  };
+  const summary = {
+    totalPhotoCount: rows.length,
+    missingOriginalCount: 0,
+    missingThumbnailCount: 0,
+    missingWorldInfoCount: 0,
+    worldMetadataIssueCount: 0,
+  };
+
+  for (const row of rows) {
+    const originalPath = normalizeKnownFilePath(row.file_path);
+    const originalExists = originalPath ? await pathExists(originalPath) : false;
+
+    if (!originalExists) {
+      summary.missingOriginalCount += 1;
+      pushHealthIssue(
+        issues.missingOriginalFiles,
+        createHealthIssue(row, '元画像ファイルが見つかりません')
+      );
+    }
+
+    const thumbnailPath =
+      typeof row.thumbnail_path === 'string' ? row.thumbnail_path.trim() : '';
+
+    if (!thumbnailPath || !(await pathExists(thumbnailPath))) {
+      summary.missingThumbnailCount += 1;
+      pushHealthIssue(
+        issues.missingThumbnails,
+        createHealthIssue(
+          row,
+          thumbnailPath
+            ? 'サムネイルファイルが見つかりません'
+            : 'サムネイルが未生成です',
+          { thumbnailPath }
+        )
+      );
+    }
+
+    const normalizedWorldId =
+      normalizeWorldId(row.world_id) || parseWorldIdFromUrl(row.world_url);
+    const displayWorldName = normalizeDisplayWorldName(
+      row.world_name_manual || row.world_name
+    );
+
+    if (!normalizedWorldId && !displayWorldName && !row.world_url) {
+      summary.missingWorldInfoCount += 1;
+      pushHealthIssue(
+        issues.missingWorldInfo,
+        createHealthIssue(row, 'World情報が未取得です')
+      );
+      continue;
+    }
+
+    const worldMetadataIssue = getWorldMetadataHealthIssue(row);
+
+    if (worldMetadataIssue) {
+      summary.worldMetadataIssueCount += 1;
+      pushHealthIssue(
+        issues.worldMetadataIssues,
+        createHealthIssue(row, worldMetadataIssue.message, {
+          worldId: worldMetadataIssue.worldId,
+          fetchStatus: worldMetadataIssue.fetchStatus,
+        })
+      );
+    }
+  }
+
+  return {
+    ok: true,
+    checkedAt: new Date().toISOString(),
+    ...summary,
+    healthy:
+      summary.missingOriginalCount === 0 &&
+      summary.missingThumbnailCount === 0 &&
+      summary.missingWorldInfoCount === 0 &&
+      summary.worldMetadataIssueCount === 0,
+    issues,
+  };
+}
+
+async function getWorldMetadataIssuePhotos() {
+  const rows = photoDb
+    .getAllPhotosWithWorldInfo()
+    .filter((row) => Boolean(getWorldMetadataHealthIssue(row)));
+  const preparedRows = await prepareRowsForRenderer(rows);
+
+  return {
+    ok: true,
+    photoCount: preparedRows.length,
+    photos: preparedRows.map(toRendererPhoto),
+  };
+}
+
+async function createAppDataBackupFile() {
+  const timestamp = formatFileTimestamp();
+  const result = await dialog.showSaveDialog({
+    title: 'WorldShot Log のバックアップを保存',
+    defaultPath: buildExportDefaultPath(
+      `worldshot-log-backup-${timestamp}.json`
+    ),
+    filters: [{ name: 'WorldShot Log Backup', extensions: ['json'] }],
+  });
+
+  if (result.canceled || !result.filePath) {
+    return { ok: true, canceled: true };
+  }
+
+  const dbSnapshot = photoDb.createBackupSnapshot();
+  const payload = {
+    appName: APP_DISPLAY_NAME,
+    appVersion: app.getVersion(),
+    backupSchemaVersion: APP_DATA_BACKUP_SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    preferences: await readAppPreferences(),
+    data: dbSnapshot,
+  };
+
+  await fs.writeFile(result.filePath, JSON.stringify(payload, null, 2), 'utf8');
+
+  return {
+    ok: true,
+    canceled: false,
+    filePath: result.filePath,
+    fileName: path.basename(result.filePath),
+    ...getBackupCounts(payload),
+  };
+}
+
+async function restoreAppDataBackupFile() {
+  const result = await dialog.showOpenDialog({
+    title: 'WorldShot Log のバックアップを選択',
+    properties: ['openFile'],
+    filters: [{ name: 'WorldShot Log Backup', extensions: ['json'] }],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return { ok: true, canceled: true };
+  }
+
+  const filePath = result.filePaths[0];
+  const raw = await fs.readFile(filePath, 'utf8');
+  const parsed = JSON.parse(raw);
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('バックアップファイルを読み込めませんでした');
+  }
+
+  if (parsed.appName && parsed.appName !== APP_DISPLAY_NAME) {
+    throw new Error('WorldShot Log のバックアップではありません');
+  }
+
+  const restoreResult = photoDb.restoreBackupSnapshot(parsed.data || parsed);
+
+  if (parsed.preferences && typeof parsed.preferences === 'object') {
+    await writeAppPreferences(parsed.preferences);
+  }
+
+  return {
+    ok: true,
+    canceled: false,
+    filePath,
+    fileName: path.basename(filePath),
+    ...restoreResult.afterCounts,
+    restoredPhotoCount: restoreResult.restoredPhotoCount,
+    restoredTrackedFolderCount: restoreResult.restoredTrackedFolderCount,
+    restoredWorldCacheCount: restoreResult.restoredWorldCacheCount,
+    restoredTagCount: restoreResult.restoredTagCount,
+  };
+}
+
+async function exportPhotoCatalogFile(format = 'csv') {
+  const normalizedFormat = format === 'json' ? 'json' : 'csv';
+  const timestamp = formatFileTimestamp();
+  const result = await dialog.showSaveDialog({
+    title:
+      normalizedFormat === 'json'
+        ? '写真一覧をJSONでエクスポート'
+        : '写真一覧をCSVでエクスポート',
+    defaultPath: buildExportDefaultPath(
+      `worldshot-log-photos-${timestamp}.${normalizedFormat}`
+    ),
+    filters: [
+      normalizedFormat === 'json'
+        ? { name: 'JSON Files', extensions: ['json'] }
+        : { name: 'CSV Files', extensions: ['csv'] },
+    ],
+  });
+
+  if (result.canceled || !result.filePath) {
+    return { ok: true, canceled: true, format: normalizedFormat };
+  }
+
+  const photos = createPhotoCatalogExportRows();
+
+  if (normalizedFormat === 'json') {
+    await fs.writeFile(
+      result.filePath,
+      JSON.stringify(
+        {
+          appName: APP_DISPLAY_NAME,
+          appVersion: app.getVersion(),
+          exportedAt: new Date().toISOString(),
+          photos,
+        },
+        null,
+        2
+      ),
+      'utf8'
+    );
+  } else {
+    await fs.writeFile(
+      result.filePath,
+      buildCsvContent(photos, PHOTO_CATALOG_EXPORT_COLUMNS),
+      'utf8'
+    );
+  }
+
+  return {
+    ok: true,
+    canceled: false,
+    format: normalizedFormat,
+    filePath: result.filePath,
+    fileName: path.basename(result.filePath),
+    photoCount: photos.length,
+  };
 }
 
 function getThumbnailStorageRootPath(dirname = APP_STORAGE_DIRNAME) {
@@ -4413,6 +4818,64 @@ app.whenReady().then(async () => {
         trackedFolderCount: 0,
         worldCacheCount: 0,
         tagCount: 0,
+      };
+    }
+  });
+
+  ipcMain.handle('check-app-data-health', async () => {
+    try {
+      return await checkApplicationDataHealth();
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+      };
+    }
+  });
+
+  ipcMain.handle('get-world-metadata-issue-photos', async () => {
+    try {
+      return await getWorldMetadataIssuePhotos();
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        photoCount: 0,
+        photos: [],
+      };
+    }
+  });
+
+  ipcMain.handle('create-app-data-backup', async () => {
+    try {
+      return await createAppDataBackupFile();
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+      };
+    }
+  });
+
+  ipcMain.handle('restore-app-data-backup', async () => {
+    try {
+      return await restoreAppDataBackupFile();
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+      };
+    }
+  });
+
+  ipcMain.handle('export-photo-catalog', async (_event, payload) => {
+    try {
+      return await exportPhotoCatalogFile(payload?.format);
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        format: payload?.format === 'json' ? 'json' : 'csv',
       };
     }
   });
