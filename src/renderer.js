@@ -249,9 +249,12 @@ const settingsMaintenanceActions = settingsMaintenanceSection?.querySelector(
   '.settings-maintenance-actions'
 );
 const settingsDataSection = settingsModal?.querySelector('.settings-data-section');
+const settingsDataToggleButton = document.getElementById('settings-data-toggle');
+const settingsDataPanel = document.getElementById('settings-data-panel');
 const settingsDataStatus = document.getElementById('settings-data-status');
 let trackedFolderSettingsMeta = null;
 let settingsMaintenanceStatus = null;
+let isSettingsDataSectionOpen = false;
 const addTrackedFolderButton = document.getElementById('add-tracked-folder-btn');
 const trackedFolderList = document.getElementById('tracked-folder-list');
 const deleteCurrentMonthRegistrationsButton = document.getElementById(
@@ -273,8 +276,23 @@ const createAppDataBackupButton = document.getElementById(
 const checkAppDataHealthButton = document.getElementById(
   'check-app-data-health-btn'
 );
+const showMissingOriginalFilesButton = document.getElementById(
+  'show-missing-original-files-btn'
+);
+const showMissingThumbnailsButton = document.getElementById(
+  'show-missing-thumbnails-btn'
+);
+const showMissingWorldInfoButton = document.getElementById(
+  'show-missing-world-info-btn'
+);
 const showWorldMetadataIssuesButton = document.getElementById(
   'show-world-metadata-issues-btn'
+);
+const regenerateMissingThumbnailsButton = document.getElementById(
+  'regenerate-missing-thumbnails-btn'
+);
+const refreshWorldMetadataIssuesButton = document.getElementById(
+  'refresh-world-metadata-issues-btn'
 );
 const restoreAppDataBackupButton = document.getElementById(
   'restore-app-data-backup-btn'
@@ -578,6 +596,47 @@ function createWorldSelection(worldKey, worldName, worldId = null) {
   };
 }
 
+const HEALTH_ISSUE_VIEW_META = Object.freeze({
+  'missing-original': {
+    label: '元画像なし',
+    busyStatus: '元画像なしの写真を抽出中...',
+    progressMessage: '元画像ファイルが見つからない写真を集めています...',
+    successPrefix: '元画像なし',
+    emptyToast: '元画像なしの写真はありません',
+    successToast: (count) => `元画像なしの写真を${count}件表示しました`,
+    errorPrefix: '元画像なし画像の抽出',
+  },
+  'missing-thumbnail': {
+    label: 'サムネイルなし',
+    busyStatus: 'サムネイルなしの写真を抽出中...',
+    progressMessage: 'サムネイルが欠損している写真を集めています...',
+    successPrefix: 'サムネイルなし',
+    emptyToast: 'サムネイルなしの写真はありません',
+    successToast: (count) => `サムネイルなしの写真を${count}件表示しました`,
+    errorPrefix: 'サムネイルなし画像の抽出',
+  },
+  'missing-world-info': {
+    label: 'World情報未取得',
+    busyStatus: 'World情報未取得の写真を抽出中...',
+    progressMessage: 'World情報が未取得の写真を集めています...',
+    successPrefix: 'World情報未取得',
+    emptyToast: 'World情報未取得の写真はありません',
+    successToast: (count) =>
+      `World情報未取得の写真を${count}件表示しました`,
+    errorPrefix: 'World情報未取得画像の抽出',
+  },
+  'world-metadata': {
+    label: 'Worldメタデータ要確認',
+    busyStatus: 'World要確認画像を抽出中...',
+    progressMessage: 'Worldメタデータ要確認の写真を集めています...',
+    successPrefix: 'Worldメタデータ要確認',
+    emptyToast: 'Worldメタデータ要確認の写真はありません',
+    successToast: (count) =>
+      `Worldメタデータ要確認の写真を${count}件表示しました`,
+    errorPrefix: 'World要確認画像の抽出',
+  },
+});
+
 function createHealthSelection(kind, label) {
   return {
     mode: 'health',
@@ -588,10 +647,12 @@ function createHealthSelection(kind, label) {
 
 function normalizeSelection(selection) {
   if (selection?.mode === 'health') {
-    const normalizedKind =
+    const rawKind =
       typeof selection.kind === 'string' && selection.kind.trim().length > 0
         ? selection.kind.trim()
         : null;
+    const normalizedKind =
+      rawKind === 'world-metadata-issues' ? 'world-metadata' : rawKind;
     const normalizedLabel =
       typeof selection.label === 'string' && selection.label.trim().length > 0
         ? selection.label.trim()
@@ -5802,11 +5863,29 @@ function setSettingsDataStatus(message = '', tone = 'default') {
   }
 }
 
+function setSettingsDataSectionOpen(isOpen) {
+  isSettingsDataSectionOpen = Boolean(isOpen);
+  settingsDataSection?.classList.toggle('is-open', isSettingsDataSectionOpen);
+  settingsDataToggleButton?.setAttribute(
+    'aria-expanded',
+    String(isSettingsDataSectionOpen)
+  );
+  settingsDataPanel?.setAttribute(
+    'aria-hidden',
+    String(!isSettingsDataSectionOpen)
+  );
+}
+
 function syncSettingsDataUi() {
   const buttons = [
     createAppDataBackupButton,
     checkAppDataHealthButton,
+    showMissingOriginalFilesButton,
+    showMissingThumbnailsButton,
+    showMissingWorldInfoButton,
     showWorldMetadataIssuesButton,
+    regenerateMissingThumbnailsButton,
+    refreshWorldMetadataIssuesButton,
     restoreAppDataBackupButton,
     exportPhotoCatalogCsvButton,
     exportPhotoCatalogJsonButton,
@@ -5817,6 +5896,14 @@ function syncSettingsDataUi() {
     button.disabled = disabled;
   }
 
+  settingsDataToggleButton?.setAttribute(
+    'title',
+    isSettingsDataSectionOpen ? 'データ管理を閉じる' : 'データ管理を開く'
+  );
+  settingsDataToggleButton?.setAttribute(
+    'aria-label',
+    isSettingsDataSectionOpen ? 'データ管理を閉じる' : 'データ管理を開く'
+  );
   createAppDataBackupButton?.setAttribute(
     'title',
     disabled ? '処理中はバックアップできません' : 'アプリデータをJSONでバックアップ'
@@ -5825,11 +5912,35 @@ function syncSettingsDataUi() {
     'title',
     disabled ? '処理中は状態チェックできません' : '登録データの状態をチェック'
   );
+  showMissingOriginalFilesButton?.setAttribute(
+    'title',
+    disabled ? '処理中は抽出できません' : '元画像なしの写真だけを表示'
+  );
+  showMissingThumbnailsButton?.setAttribute(
+    'title',
+    disabled ? '処理中は抽出できません' : 'サムネイルなしの写真だけを表示'
+  );
+  showMissingWorldInfoButton?.setAttribute(
+    'title',
+    disabled ? '処理中は抽出できません' : 'World情報未取得の写真だけを表示'
+  );
   showWorldMetadataIssuesButton?.setAttribute(
     'title',
     disabled
       ? '処理中は抽出できません'
       : 'Worldメタデータ要確認の写真だけを表示'
+  );
+  regenerateMissingThumbnailsButton?.setAttribute(
+    'title',
+    disabled
+      ? '処理中は再生成できません'
+      : '欠損しているサムネイルだけを再生成'
+  );
+  refreshWorldMetadataIssuesButton?.setAttribute(
+    'title',
+    disabled
+      ? '処理中は再取得できません'
+      : 'Worldメタデータ要確認の該当分だけを再取得'
   );
   restoreAppDataBackupButton?.setAttribute(
     'title',
@@ -7837,6 +7948,8 @@ async function selectCurrentSelection(selection = currentSelection) {
     }
 
     await selectWorld(matchingWorldEntry);
+  } else if (normalizedSelection.mode === 'health') {
+    await reloadHealthIssueSelection(normalizedSelection.kind);
   } else if (normalizedSelection.mode === 'year') {
     await selectYear(normalizedSelection.year);
   } else {
@@ -8531,6 +8644,7 @@ async function runSettingsDataAction({
     progressMessage,
     showProgress: Boolean(progressMessage),
   });
+  setSettingsDataSectionOpen(true);
   setSettingsDataStatus(busyStatus, 'busy');
 
   try {
@@ -8651,35 +8765,146 @@ async function checkAppDataHealthFromSettings() {
   });
 }
 
-async function showWorldMetadataIssuePhotosFromSettings() {
-  await runSettingsDataAction({
-    isBlocked: () =>
-      isImporting || !window.electronAPI.getWorldMetadataIssuePhotos,
-    busyStatus: 'World要確認画像を抽出中...',
-    progressMessage: 'Worldメタデータ要確認の写真を集めています...',
-    run: () => window.electronAPI.getWorldMetadataIssuePhotos(),
-    onSuccess: async (result) => {
-      const photos = Array.isArray(result.photos) ? result.photos : [];
+function getHealthIssueViewMeta(issueKind) {
+  return (
+    HEALTH_ISSUE_VIEW_META[issueKind] ||
+    HEALTH_ISSUE_VIEW_META['world-metadata']
+  );
+}
 
-      setCurrentSelectionValue(
-        createHealthSelection('world-metadata-issues', 'Worldメタデータ要確認')
-      );
-      setCurrentMonthPhotos(photos);
-      clearSelectionState();
-      syncSelectionLinkedUi({ forceSidebarRender: true });
-      stopScrollToTopAnimation();
-      scrollGalleryViewToTop({ animated: false });
-      renderMonthGallery({ resetProgressive: true });
-      closeSettingsModal();
+function renderHealthIssuePhotos(issueKind, photos, { closeSettings = true } = {}) {
+  const meta = getHealthIssueViewMeta(issueKind);
+
+  setCurrentSelectionValue(createHealthSelection(issueKind, meta.label));
+  setCurrentMonthPhotos(Array.isArray(photos) ? photos : []);
+  clearSelectionState();
+  syncSelectionLinkedUi({ forceSidebarRender: true });
+  stopScrollToTopAnimation();
+  scrollGalleryViewToTop({ animated: false });
+  renderMonthGallery({ resetProgressive: true });
+
+  if (closeSettings) {
+    closeSettingsModal();
+  }
+}
+
+async function fetchHealthIssuePhotos(issueKind) {
+  if (window.electronAPI.getHealthIssuePhotos) {
+    return window.electronAPI.getHealthIssuePhotos(issueKind);
+  }
+
+  if (
+    issueKind === 'world-metadata' &&
+    window.electronAPI.getWorldMetadataIssuePhotos
+  ) {
+    return window.electronAPI.getWorldMetadataIssuePhotos();
+  }
+
+  return {
+    ok: false,
+    message: '状態チェックカテゴリの抽出APIが利用できません',
+    photoCount: 0,
+    photos: [],
+  };
+}
+
+async function reloadHealthIssueSelection(issueKind) {
+  const result = await fetchHealthIssuePhotos(issueKind);
+
+  if (!result?.ok) {
+    throw new Error(result?.message || '状態チェック結果の再読み込みに失敗しました');
+  }
+
+  renderHealthIssuePhotos(issueKind, result.photos, { closeSettings: false });
+  return result;
+}
+
+async function showHealthIssuePhotosFromSettings(issueKind) {
+  const meta = getHealthIssueViewMeta(issueKind);
+
+  await runSettingsDataAction({
+    isBlocked: () => isImporting || !window.electronAPI.getHealthIssuePhotos,
+    busyStatus: meta.busyStatus,
+    progressMessage: meta.progressMessage,
+    run: () => fetchHealthIssuePhotos(issueKind),
+    onSuccess: async (result) => {
+      renderHealthIssuePhotos(issueKind, result.photos);
     },
     buildSuccessStatus: (result) =>
-      `Worldメタデータ要確認: ${result.photoCount || 0}件を表示`,
+      `${meta.successPrefix}: ${result.photoCount || 0}件を表示`,
     buildSuccessToast: (result) =>
       result.photoCount > 0
-        ? `Worldメタデータ要確認の写真を${result.photoCount}件表示しました`
-        : 'Worldメタデータ要確認の写真はありません',
-    buildErrorStatus: (message) => `World要確認画像の抽出に失敗しました: ${message}`,
-    buildErrorToast: (message) => `World要確認画像の抽出に失敗しました: ${message}`,
+        ? meta.successToast(result.photoCount)
+        : meta.emptyToast,
+    buildErrorStatus: (message) => `${meta.errorPrefix}に失敗しました: ${message}`,
+    buildErrorToast: (message) => `${meta.errorPrefix}に失敗しました: ${message}`,
+  });
+}
+
+async function showWorldMetadataIssuePhotosFromSettings() {
+  await showHealthIssuePhotosFromSettings('world-metadata');
+}
+
+async function regenerateMissingThumbnailsFromSettings() {
+  await runSettingsDataAction({
+    isBlocked: () =>
+      isImporting || !window.electronAPI.regenerateMissingThumbnails,
+    confirmOptions: {
+      title: '欠損サムネイルを再生成',
+      message:
+        '状態チェックでサムネイルなしに該当する写真だけを再生成します。元画像が見つからない写真は失敗として記録されます。続行しますか？',
+      confirmText: '再生成する',
+    },
+    busyStatus: '欠損サムネイルを再生成中...',
+    progressMessage: 'サムネイルが欠損している写真だけを再生成しています...',
+    run: () => window.electronAPI.regenerateMissingThumbnails(),
+    onSuccess: async () => {
+      if (isHealthSelection(currentSelection)) {
+        await reloadHealthIssueSelection(currentSelection.kind);
+      } else {
+        await selectCurrentSelection();
+      }
+    },
+    buildSuccessStatus: (result) =>
+      `欠損サムネイル再生成: ${result.regeneratedCount || 0}件 / ` +
+      `対象 ${result.totalCount || 0}件` +
+      (result.failedCount > 0 ? ` / 失敗 ${result.failedCount}件` : ''),
+    buildSuccessToast: (result) =>
+      result.failedCount > 0
+        ? `欠損サムネイル再生成: ${result.failedCount}件失敗しました`
+        : '欠損サムネイルの再生成が完了しました',
+    buildErrorStatus: (message) =>
+      `欠損サムネイル再生成に失敗しました: ${message}`,
+    buildErrorToast: (message) =>
+      `欠損サムネイル再生成に失敗しました: ${message}`,
+  });
+}
+
+async function refreshWorldMetadataIssuesFromSettings() {
+  await runSettingsDataAction({
+    isBlocked: () =>
+      isImporting || !window.electronAPI.refreshWorldMetadataIssues,
+    busyStatus: 'World要確認分を再取得中...',
+    progressMessage: 'Worldメタデータ要確認の該当分だけ再取得しています...',
+    run: () => window.electronAPI.refreshWorldMetadataIssues(),
+    onSuccess: async () => {
+      if (
+        isHealthSelection(currentSelection) &&
+        currentSelection.kind === 'world-metadata'
+      ) {
+        await reloadHealthIssueSelection('world-metadata');
+      }
+    },
+    buildSuccessStatus: (result) =>
+      `World要確認再取得: ${result.queuedCount || 0}件キュー投入 / ` +
+      `対象World ${result.targetCount || 0}件 / ` +
+      `該当写真 ${result.photoCount || 0}件`,
+    buildSuccessToast: (result) =>
+      result.queuedCount > 0
+        ? `World要確認の再取得を${result.queuedCount}件開始しました`
+        : '再取得が必要なWorld要確認はありません',
+    buildErrorStatus: (message) => `World要確認再取得に失敗しました: ${message}`,
+    buildErrorToast: (message) => `World要確認再取得に失敗しました: ${message}`,
   });
 }
 
@@ -8722,7 +8947,10 @@ async function restoreAppDataBackupFromSettings() {
     buildSuccessStatus: (result) =>
       `復元完了: 写真 ${result.photoCount || result.restoredPhotoCount || 0}件 / ` +
       `フォルダ ${result.trackedFolderCount || 0}件 / ` +
-      `ラベル ${result.tagCount || 0}件`,
+      `ラベル ${result.tagCount || 0}件` +
+      (result.automaticBackupFileName
+        ? ` / 復元前バックアップ ${result.automaticBackupFileName}`
+        : ''),
     buildSuccessToast: () => 'バックアップから復元しました',
     buildErrorStatus: (message) => `バックアップ復元に失敗しました: ${message}`,
     buildErrorToast: (message) => `バックアップ復元に失敗しました: ${message}`,
@@ -8950,7 +9178,10 @@ async function resetDatabaseFromSettings() {
       `DB初期化: 写真 ${result.photoCount || 0}件 / ` +
       `フォルダ ${result.trackedFolderCount || 0}件 / ` +
       `キャッシュ ${result.worldCacheCount || 0}件 / ` +
-      `ラベル ${result.tagCount || 0}件`,
+      `ラベル ${result.tagCount || 0}件` +
+      (result.automaticBackupFileName
+        ? ` / 初期化前バックアップ ${result.automaticBackupFileName}`
+        : ''),
     buildSuccessToast: () => 'DBを初期化しました',
     buildErrorStatus: (message) => `DB初期化に失敗しました: ${message}`,
     buildErrorToast: (message) => `DB初期化に失敗しました: ${message}`,
@@ -9712,6 +9943,11 @@ function bindSettingsModalControls() {
     await clearBackgroundImageFromSettings();
   });
 
+  settingsDataToggleButton?.addEventListener('click', () => {
+    setSettingsDataSectionOpen(!isSettingsDataSectionOpen);
+    syncSettingsDataUi();
+  });
+
   createAppDataBackupButton?.addEventListener('click', async () => {
     await createAppDataBackupFromSettings();
   });
@@ -9720,8 +9956,28 @@ function bindSettingsModalControls() {
     await checkAppDataHealthFromSettings();
   });
 
+  showMissingOriginalFilesButton?.addEventListener('click', async () => {
+    await showHealthIssuePhotosFromSettings('missing-original');
+  });
+
+  showMissingThumbnailsButton?.addEventListener('click', async () => {
+    await showHealthIssuePhotosFromSettings('missing-thumbnail');
+  });
+
+  showMissingWorldInfoButton?.addEventListener('click', async () => {
+    await showHealthIssuePhotosFromSettings('missing-world-info');
+  });
+
   showWorldMetadataIssuesButton?.addEventListener('click', async () => {
     await showWorldMetadataIssuePhotosFromSettings();
+  });
+
+  regenerateMissingThumbnailsButton?.addEventListener('click', async () => {
+    await regenerateMissingThumbnailsFromSettings();
+  });
+
+  refreshWorldMetadataIssuesButton?.addEventListener('click', async () => {
+    await refreshWorldMetadataIssuesFromSettings();
   });
 
   restoreAppDataBackupButton?.addEventListener('click', async () => {

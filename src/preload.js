@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   regenerateThumbnails: (payload) =>
     ipcRenderer.invoke('regenerate-thumbnails', payload),
+  regenerateMissingThumbnails: () =>
+    ipcRenderer.invoke('regenerate-missing-thumbnails'),
   reimportRegisteredPhotos: (payload) =>
     ipcRenderer.invoke('reimport-registered-photos', payload),
   deletePhoto: (photoId) => ipcRenderer.invoke('delete-photo', { photoId }),
@@ -36,8 +38,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearThumbnailCache: () => ipcRenderer.invoke('clear-thumbnail-cache'),
   resetDatabase: () => ipcRenderer.invoke('reset-database'),
   checkAppDataHealth: () => ipcRenderer.invoke('check-app-data-health'),
+  getHealthIssuePhotos: (issueKind) =>
+    ipcRenderer.invoke('get-health-issue-photos', { issueKind }),
   getWorldMetadataIssuePhotos: () =>
     ipcRenderer.invoke('get-world-metadata-issue-photos'),
+  refreshWorldMetadataIssues: () =>
+    ipcRenderer.invoke('refresh-world-metadata-issues'),
   createAppDataBackup: () => ipcRenderer.invoke('create-app-data-backup'),
   restoreAppDataBackup: () => ipcRenderer.invoke('restore-app-data-backup'),
   exportPhotoCatalog: (format) =>

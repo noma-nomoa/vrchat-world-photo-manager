@@ -235,6 +235,48 @@ function buildExportDefaultPath(fileName) {
   return path.join(app.getPath('documents'), fileName);
 }
 
+function buildAppDataBackupPayload() {
+  const dbSnapshot = photoDb.createBackupSnapshot();
+
+  return {
+    appName: APP_DISPLAY_NAME,
+    appVersion: app.getVersion(),
+    backupSchemaVersion: APP_DATA_BACKUP_SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    data: dbSnapshot,
+  };
+}
+
+async function buildAppDataBackupPayloadWithPreferences() {
+  return {
+    ...buildAppDataBackupPayload(),
+    preferences: await readAppPreferences(),
+  };
+}
+
+async function createAutomaticAppDataBackupFile(reason = 'maintenance') {
+  const normalizedReason =
+    typeof reason === 'string' && reason.trim().length > 0
+      ? reason.trim().replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '')
+      : 'maintenance';
+  const backupDirectoryPath = path.join(getDatabaseDirectoryPath(), 'backups');
+  const filePath = path.join(
+    backupDirectoryPath,
+    `worldshot-log-auto-backup-${normalizedReason}-${formatFileTimestamp()}.json`
+  );
+  const payload = await buildAppDataBackupPayloadWithPreferences();
+
+  await ensureDir(backupDirectoryPath);
+  await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
+
+  return {
+    ok: true,
+    filePath,
+    fileName: path.basename(filePath),
+    ...getBackupCounts(payload),
+  };
+}
+
 function getBackupCounts(snapshot) {
   const counts = snapshot?.data?.counts || snapshot?.counts || {};
   const tables = snapshot?.data?.tables || snapshot?.tables || {};
@@ -341,7 +383,7 @@ function pushHealthIssue(target, issue, limit = 50) {
   }
 }
 
-function getWorldMetadataHealthIssue(row) {
+function getWorldMetadataHealthIssue(row, metadataCache = null) {
   const normalizedWorldId =
     normalizeWorldId(row.world_id) || parseWorldIdFromUrl(row.world_url);
 
@@ -349,7 +391,20 @@ function getWorldMetadataHealthIssue(row) {
     return null;
   }
 
-  const metadataRow = photoDb.getWorldMetadataByWorldId(normalizedWorldId);
+  let metadataRow;
+
+  if (metadataCache instanceof Map) {
+    if (!metadataCache.has(normalizedWorldId)) {
+      metadataCache.set(
+        normalizedWorldId,
+        photoDb.getWorldMetadataByWorldId(normalizedWorldId)
+      );
+    }
+
+    metadataRow = metadataCache.get(normalizedWorldId);
+  } else {
+    metadataRow = photoDb.getWorldMetadataByWorldId(normalizedWorldId);
+  }
 
   if (metadataRow && metadataRow.fetch_status === 'success') {
     return null;
@@ -366,8 +421,99 @@ function getWorldMetadataHealthIssue(row) {
   };
 }
 
+async function analyzePhotoHealthRow(row, metadataCache = null) {
+  const originalPath = normalizeKnownFilePath(row.file_path);
+  const thumbnailPath =
+    typeof row.thumbnail_path === 'string' ? row.thumbnail_path.trim() : '';
+  const [originalExists, thumbnailExists] = await Promise.all([
+    originalPath ? pathExists(originalPath) : Promise.resolve(false),
+    thumbnailPath ? pathExists(thumbnailPath) : Promise.resolve(false),
+  ]);
+  const normalizedWorldId =
+    normalizeWorldId(row.world_id) || parseWorldIdFromUrl(row.world_url);
+  const displayWorldName = normalizeDisplayWorldName(
+    row.world_name_manual || row.world_name
+  );
+  const missingWorldInfo =
+    !normalizedWorldId && !displayWorldName && !row.world_url;
+  const worldMetadataIssue = missingWorldInfo
+    ? null
+    : getWorldMetadataHealthIssue(row, metadataCache);
+
+  return {
+    row,
+    originalPath,
+    thumbnailPath,
+    originalExists,
+    thumbnailExists,
+    missingOriginal: !originalExists,
+    missingThumbnail: !thumbnailPath || !thumbnailExists,
+    missingWorldInfo,
+    worldMetadataIssue,
+  };
+}
+
+function getHealthIssueRowsFromAnalyses(analyses, issueKind) {
+  const normalizedIssueKind = normalizeHealthIssueKind(issueKind);
+
+  return (Array.isArray(analyses) ? analyses : [])
+    .filter((analysis) => {
+      if (!analysis?.row) {
+        return false;
+      }
+
+      if (normalizedIssueKind === 'missing-original') {
+        return analysis.missingOriginal;
+      }
+
+      if (normalizedIssueKind === 'missing-thumbnail') {
+        return analysis.missingThumbnail;
+      }
+
+      if (normalizedIssueKind === 'missing-world-info') {
+        return analysis.missingWorldInfo;
+      }
+
+      if (normalizedIssueKind === 'world-metadata') {
+        return Boolean(analysis.worldMetadataIssue);
+      }
+
+      return false;
+    })
+    .map((analysis) => analysis.row);
+}
+
+function normalizeHealthIssueKind(issueKind) {
+  const normalizedKind =
+    typeof issueKind === 'string' ? issueKind.trim() : '';
+
+  if (normalizedKind === 'world-metadata-issues') {
+    return 'world-metadata';
+  }
+
+  return [
+    'missing-original',
+    'missing-thumbnail',
+    'missing-world-info',
+    'world-metadata',
+  ].includes(normalizedKind)
+    ? normalizedKind
+    : null;
+}
+
+async function analyzeApplicationDataHealthRows(rows) {
+  const metadataCache = new Map();
+
+  return mapWithConcurrencyLimit(
+    Array.isArray(rows) ? rows : [],
+    IMPORT_PREPROCESS_CONCURRENCY,
+    (row) => analyzePhotoHealthRow(row, metadataCache)
+  );
+}
+
 async function checkApplicationDataHealth() {
   const rows = photoDb.getAllPhotosWithWorldInfo();
+  const analyses = await analyzeApplicationDataHealthRows(rows);
   const issues = {
     missingOriginalFiles: [],
     missingThumbnails: [],
@@ -382,11 +528,10 @@ async function checkApplicationDataHealth() {
     worldMetadataIssueCount: 0,
   };
 
-  for (const row of rows) {
-    const originalPath = normalizeKnownFilePath(row.file_path);
-    const originalExists = originalPath ? await pathExists(originalPath) : false;
+  for (const analysis of analyses) {
+    const row = analysis.row;
 
-    if (!originalExists) {
+    if (analysis.missingOriginal) {
       summary.missingOriginalCount += 1;
       pushHealthIssue(
         issues.missingOriginalFiles,
@@ -394,30 +539,21 @@ async function checkApplicationDataHealth() {
       );
     }
 
-    const thumbnailPath =
-      typeof row.thumbnail_path === 'string' ? row.thumbnail_path.trim() : '';
-
-    if (!thumbnailPath || !(await pathExists(thumbnailPath))) {
+    if (analysis.missingThumbnail) {
       summary.missingThumbnailCount += 1;
       pushHealthIssue(
         issues.missingThumbnails,
         createHealthIssue(
           row,
-          thumbnailPath
+          analysis.thumbnailPath
             ? 'サムネイルファイルが見つかりません'
             : 'サムネイルが未生成です',
-          { thumbnailPath }
+          { thumbnailPath: analysis.thumbnailPath }
         )
       );
     }
 
-    const normalizedWorldId =
-      normalizeWorldId(row.world_id) || parseWorldIdFromUrl(row.world_url);
-    const displayWorldName = normalizeDisplayWorldName(
-      row.world_name_manual || row.world_name
-    );
-
-    if (!normalizedWorldId && !displayWorldName && !row.world_url) {
+    if (analysis.missingWorldInfo) {
       summary.missingWorldInfoCount += 1;
       pushHealthIssue(
         issues.missingWorldInfo,
@@ -426,15 +562,13 @@ async function checkApplicationDataHealth() {
       continue;
     }
 
-    const worldMetadataIssue = getWorldMetadataHealthIssue(row);
-
-    if (worldMetadataIssue) {
+    if (analysis.worldMetadataIssue) {
       summary.worldMetadataIssueCount += 1;
       pushHealthIssue(
         issues.worldMetadataIssues,
-        createHealthIssue(row, worldMetadataIssue.message, {
-          worldId: worldMetadataIssue.worldId,
-          fetchStatus: worldMetadataIssue.fetchStatus,
+        createHealthIssue(row, analysis.worldMetadataIssue.message, {
+          worldId: analysis.worldMetadataIssue.worldId,
+          fetchStatus: analysis.worldMetadataIssue.fetchStatus,
         })
       );
     }
@@ -454,16 +588,90 @@ async function checkApplicationDataHealth() {
 }
 
 async function getWorldMetadataIssuePhotos() {
-  const rows = photoDb
-    .getAllPhotosWithWorldInfo()
-    .filter((row) => Boolean(getWorldMetadataHealthIssue(row)));
-  const preparedRows = await prepareRowsForRenderer(rows);
+  return getHealthIssuePhotos('world-metadata');
+}
+
+async function getHealthIssuePhotos(issueKind) {
+  const normalizedIssueKind = normalizeHealthIssueKind(issueKind);
+
+  if (!normalizedIssueKind) {
+    throw new Error('状態チェックカテゴリが不正です');
+  }
+
+  const rows = photoDb.getAllPhotosWithWorldInfo();
+  const analyses = await analyzeApplicationDataHealthRows(rows);
+  const issueRows = getHealthIssueRowsFromAnalyses(
+    analyses,
+    normalizedIssueKind
+  );
+  const preparedRows = await prepareRowsForRenderer(issueRows);
 
   return {
     ok: true,
+    issueKind: normalizedIssueKind,
     photoCount: preparedRows.length,
     photos: preparedRows.map(toRendererPhoto),
   };
+}
+
+function buildWorldMetadataSyncTargetsFromPhotoRows(rows) {
+  const targets = new Map();
+
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const syncTarget = createWorldMetadataSyncTarget({
+      worldId: normalizeWorldId(row?.world_id) || parseWorldIdFromUrl(row?.world_url),
+      worldUrl: row?.world_url,
+    });
+
+    if (!syncTarget) {
+      continue;
+    }
+
+    if (!targets.has(syncTarget.worldId)) {
+      targets.set(syncTarget.worldId, syncTarget);
+    }
+  }
+
+  return Array.from(targets.values());
+}
+
+async function refreshWorldMetadataIssuePhotos(webContents) {
+  const rows = photoDb.getAllPhotosWithWorldInfo();
+  const analyses = await analyzeApplicationDataHealthRows(rows);
+  const issueRows = getHealthIssueRowsFromAnalyses(analyses, 'world-metadata');
+  const targets = buildWorldMetadataSyncTargetsFromPhotoRows(issueRows);
+
+  if (targets.length === 0) {
+    return {
+      ok: true,
+      photoCount: issueRows.length,
+      targetCount: 0,
+      queuedCount: 0,
+      pendingCount: getQueuedWorldMetadataSyncCount(),
+    };
+  }
+
+  const syncResult = startWorldMetadataSyncForSubscriber(targets, webContents);
+
+  return {
+    ...syncResult,
+    photoCount: issueRows.length,
+    targetCount: targets.length,
+  };
+}
+
+async function regenerateMissingThumbnails(progressReporter = null) {
+  const rows = photoDb.getAllPhotosWithWorldInfo();
+  const analyses = await analyzeApplicationDataHealthRows(rows);
+  const missingThumbnailRows = getHealthIssueRowsFromAnalyses(
+    analyses,
+    'missing-thumbnail'
+  );
+
+  return regenerateThumbnailRows(missingThumbnailRows, null, progressReporter, {
+    missingOnly: true,
+    progressMessage: '欠損サムネイルを再生成中...',
+  });
 }
 
 async function createAppDataBackupFile() {
@@ -480,15 +688,7 @@ async function createAppDataBackupFile() {
     return { ok: true, canceled: true };
   }
 
-  const dbSnapshot = photoDb.createBackupSnapshot();
-  const payload = {
-    appName: APP_DISPLAY_NAME,
-    appVersion: app.getVersion(),
-    backupSchemaVersion: APP_DATA_BACKUP_SCHEMA_VERSION,
-    exportedAt: new Date().toISOString(),
-    preferences: await readAppPreferences(),
-    data: dbSnapshot,
-  };
+  const payload = await buildAppDataBackupPayloadWithPreferences();
 
   await fs.writeFile(result.filePath, JSON.stringify(payload, null, 2), 'utf8');
 
@@ -524,6 +724,7 @@ async function restoreAppDataBackupFile() {
     throw new Error('WorldShot Log のバックアップではありません');
   }
 
+  const automaticBackup = await createAutomaticAppDataBackupFile('before-restore');
   const restoreResult = photoDb.restoreBackupSnapshot(parsed.data || parsed);
 
   if (parsed.preferences && typeof parsed.preferences === 'object') {
@@ -535,6 +736,8 @@ async function restoreAppDataBackupFile() {
     canceled: false,
     filePath,
     fileName: path.basename(filePath),
+    automaticBackupFilePath: automaticBackup.filePath,
+    automaticBackupFileName: automaticBackup.fileName,
     ...restoreResult.afterCounts,
     restoredPhotoCount: restoreResult.restoredPhotoCount,
     restoredTrackedFolderCount: restoreResult.restoredTrackedFolderCount,
@@ -2413,14 +2616,16 @@ async function resetManagedThumbnailDirectories() {
   await ensureDir(thumbnailDirPath);
 }
 
-async function regenerateManagedThumbnails(targetSelection = null, progressReporter = null) {
-  const hasTargetMonth =
-    Number.isInteger(targetSelection?.year) &&
-    Number.isInteger(targetSelection?.month);
-  const rows = hasTargetMonth
-    ? photoDb.getPhotosByMonth(targetSelection.year, targetSelection.month)
-    : photoDb.getAllPhotos();
-
+async function regenerateThumbnailRows(
+  rows,
+  targetMonth = null,
+  progressReporter = null,
+  {
+    missingOnly = false,
+    progressMessage = 'サムネイルを再生成中...',
+  } = {}
+) {
+  const normalizedRows = Array.isArray(rows) ? rows : [];
   let regeneratedCount = 0;
   let skippedCount = 0;
   const failedFiles = [];
@@ -2429,11 +2634,11 @@ async function regenerateManagedThumbnails(targetSelection = null, progressRepor
   progressReporter?.({
     phase: 'process',
     current: 0,
-    total: rows.length,
-    message: 'サムネイルを再生成中...',
+    total: normalizedRows.length,
+    message: progressMessage,
   });
 
-  for (const row of rows) {
+  for (const row of normalizedRows) {
     try {
       const originalExists = await pathExists(row.file_path);
 
@@ -2466,31 +2671,44 @@ async function regenerateManagedThumbnails(targetSelection = null, progressRepor
         filePath: row.file_path,
         message: error.message,
       });
+    } finally {
+      processedCount += 1;
+      progressReporter?.({
+        phase: 'process',
+        current: processedCount,
+        total: normalizedRows.length,
+        message: progressMessage,
+      });
     }
-
-    processedCount += 1;
-    progressReporter?.({
-      phase: 'process',
-      current: processedCount,
-      total: rows.length,
-      message: 'サムネイルを再生成中...',
-    });
   }
 
   return {
     ok: true,
-    targetMonth: hasTargetMonth
-      ? {
-          year: targetSelection.year,
-          month: targetSelection.month,
-        }
-      : null,
-    totalCount: rows.length,
+    targetMonth,
+    missingOnly,
+    totalCount: normalizedRows.length,
     regeneratedCount,
     skippedCount,
     failedCount: failedFiles.length,
     failedFiles,
   };
+}
+
+async function regenerateManagedThumbnails(targetSelection = null, progressReporter = null) {
+  const hasTargetMonth =
+    Number.isInteger(targetSelection?.year) &&
+    Number.isInteger(targetSelection?.month);
+  const rows = hasTargetMonth
+    ? photoDb.getPhotosByMonth(targetSelection.year, targetSelection.month)
+    : photoDb.getAllPhotos();
+  const targetMonth = hasTargetMonth
+    ? {
+        year: targetSelection.year,
+        month: targetSelection.month,
+      }
+    : null;
+
+  return regenerateThumbnailRows(rows, targetMonth, progressReporter);
 }
 
 async function clearManagedThumbnailCache(progressReporter = null) {
@@ -4782,6 +5000,27 @@ app.whenReady().then(async () => {
     }
   });
 
+  ipcMain.handle('regenerate-missing-thumbnails', async (event) => {
+    try {
+      const progressReporter = createProcessingProgressReporter(
+        event.sender,
+        'regenerate-missing-thumbnails'
+      );
+
+      return await regenerateMissingThumbnails(progressReporter);
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        totalCount: 0,
+        regeneratedCount: 0,
+        skippedCount: 0,
+        failedCount: 0,
+        failedFiles: [],
+      };
+    }
+  });
+
   ipcMain.handle('clear-thumbnail-cache', async (event) => {
     try {
       const progressReporter = createProcessingProgressReporter(
@@ -4808,8 +5047,16 @@ app.whenReady().then(async () => {
         event.sender,
         'reset-database'
       );
+      const automaticBackup = await createAutomaticAppDataBackupFile(
+        'before-reset'
+      );
+      const resetResult = await resetApplicationData(progressReporter);
 
-      return await resetApplicationData(progressReporter);
+      return {
+        ...resetResult,
+        automaticBackupFilePath: automaticBackup.filePath,
+        automaticBackupFileName: automaticBackup.fileName,
+      };
     } catch (error) {
       return {
         ok: false,
@@ -4842,6 +5089,34 @@ app.whenReady().then(async () => {
         message: error.message,
         photoCount: 0,
         photos: [],
+      };
+    }
+  });
+
+  ipcMain.handle('get-health-issue-photos', async (_event, payload) => {
+    try {
+      return await getHealthIssuePhotos(payload?.issueKind);
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        photoCount: 0,
+        photos: [],
+      };
+    }
+  });
+
+  ipcMain.handle('refresh-world-metadata-issues', async (event) => {
+    try {
+      return await refreshWorldMetadataIssuePhotos(event.sender);
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        photoCount: 0,
+        targetCount: 0,
+        queuedCount: 0,
+        pendingCount: getQueuedWorldMetadataSyncCount(),
       };
     }
   });

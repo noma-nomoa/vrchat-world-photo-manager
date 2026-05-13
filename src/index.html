@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>WorldShot Log v1.2.2</title>
+    <title>WorldShot Log v1.2.3</title>
     <link rel="stylesheet" href="./index.css" />
     <link
       rel="stylesheet"
@@ -625,63 +625,127 @@
 
           <!-- Data backup / export -->
           <div class="settings-section settings-data-section">
-            <div>
+            <div class="settings-data-heading">
               <p class="settings-section-title">データ管理</p>
               <p class="settings-section-meta">
                 ラベル、メモ、お気に入り、World情報を保存・書き出しできます
               </p>
             </div>
 
-            <div class="settings-data-actions">
-              <button
-                id="create-app-data-backup-btn"
-                type="button"
-                class="small-action-button settings-data-button"
-              >
-                バックアップを作成
-              </button>
-              <button
-                id="check-app-data-health-btn"
-                type="button"
-                class="small-action-button settings-data-button"
-              >
-                状態チェック
-              </button>
-              <button
-                id="show-world-metadata-issues-btn"
-                type="button"
-                class="small-action-button settings-data-button"
-              >
-                World要確認を表示
-              </button>
-              <button
-                id="restore-app-data-backup-btn"
-                type="button"
-                class="danger-button settings-data-button"
-              >
-                バックアップから復元
-              </button>
-              <button
-                id="export-photo-catalog-csv-btn"
-                type="button"
-                class="secondary settings-data-button"
-              >
-                CSVエクスポート
-              </button>
-              <button
-                id="export-photo-catalog-json-btn"
-                type="button"
-                class="secondary settings-data-button"
-              >
-                JSONエクスポート
-              </button>
-            </div>
+            <button
+              id="settings-data-toggle"
+              type="button"
+              class="settings-data-toggle"
+              aria-label="データ管理を開く"
+              aria-expanded="false"
+              aria-controls="settings-data-panel"
+            >
+              <span class="settings-data-toggle-text">
+                <span class="settings-data-toggle-title">操作メニュー</span>
+              </span>
+              <span class="settings-data-toggle-state">
+                <span
+                  class="material-symbols-outlined settings-data-toggle-icon"
+                  aria-hidden="true"
+                >
+                  expand_more
+                </span>
+              </span>
+            </button>
 
-            <p
-              id="settings-data-status"
-              class="settings-data-status"
-              aria-live="polite"
-            ></p>
+            <div
+              id="settings-data-panel"
+              class="settings-data-panel"
+              aria-hidden="true"
+            >
+              <div class="settings-data-panel-inner">
+                <div class="settings-data-actions">
+                  <button
+                    id="create-app-data-backup-btn"
+                    type="button"
+                    class="small-action-button settings-data-button"
+                  >
+                    バックアップを作成
+                  </button>
+                  <button
+                    id="check-app-data-health-btn"
+                    type="button"
+                    class="small-action-button settings-data-button"
+                  >
+                    状態チェック
+                  </button>
+                  <button
+                    id="show-missing-original-files-btn"
+                    type="button"
+                    class="small-action-button settings-data-button"
+                  >
+                    元画像なしを表示
+                  </button>
+                  <button
+                    id="show-missing-thumbnails-btn"
+                    type="button"
+                    class="small-action-button settings-data-button"
+                  >
+                    サムネイルなしを表示
+                  </button>
+                  <button
+                    id="show-missing-world-info-btn"
+                    type="button"
+                    class="small-action-button settings-data-button"
+                  >
+                    World情報未取得を表示
+                  </button>
+                  <button
+                    id="show-world-metadata-issues-btn"
+                    type="button"
+                    class="small-action-button settings-data-button"
+                  >
+                    World要確認を表示
+                  </button>
+                  <button
+                    id="regenerate-missing-thumbnails-btn"
+                    type="button"
+                    class="secondary settings-data-button"
+                  >
+                    欠損サムネイルを再生成
+                  </button>
+                  <button
+                    id="refresh-world-metadata-issues-btn"
+                    type="button"
+                    class="secondary settings-data-button"
+                  >
+                    World要確認を再取得
+                  </button>
+                  <button
+                    id="restore-app-data-backup-btn"
+                    type="button"
+                    class="danger-button settings-data-button"
+                  >
+                    バックアップから復元
+                  </button>
+                  <button
+                    id="export-photo-catalog-csv-btn"
+                    type="button"
+                    class="secondary settings-data-button"
+                  >
+                    CSVエクスポート
+                  </button>
+                  <button
+                    id="export-photo-catalog-json-btn"
+                    type="button"
+                    class="secondary settings-data-button"
+                  >
+                    JSONエクスポート
+                  </button>
+                </div>
+
+                <p
+                  id="settings-data-status"
+                  class="settings-data-status"
+                  aria-live="polite"
+                ></p>
+              </div>
+            </div>
           </div>
 
           <!-- Maintenance actions -->

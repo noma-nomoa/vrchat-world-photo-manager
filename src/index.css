@@ -2291,6 +2291,116 @@ body[data-theme='light'] .world-name-editor-actions button.secondary:disabled {
   gap: 10px;
 }
 
+.settings-data-heading {
+  display: grid;
+  gap: 0;
+}
+
+.settings-data-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+    var(--surface-soft);
+  color: var(--text-1);
+  border-radius: 14px;
+  min-height: 42px;
+  padding: 9px 14px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.settings-data-toggle:hover {
+  transform: translateY(-1px);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.settings-data-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.settings-data-toggle-text {
+  min-width: 0;
+  display: grid;
+}
+
+.settings-data-toggle-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-0);
+}
+
+.settings-data-toggle-state {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-text);
+}
+
+.settings-data-toggle-icon {
+  font-size: 20px;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.settings-data-section.is-open .settings-data-toggle {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.04)),
+    var(--surface-soft-2);
+  border-color: var(--line-strong);
+}
+
+.settings-data-section.is-open .settings-data-toggle-icon {
+  transform: rotate(180deg);
+}
+
+.settings-data-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition:
+    grid-template-rows 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.settings-data-section.is-open .settings-data-panel {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.settings-data-panel-inner {
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  gap: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-data-toggle,
+  .settings-data-toggle-icon,
+  .settings-data-panel {
+    transition: none;
+  }
+}
+
 .settings-data-actions {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
