@@ -68,6 +68,12 @@ const BACKUP_TABLE_COLUMNS = Object.freeze({
 function quoteSqlIdentifier(identifier) {
   return `"${String(identifier).replace(/"/g, '""')}"`;
 }
+
+const PHOTO_LISTING_COLUMNS = BACKUP_TABLE_COLUMNS.photos
+  .filter((columnName) => !['created_at', 'updated_at'].includes(columnName))
+  .map(quoteSqlIdentifier)
+  .join(',\n      ');
+
 const DEFAULT_TAG_COLOR_PALETTE = [
   '#6D5EF6',
   '#4F8CFF',
@@ -194,6 +200,21 @@ function initDatabase(dbPath) {
 
     CREATE INDEX IF NOT EXISTS idx_photos_year_month
       ON photos (year DESC, month DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_photos_month_listing
+      ON photos (year, month, taken_at_timestamp DESC, id DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_photos_year_listing
+      ON photos (year, taken_at_timestamp DESC, id DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_photos_world_listing
+      ON photos (world_id, taken_at_timestamp DESC, id DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_photos_world_name_manual_listing
+      ON photos (world_name_manual, taken_at_timestamp DESC, id DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_photos_world_name_listing
+      ON photos (world_name, taken_at_timestamp DESC, id DESC);
 
     CREATE INDEX IF NOT EXISTS idx_photos_group_date
       ON photos (group_date DESC);
@@ -392,14 +413,16 @@ function initDatabase(dbPath) {
   `);
 
   const getPhotosByMonthStmt = db.prepare(`
-    SELECT *
+    SELECT
+      ${PHOTO_LISTING_COLUMNS}
     FROM photos
     WHERE year = ? AND month = ?
     ORDER BY taken_at_timestamp DESC, id DESC
   `);
 
   const getPhotosByYearStmt = db.prepare(`
-    SELECT *
+    SELECT
+      ${PHOTO_LISTING_COLUMNS}
     FROM photos
     WHERE year = ?
     ORDER BY taken_at_timestamp DESC, id DESC
@@ -411,8 +434,32 @@ function initDatabase(dbPath) {
     ORDER BY id ASC
   `);
   const getAllPhotosWithWorldInfoStmt = db.prepare(`
-    SELECT *
+    SELECT
+      ${PHOTO_LISTING_COLUMNS}
     FROM photos
+    ORDER BY taken_at_timestamp DESC, id DESC
+  `);
+  const getPhotosByWorldIdStmt = db.prepare(`
+    SELECT
+      ${PHOTO_LISTING_COLUMNS}
+    FROM photos
+    WHERE world_id = ?
+    ORDER BY taken_at_timestamp DESC, id DESC
+  `);
+  const getPhotosByWorldNameStmt = db.prepare(`
+    SELECT
+      ${PHOTO_LISTING_COLUMNS}
+    FROM photos
+    WHERE world_name_manual = ?
+      OR (
+        (world_name_manual IS NULL OR world_name_manual = '')
+        AND world_name = ?
+      )
+      OR (
+        ? = ?
+        AND (world_name_manual IS NULL OR world_name_manual = '')
+        AND (world_name IS NULL OR world_name = '')
+      )
     ORDER BY taken_at_timestamp DESC, id DESC
   `);
 
@@ -969,22 +1016,36 @@ function initDatabase(dbPath) {
       return [];
     }
 
-    const placeholders = normalizedIds.map(() => '?').join(', ');
-    const stmt = db.prepare(`
-      SELECT
-        pt.photo_id,
-        t.id,
-        t.name,
-        t.normalized_name,
-        t.color_hex
-      FROM photo_tags pt
-      INNER JOIN tags t
-        ON t.id = pt.tag_id
-      WHERE pt.photo_id IN (${placeholders})
-      ORDER BY pt.photo_id ASC, t.name COLLATE NOCASE ASC, t.id ASC
-    `);
+    const rows = [];
 
-    return stmt.all(...normalizedIds);
+    for (
+      let startIndex = 0;
+      startIndex < normalizedIds.length;
+      startIndex += SQLITE_VARIABLE_LIMIT
+    ) {
+      const chunkIds = normalizedIds.slice(
+        startIndex,
+        startIndex + SQLITE_VARIABLE_LIMIT
+      );
+      const placeholders = chunkIds.map(() => '?').join(', ');
+      const stmt = db.prepare(`
+        SELECT
+          pt.photo_id,
+          t.id,
+          t.name,
+          t.normalized_name,
+          t.color_hex
+        FROM photo_tags pt
+        INNER JOIN tags t
+          ON t.id = pt.tag_id
+        WHERE pt.photo_id IN (${placeholders})
+        ORDER BY pt.photo_id ASC, t.name COLLATE NOCASE ASC, t.id ASC
+      `);
+
+      rows.push(...stmt.all(...chunkIds));
+    }
+
+    return rows;
   }
 
   function replacePhotoTags(photoId, tagNames) {
@@ -1050,16 +1111,30 @@ function initDatabase(dbPath) {
       return [];
     }
 
-    return db
-      .prepare(
-        `
-          SELECT *
-          FROM photos
-          WHERE world_id = ?
-          ORDER BY taken_at_timestamp DESC, id DESC
-        `
-      )
-      .all(normalizedWorldId);
+    return getPhotosByWorldIdStmt.all(normalizedWorldId);
+  }
+
+  function getPhotosByWorldName(worldName, fallbackWorldName = '') {
+    const normalizedWorldName =
+      typeof worldName === 'string' && worldName.trim().length > 0
+        ? worldName.trim()
+        : null;
+    const normalizedFallbackWorldName =
+      typeof fallbackWorldName === 'string' &&
+      fallbackWorldName.trim().length > 0
+        ? fallbackWorldName.trim()
+        : '';
+
+    if (!normalizedWorldName) {
+      return [];
+    }
+
+    return getPhotosByWorldNameStmt.all(
+      normalizedWorldName,
+      normalizedWorldName,
+      normalizedWorldName,
+      normalizedFallbackWorldName
+    );
   }
 
   function updateAutoWorldInfoByWorldId(worldId, payload) {
@@ -1375,6 +1450,7 @@ function initDatabase(dbPath) {
     getAllPhotos,
     getAllPhotosWithWorldInfo,
     getPhotosByWorldId,
+    getPhotosByWorldName,
     getTrackedFolders,
     upsertTrackedFolder,
     deleteTrackedFolder,

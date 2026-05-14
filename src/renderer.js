@@ -133,6 +133,42 @@ window.addEventListener('unhandledrejection', () => {
   setTimeout(forceClearInitializationState, 0);
 });
 
+const RENDERER_PERFORMANCE_LOG_THRESHOLD_MS = 180;
+
+function isRendererPerformanceLogForced() {
+  try {
+    return window.localStorage?.getItem('worldshotPerfLog') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function roundRendererDuration(durationMs) {
+  return Math.round((Number(durationMs) || 0) * 10) / 10;
+}
+
+function logRendererPerformance(label, durationMs, details = {}) {
+  if (
+    !isRendererPerformanceLogForced() &&
+    (!Number.isFinite(durationMs) ||
+      durationMs < RENDERER_PERFORMANCE_LOG_THRESHOLD_MS)
+  ) {
+    return;
+  }
+
+  const normalizedDetails = Object.fromEntries(
+    Object.entries(details || {}).map(([key, value]) => [
+      key,
+      typeof value === 'number' ? roundRendererDuration(value) : value,
+    ])
+  );
+
+  console.info('[renderer performance]', label, {
+    durationMs: roundRendererDuration(durationMs),
+    ...normalizedDetails,
+  });
+}
+
 // Header filter controls.
 const favoriteFilterButton = document.getElementById('favorite-filter-btn');
 const photoSortButton = document.getElementById('photo-sort-btn');
@@ -494,17 +530,20 @@ let renderedMonthGalleryKey = '';
 let isAppendingMonthGalleryBatch = false;
 let monthGalleryLoadCheckScheduled = false;
 let monthGalleryLoadCheckTimer = null;
+let monthGalleryAppendFrame = 0;
 let renderedGalleryGroupMap = new Map();
 const subModalAnimationTimers = new WeakMap();
 
 const GALLERY_CARD_MIN_WIDTH = 220;
 const GALLERY_GRID_GAP = 16;
 const GALLERY_GROUP_HORIZONTAL_PADDING = 36;
-const GALLERY_INITIAL_PREFETCH_ROWS = 2;
-const GALLERY_INCREMENT_ROWS = 3;
+const GALLERY_INITIAL_PREFETCH_ROWS = 1;
+const GALLERY_INCREMENT_ROWS = 2;
+const GALLERY_MAX_CARDS_PER_APPEND = 42;
+const GALLERY_EAGER_THUMBNAIL_COUNT = 18;
 const GALLERY_CARD_EXTRA_HEIGHT = 110;
-const GALLERY_LOAD_AHEAD_PX = 240;
-const GALLERY_LOAD_CHECK_THROTTLE_MS = 96;
+const GALLERY_LOAD_AHEAD_PX = 560;
+const GALLERY_LOAD_CHECK_THROTTLE_MS = 72;
 const IMAGE_MODAL_ANIMATION_MS = 520;
 const SUB_MODAL_ANIMATION_MS = 520;
 const SCROLL_TO_TOP_MIN_DURATION_MS = 420;
@@ -6886,7 +6925,26 @@ function clearMainContent() {
   syncSelectionDependentSettingsUi();
 }
 
-function createPhotoCard(item) {
+function createThumbnailPlaceholder(message = 'サムネイル未生成') {
+  const placeholder = document.createElement('div');
+  placeholder.className = 'photo-card-image photo-card-image-placeholder';
+  placeholder.draggable = false;
+
+  const icon = document.createElement('span');
+  icon.className = 'material-symbols-outlined photo-card-placeholder-icon';
+  icon.textContent = 'image';
+
+  const text = document.createElement('span');
+  text.className = 'photo-card-placeholder-text';
+  text.textContent = message;
+
+  placeholder.appendChild(icon);
+  placeholder.appendChild(text);
+
+  return placeholder;
+}
+
+function createPhotoCard(item, photoIndex = 0) {
   const card = document.createElement('div');
   card.className = 'photo-card';
   card.dataset.photoId = String(item.id);
@@ -6968,28 +7026,35 @@ function createPhotoCard(item) {
 
   if (item.hasThumbnail && item.thumbnailUrl) {
     const image = document.createElement('img');
-    image.className = 'photo-card-image';
-    image.src = item.thumbnailUrl;
+    image.className = 'photo-card-image is-loading';
     image.alt = item.fileName || 'photo';
-    image.loading = 'lazy';
+    image.loading =
+      photoIndex < GALLERY_EAGER_THUMBNAIL_COUNT ? 'eager' : 'lazy';
+    image.decoding = 'async';
+    image.fetchPriority =
+      photoIndex < GALLERY_EAGER_THUMBNAIL_COUNT ? 'high' : 'low';
     image.draggable = false;
+    image.addEventListener(
+      'load',
+      () => {
+        image.classList.remove('is-loading');
+        image.classList.add('is-loaded');
+      },
+      { once: true }
+    );
+    image.addEventListener(
+      'error',
+      () => {
+        const fallback = createThumbnailPlaceholder('サムネイル要再生成');
+        card.classList.add('has-thumbnail-error');
+        image.replaceWith(fallback);
+      },
+      { once: true }
+    );
+    image.src = item.thumbnailUrl;
     visual = image;
   } else {
-    const placeholder = document.createElement('div');
-    placeholder.className = 'photo-card-image photo-card-image-placeholder';
-    placeholder.draggable = false;
-
-    const icon = document.createElement('span');
-    icon.className = 'material-symbols-outlined photo-card-placeholder-icon';
-    icon.textContent = 'image';
-
-    const text = document.createElement('span');
-    text.className = 'photo-card-placeholder-text';
-    text.textContent = 'サムネイル未生成';
-
-    placeholder.appendChild(icon);
-    placeholder.appendChild(text);
-    visual = placeholder;
+    visual = createThumbnailPlaceholder();
   }
 
   const { dateText, timeText } = splitTakenAtForCard(item.takenAt);
@@ -7080,6 +7145,11 @@ function resetMonthGalleryRenderState() {
   if (monthGalleryLoadCheckTimer) {
     clearTimeout(monthGalleryLoadCheckTimer);
     monthGalleryLoadCheckTimer = null;
+  }
+
+  if (monthGalleryAppendFrame) {
+    cancelAnimationFrame(monthGalleryAppendFrame);
+    monthGalleryAppendFrame = 0;
   }
 
   renderedPhotoCount = 0;
@@ -7177,14 +7247,21 @@ function buildGalleryGroupSection(groupDate) {
   return { section, grid };
 }
 
-function appendMonthGalleryPhotoBatch(targetCount) {
+function appendMonthGalleryPhotoBatch(targetCount, { forceAll = false } = {}) {
   if (!monthGalleryList || targetCount <= renderedPhotoCount) {
     return;
   }
 
+  const normalizedTargetCount = Math.min(targetCount, currentPhotos.length);
+  const nextTargetCount = forceAll
+    ? normalizedTargetCount
+    : Math.min(
+        normalizedTargetCount,
+        renderedPhotoCount + GALLERY_MAX_CARDS_PER_APPEND
+      );
   const fragment = document.createDocumentFragment();
 
-  for (let index = renderedPhotoCount; index < targetCount; index += 1) {
+  for (let index = renderedPhotoCount; index < nextTargetCount; index += 1) {
     const photo = currentPhotos[index];
     const groupDate = photo?.groupDate || '日付不明';
 
@@ -7196,13 +7273,21 @@ function appendMonthGalleryPhotoBatch(targetCount) {
       fragment.appendChild(groupState.section);
     }
 
-    groupState.grid.appendChild(createPhotoCard(photo));
+    groupState.grid.appendChild(createPhotoCard(photo, index));
   }
 
-  renderedPhotoCount = targetCount;
+  renderedPhotoCount = nextTargetCount;
   monthGalleryList.appendChild(fragment);
   syncSelectionUi();
   syncKeyboardFocusedPhotoCard();
+
+  if (renderedPhotoCount < normalizedTargetCount && !monthGalleryAppendFrame) {
+    monthGalleryAppendFrame = requestAnimationFrame(() => {
+      monthGalleryAppendFrame = 0;
+      appendMonthGalleryPhotoBatch(normalizedTargetCount);
+      scheduleMonthGalleryLoadCheck({ immediate: true });
+    });
+  }
 }
 
 function maybeLoadMoreMonthGalleryPhotos() {
@@ -7308,6 +7393,7 @@ function initializeScrollToTopAnimationInterrupts() {
 }
 
 function renderMonthGallery({ resetProgressive = false } = {}) {
+  const renderStartedAt = performance.now();
   monthGalleryList.innerHTML = '';
 
   if (!currentSelection) {
@@ -7353,6 +7439,12 @@ function renderMonthGallery({ resetProgressive = false } = {}) {
   );
   scheduleMonthGalleryLoadCheck({ immediate: true });
   syncKeyboardFocusedPhotoCard();
+
+  logRendererPerformance('renderMonthGallery', performance.now() - renderStartedAt, {
+    photoCount: currentPhotos.length,
+    initialRenderedCount: renderedPhotoCount,
+    resetProgressive: Boolean(resetProgressive),
+  });
 }
 
 function resetMonthSwitchClasses() {
@@ -7865,17 +7957,21 @@ async function refreshSidebar() {
 // Month/year switching shares the same fetch -> selection -> render pipeline.
 // Only the fetcher and resulting normalized selection differ.
 async function selectPhotoScope(fetchPhotos, nextSelection) {
+  const totalStartedAt = performance.now();
   const requestId = ++monthSelectionRequestId;
   clearMonthHeaderAnimationState();
   const monthSwitchOverlay = createMonthSwitchOverlay({
     includeHeader: false,
     viewportFixed: true,
   });
+  const fetchStartedAt = performance.now();
   const photosPromise = fetchPhotos();
   let photos;
+  let fetchMs = 0;
 
   try {
     photos = await photosPromise;
+    fetchMs = performance.now() - fetchStartedAt;
   } catch (error) {
     if (requestId === monthSelectionRequestId) {
       removeMonthSwitchOverlay();
@@ -7890,6 +7986,7 @@ async function selectPhotoScope(fetchPhotos, nextSelection) {
 
   setCurrentSelectionValue(nextSelection);
 
+  const renderStartedAt = performance.now();
   setCurrentMonthPhotos(photos);
 
   syncSelectionLinkedUi();
@@ -7899,6 +7996,14 @@ async function selectPhotoScope(fetchPhotos, nextSelection) {
   playMonthSwitchAnimation({ includeHeader: false });
   requestAnimationFrame(() => {
     fadeOutMonthSwitchOverlay(monthSwitchOverlay);
+  });
+
+  const renderMs = performance.now() - renderStartedAt;
+  logRendererPerformance('selectPhotoScope', performance.now() - totalStartedAt, {
+    mode: nextSelection?.mode || '',
+    photoCount: Array.isArray(photos) ? photos.length : 0,
+    fetchMs,
+    renderMs,
   });
 }
 

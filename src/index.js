@@ -14,6 +14,7 @@ const fsSync = require('node:fs');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const { createHash } = require('node:crypto');
+const { performance } = require('node:perf_hooks');
 const { spawn } = require('node:child_process');
 const { pathToFileURL } = require('node:url');
 const ExifReader = require('exifreader');
@@ -30,6 +31,7 @@ let preferencesFilePath = '';
 let mainWindowRef = null;
 const APP_DISPLAY_NAME = 'WorldShot Log';
 const APP_TITLE = `${APP_DISPLAY_NAME} v${app.getVersion()}`;
+const UNKNOWN_WORLD_DISPLAY_NAME = 'ワールド名を取得できませんでした';
 const APP_WINDOW_ICON_ICO_PATH = path.join(__dirname, '..', 'img', 'logo.ico');
 const APP_WINDOW_ICON_PNG_PATH = path.join(__dirname, '..', 'img', 'logo.png');
 const APP_ROAMING_DATA_ROOT = app.getPath('appData');
@@ -94,6 +96,11 @@ const RENDERER_ROW_PREP_CONCURRENCY = Math.max(
   Math.min(6, IMPORT_PREPROCESS_CONCURRENCY)
 );
 const PHOTO_PREPARATION_CACHE_LIMIT = 5000;
+const PERFORMANCE_LOG_THRESHOLD_MS = Math.max(
+  80,
+  Number(process.env.WORLDSHOT_PERF_LOG_THRESHOLD_MS) || 250
+);
+const IS_PERFORMANCE_LOG_FORCED = process.env.WORLDSHOT_PERF_LOG === '1';
 const DEFAULT_PHOTO_LABEL_COLORS = [
   '#6D5EF6',
   '#4F8CFF',
@@ -106,6 +113,7 @@ const DEFAULT_PHOTO_LABEL_COLORS = [
   '#EF4444',
   '#06B6D4',
 ];
+const PHOTO_ORIENTATION_TIERS = new Set(['landscape', 'portrait', 'square']);
 
 const SUPPORTED_IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 const PROCESSING_PROGRESS_CHANNEL = 'processing-progress';
@@ -155,6 +163,35 @@ let isAutoUpdateDownloadRunning = false;
 let latestAvailableAppUpdateRelease = null;
 const photoOrientationPreparationCache = new Map();
 const photoPrintNotePreparationCache = new Map();
+
+function roundDuration(durationMs) {
+  return Math.round((Number(durationMs) || 0) * 10) / 10;
+}
+
+function shouldLogPerformance(durationMs) {
+  return (
+    IS_PERFORMANCE_LOG_FORCED ||
+    (Number.isFinite(durationMs) && durationMs >= PERFORMANCE_LOG_THRESHOLD_MS)
+  );
+}
+
+function logPerformanceTiming(label, durationMs, details = {}) {
+  if (!shouldLogPerformance(durationMs)) {
+    return;
+  }
+
+  const normalizedDetails = Object.fromEntries(
+    Object.entries(details || {}).map(([key, value]) => [
+      key,
+      typeof value === 'number' ? roundDuration(value) : value,
+    ])
+  );
+
+  console.info('[performance]', label, {
+    durationMs: roundDuration(durationMs),
+    ...normalizedDetails,
+  });
+}
 
 // Lightweight app preferences are stored outside the renderer so they survive
 // reloads/restarts even if the file:// localStorage origin changes.
@@ -2416,6 +2453,22 @@ function getOrientationTier(width, height) {
   return width > height ? 'landscape' : 'portrait';
 }
 
+function isKnownPhotoOrientationTier(value) {
+  return typeof value === 'string' && PHOTO_ORIENTATION_TIERS.has(value);
+}
+
+function getStoredPhotoOrientationTier(row) {
+  if (!row) {
+    return null;
+  }
+
+  if (isKnownPhotoOrientationTier(row.orientation_tier)) {
+    return row.orientation_tier;
+  }
+
+  return getOrientationTier(row.image_width, row.image_height);
+}
+
 function extractImageMetadataFromNativeImage(image) {
   if (!image || image.isEmpty()) {
     return {
@@ -2583,12 +2636,16 @@ async function pathExistsCached(targetPath, cache = null) {
 
 async function derivePhotoOrientationTierFromStoredAssets(
   row,
-  pathExistsCache = null
+  pathExistsCache = null,
+  stats = null
 ) {
   const thumbnailPath =
     typeof row?.thumbnail_path === 'string' ? row.thumbnail_path.trim() : '';
 
   if (thumbnailPath && (await pathExistsCached(thumbnailPath, pathExistsCache))) {
+    if (stats) {
+      stats.orientationAssetReads += 1;
+    }
     const thumbnailMetadata = extractImageMetadataFromPath(thumbnailPath);
 
     if (thumbnailMetadata.orientationTier) {
@@ -2599,6 +2656,9 @@ async function derivePhotoOrientationTierFromStoredAssets(
   const filePath = typeof row?.file_path === 'string' ? row.file_path.trim() : '';
 
   if (filePath && (await pathExistsCached(filePath, pathExistsCache))) {
+    if (stats) {
+      stats.orientationAssetReads += 1;
+    }
     const imageMetadata = extractImageMetadataFromPath(filePath);
 
     if (imageMetadata.orientationTier) {
@@ -2609,9 +2669,35 @@ async function derivePhotoOrientationTierFromStoredAssets(
   return null;
 }
 
-async function ensurePhotoOrientationMetadata(row, pathExistsCache = null) {
+async function ensurePhotoOrientationMetadata(
+  row,
+  pathExistsCache = null,
+  stats = null
+) {
   if (!row || !Number.isInteger(row.id)) {
     return row;
+  }
+
+  const storedOrientationTier = getStoredPhotoOrientationTier(row);
+
+  if (storedOrientationTier) {
+    if (stats) {
+      stats.orientationStoredHits += 1;
+    }
+
+    const cacheKey = buildPhotoOrientationPreparationCacheKey(row);
+    setBoundedCacheEntry(
+      photoOrientationPreparationCache,
+      cacheKey,
+      storedOrientationTier
+    );
+
+    return row.orientation_tier === storedOrientationTier
+      ? row
+      : {
+          ...row,
+          orientation_tier: storedOrientationTier,
+        };
   }
 
   const cacheKey = buildPhotoOrientationPreparationCacheKey(row);
@@ -2622,6 +2708,9 @@ async function ensurePhotoOrientationMetadata(row, pathExistsCache = null) {
     : null;
 
   if (hasCachedOrientationTier) {
+    if (stats) {
+      stats.orientationCacheHits += 1;
+    }
     return cachedOrientationTier === row.orientation_tier
       ? row
       : {
@@ -2632,7 +2721,8 @@ async function ensurePhotoOrientationMetadata(row, pathExistsCache = null) {
 
   const actualOrientationTier = await derivePhotoOrientationTierFromStoredAssets(
     row,
-    pathExistsCache
+    pathExistsCache,
+    stats
   );
 
   if (!actualOrientationTier || row.orientation_tier === actualOrientationTier) {
@@ -2657,13 +2747,20 @@ async function ensurePhotoOrientationMetadata(row, pathExistsCache = null) {
   };
 }
 
-async function ensurePhotoPrintNoteMetadata(row, pathExistsCache = null) {
+async function ensurePhotoPrintNoteMetadata(
+  row,
+  pathExistsCache = null,
+  stats = null
+) {
   const cacheKey = buildPhotoPrintNotePreparationCacheKey(row);
   const cachedPrintNoteText = cacheKey
     ? photoPrintNotePreparationCache.get(cacheKey)
     : undefined;
 
   if (cachedPrintNoteText !== undefined) {
+    if (stats) {
+      stats.printNoteCacheHits += 1;
+    }
     return cachedPrintNoteText === row.print_note_text
       ? row
       : {
@@ -2689,6 +2786,9 @@ async function ensurePhotoPrintNoteMetadata(row, pathExistsCache = null) {
   }
 
   try {
+    if (stats) {
+      stats.printNoteFileReads += 1;
+    }
     const fileBuffer = await fs.readFile(row.file_path);
     const nextPrintNoteText = extractPhotoPrintNote(loadExifTagsSafely(fileBuffer));
     const savedRow = photoDb.updatePhotoPrintNote(row.id, nextPrintNoteText);
@@ -3066,7 +3166,7 @@ function toRendererPhoto(row) {
       : [];
   const displayWorldName =
     normalizeDisplayWorldName(row.world_name_manual || row.world_name) ||
-    'ワールド名を取得できませんでした';
+    UNKNOWN_WORLD_DISPLAY_NAME;
   const derivedOrientationTier =
     row.orientation_tier || getOrientationTier(row.image_width, row.image_height);
 
@@ -3141,18 +3241,67 @@ function attachPhotoLabelsToRows(rows) {
 async function prepareRowsForRenderer(rows) {
   const normalizedRows = Array.isArray(rows) ? rows : [];
   const pathExistsCache = new Map();
+  const stats = {
+    orientationStoredHits: 0,
+    orientationCacheHits: 0,
+    orientationAssetReads: 0,
+    printNoteCacheHits: 0,
+    printNoteFileReads: 0,
+  };
+  const totalStartedAt = performance.now();
+  const orientationStartedAt = performance.now();
   const rowsWithAccurateOrientation = await mapWithConcurrencyLimit(
     normalizedRows,
     RENDERER_ROW_PREP_CONCURRENCY,
-    (row) => ensurePhotoOrientationMetadata(row, pathExistsCache)
+    (row) => ensurePhotoOrientationMetadata(row, pathExistsCache, stats)
   );
+  const orientationMs = performance.now() - orientationStartedAt;
+  const printNoteStartedAt = performance.now();
   const rowsWithResolvedPrintNotes = await mapWithConcurrencyLimit(
     rowsWithAccurateOrientation,
     RENDERER_ROW_PREP_CONCURRENCY,
-    (row) => ensurePhotoPrintNoteMetadata(row, pathExistsCache)
+    (row) => ensurePhotoPrintNoteMetadata(row, pathExistsCache, stats)
   );
+  const printNoteMs = performance.now() - printNoteStartedAt;
+  const labelStartedAt = performance.now();
+  const rowsWithLabels = attachPhotoLabelsToRows(rowsWithResolvedPrintNotes);
+  const labelsMs = performance.now() - labelStartedAt;
+  const totalMs = performance.now() - totalStartedAt;
 
-  return attachPhotoLabelsToRows(rowsWithResolvedPrintNotes);
+  logPerformanceTiming('prepareRowsForRenderer', totalMs, {
+    rowCount: normalizedRows.length,
+    pathCheckCount: pathExistsCache.size,
+    orientationMs,
+    printNoteMs,
+    labelsMs,
+    ...stats,
+  });
+
+  return rowsWithLabels;
+}
+
+async function buildRendererPhotosFromRows(rowProvider, label, details = {}) {
+  const totalStartedAt = performance.now();
+  const dbStartedAt = performance.now();
+  const rows = typeof rowProvider === 'function' ? rowProvider() : [];
+  const dbMs = performance.now() - dbStartedAt;
+  const prepareStartedAt = performance.now();
+  const preparedRows = await prepareRowsForRenderer(rows);
+  const prepareMs = performance.now() - prepareStartedAt;
+  const mapStartedAt = performance.now();
+  const photos = preparedRows.map(toRendererPhoto);
+  const mapMs = performance.now() - mapStartedAt;
+  const totalMs = performance.now() - totalStartedAt;
+
+  logPerformanceTiming(`renderer-photos:${label}`, totalMs, {
+    ...details,
+    rowCount: Array.isArray(rows) ? rows.length : 0,
+    dbMs,
+    prepareMs,
+    mapMs,
+  });
+
+  return photos;
 }
 
 function buildWorldSidebarData(sortMode = 'count') {
@@ -3164,7 +3313,7 @@ function buildWorldSidebarData(sortMode = 'count') {
       normalizeWorldId(row.world_id) || parseWorldIdFromUrl(row.world_url);
     const worldName =
       normalizeDisplayWorldName(row.world_name_manual || row.world_name) ||
-      'ワールド名を取得できませんでした';
+      UNKNOWN_WORLD_DISPLAY_NAME;
     const worldKey = worldId ? `id:${worldId}` : `name:${worldName}`;
     const existingEntry = worldMap.get(worldKey);
 
@@ -5322,32 +5471,41 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle('get-photos-by-month', async (_event, year, month) => {
-    const rows = await prepareRowsForRenderer(photoDb.getPhotosByMonth(year, month));
-    return rows.map(toRendererPhoto);
+    return buildRendererPhotosFromRows(
+      () => photoDb.getPhotosByMonth(year, month),
+      'month',
+      { year, month }
+    );
   });
 
   ipcMain.handle('get-photos-by-year', async (_event, year) => {
-    const rows = await prepareRowsForRenderer(photoDb.getPhotosByYear(year));
-    return rows.map(toRendererPhoto);
+    return buildRendererPhotosFromRows(
+      () => photoDb.getPhotosByYear(year),
+      'year',
+      { year }
+    );
   });
 
   ipcMain.handle('get-photos-by-world-selection', async (_event, selection) => {
     const normalizedWorldId = normalizeWorldId(selection?.worldId);
     const normalizedWorldName =
       normalizeDisplayWorldName(selection?.worldName) ||
-      'ワールド名を取得できませんでした';
+      UNKNOWN_WORLD_DISPLAY_NAME;
 
-    const rows = normalizedWorldId
-      ? photoDb.getPhotosByWorldId(normalizedWorldId)
-      : photoDb.getAllPhotosWithWorldInfo().filter((row) => {
-          const rowWorldName =
-            normalizeDisplayWorldName(row.world_name_manual || row.world_name) ||
-            'ワールド名を取得できませんでした';
-          return rowWorldName === normalizedWorldName;
-        });
-
-    const preparedRows = await prepareRowsForRenderer(rows);
-    return preparedRows.map(toRendererPhoto);
+    return buildRendererPhotosFromRows(
+      () =>
+        normalizedWorldId
+          ? photoDb.getPhotosByWorldId(normalizedWorldId)
+          : photoDb.getPhotosByWorldName(
+              normalizedWorldName,
+              UNKNOWN_WORLD_DISPLAY_NAME
+            ),
+      'world',
+      {
+        hasWorldId: Boolean(normalizedWorldId),
+        worldKey: selection?.worldKey || '',
+      }
+    );
   });
 
   ipcMain.handle('get-world-metadata', async (_event, worldId) => {
