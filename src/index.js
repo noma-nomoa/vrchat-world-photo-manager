@@ -89,6 +89,11 @@ const IMPORT_PREPROCESS_CONCURRENCY = Math.max(
       : 4
   )
 );
+const RENDERER_ROW_PREP_CONCURRENCY = Math.max(
+  2,
+  Math.min(6, IMPORT_PREPROCESS_CONCURRENCY)
+);
+const PHOTO_PREPARATION_CACHE_LIMIT = 5000;
 const DEFAULT_PHOTO_LABEL_COLORS = [
   '#6D5EF6',
   '#4F8CFF',
@@ -148,6 +153,8 @@ let isAutoUpdaterConfigured = false;
 let isAutoUpdateCheckRunning = false;
 let isAutoUpdateDownloadRunning = false;
 let latestAvailableAppUpdateRelease = null;
+const photoOrientationPreparationCache = new Map();
+const photoPrintNotePreparationCache = new Map();
 
 // Lightweight app preferences are stored outside the renderer so they survive
 // reloads/restarts even if the file:// localStorage origin changes.
@@ -726,6 +733,7 @@ async function restoreAppDataBackupFile() {
 
   const automaticBackup = await createAutomaticAppDataBackupFile('before-restore');
   const restoreResult = photoDb.restoreBackupSnapshot(parsed.data || parsed);
+  clearPhotoPreparationCaches();
 
   if (parsed.preferences && typeof parsed.preferences === 'object') {
     await writeAppPreferences(parsed.preferences);
@@ -2503,11 +2511,84 @@ function ensurePhotoResolutionMetadata(row) {
   };
 }
 
-async function derivePhotoOrientationTierFromStoredAssets(row) {
+function setBoundedCacheEntry(
+  cache,
+  key,
+  value,
+  limit = PHOTO_PREPARATION_CACHE_LIMIT
+) {
+  if (!(cache instanceof Map) || !key) {
+    return;
+  }
+
+  if (!cache.has(key) && cache.size >= limit) {
+    const oldestKey = cache.keys().next().value;
+    cache.delete(oldestKey);
+  }
+
+  cache.set(key, value);
+}
+
+function clearPhotoPreparationCaches() {
+  photoOrientationPreparationCache.clear();
+  photoPrintNotePreparationCache.clear();
+}
+
+function buildPhotoOrientationPreparationCacheKey(row) {
+  if (!row || !Number.isInteger(row.id)) {
+    return null;
+  }
+
+  return [
+    row.id,
+    row.file_path || '',
+    row.thumbnail_path || '',
+    row.image_width || '',
+    row.image_height || '',
+    row.resolution_tier || '',
+    row.orientation_tier || '',
+  ].join('\u001f');
+}
+
+function buildPhotoPrintNotePreparationCacheKey(row) {
+  if (!row || !Number.isInteger(row.id)) {
+    return null;
+  }
+
+  return [
+    row.id,
+    row.file_path || '',
+    normalizePhotoPrintNoteText(row.print_note_text) || '',
+  ].join('\u001f');
+}
+
+async function pathExistsCached(targetPath, cache = null) {
+  const normalizedTargetPath =
+    typeof targetPath === 'string' ? targetPath.trim() : '';
+
+  if (!normalizedTargetPath) {
+    return false;
+  }
+
+  if (!(cache instanceof Map)) {
+    return pathExists(normalizedTargetPath);
+  }
+
+  if (!cache.has(normalizedTargetPath)) {
+    cache.set(normalizedTargetPath, pathExists(normalizedTargetPath));
+  }
+
+  return cache.get(normalizedTargetPath);
+}
+
+async function derivePhotoOrientationTierFromStoredAssets(
+  row,
+  pathExistsCache = null
+) {
   const thumbnailPath =
     typeof row?.thumbnail_path === 'string' ? row.thumbnail_path.trim() : '';
 
-  if (thumbnailPath && (await pathExists(thumbnailPath))) {
+  if (thumbnailPath && (await pathExistsCached(thumbnailPath, pathExistsCache))) {
     const thumbnailMetadata = extractImageMetadataFromPath(thumbnailPath);
 
     if (thumbnailMetadata.orientationTier) {
@@ -2517,7 +2598,7 @@ async function derivePhotoOrientationTierFromStoredAssets(row) {
 
   const filePath = typeof row?.file_path === 'string' ? row.file_path.trim() : '';
 
-  if (filePath && (await pathExists(filePath))) {
+  if (filePath && (await pathExistsCached(filePath, pathExistsCache))) {
     const imageMetadata = extractImageMetadataFromPath(filePath);
 
     if (imageMetadata.orientationTier) {
@@ -2528,14 +2609,38 @@ async function derivePhotoOrientationTierFromStoredAssets(row) {
   return null;
 }
 
-async function ensurePhotoOrientationMetadata(row) {
+async function ensurePhotoOrientationMetadata(row, pathExistsCache = null) {
   if (!row || !Number.isInteger(row.id)) {
     return row;
   }
 
-  const actualOrientationTier = await derivePhotoOrientationTierFromStoredAssets(row);
+  const cacheKey = buildPhotoOrientationPreparationCacheKey(row);
+  const hasCachedOrientationTier =
+    cacheKey && photoOrientationPreparationCache.has(cacheKey);
+  const cachedOrientationTier = hasCachedOrientationTier
+    ? photoOrientationPreparationCache.get(cacheKey)
+    : null;
+
+  if (hasCachedOrientationTier) {
+    return cachedOrientationTier === row.orientation_tier
+      ? row
+      : {
+          ...row,
+          orientation_tier: cachedOrientationTier,
+        };
+  }
+
+  const actualOrientationTier = await derivePhotoOrientationTierFromStoredAssets(
+    row,
+    pathExistsCache
+  );
 
   if (!actualOrientationTier || row.orientation_tier === actualOrientationTier) {
+    setBoundedCacheEntry(
+      photoOrientationPreparationCache,
+      cacheKey,
+      row.orientation_tier || actualOrientationTier || ''
+    );
     return row;
   }
 
@@ -2552,13 +2657,34 @@ async function ensurePhotoOrientationMetadata(row) {
   };
 }
 
-async function ensurePhotoPrintNoteMetadata(row) {
+async function ensurePhotoPrintNoteMetadata(row, pathExistsCache = null) {
+  const cacheKey = buildPhotoPrintNotePreparationCacheKey(row);
+  const cachedPrintNoteText = cacheKey
+    ? photoPrintNotePreparationCache.get(cacheKey)
+    : undefined;
+
+  if (cachedPrintNoteText !== undefined) {
+    return cachedPrintNoteText === row.print_note_text
+      ? row
+      : {
+          ...row,
+          print_note_text: cachedPrintNoteText,
+        };
+  }
+
   if (
     !row ||
     !Number.isInteger(row.id) ||
     !shouldRepairStoredPrintNote(row.print_note_text) ||
-    !(await pathExists(row.file_path))
+    !(await pathExistsCached(row.file_path, pathExistsCache))
   ) {
+    if (cacheKey) {
+      setBoundedCacheEntry(
+        photoPrintNotePreparationCache,
+        cacheKey,
+        row?.print_note_text || ''
+      );
+    }
     return row;
   }
 
@@ -2566,11 +2692,21 @@ async function ensurePhotoPrintNoteMetadata(row) {
     const fileBuffer = await fs.readFile(row.file_path);
     const nextPrintNoteText = extractPhotoPrintNote(loadExifTagsSafely(fileBuffer));
     const savedRow = photoDb.updatePhotoPrintNote(row.id, nextPrintNoteText);
+    setBoundedCacheEntry(
+      photoPrintNotePreparationCache,
+      cacheKey,
+      nextPrintNoteText || ''
+    );
     return savedRow || {
       ...row,
       print_note_text: nextPrintNoteText,
     };
   } catch {
+    setBoundedCacheEntry(
+      photoPrintNotePreparationCache,
+      cacheKey,
+      row.print_note_text || ''
+    );
     return row;
   }
 }
@@ -2907,6 +3043,7 @@ async function resetApplicationData(progressReporter = null) {
   }
 
   const counts = photoDb.resetApplicationData();
+  clearPhotoPreparationCaches();
 
   progressReporter?.({
     phase: 'process',
@@ -3003,11 +3140,16 @@ function attachPhotoLabelsToRows(rows) {
 
 async function prepareRowsForRenderer(rows) {
   const normalizedRows = Array.isArray(rows) ? rows : [];
-  const rowsWithAccurateOrientation = await Promise.all(
-    normalizedRows.map((row) => ensurePhotoOrientationMetadata(row))
+  const pathExistsCache = new Map();
+  const rowsWithAccurateOrientation = await mapWithConcurrencyLimit(
+    normalizedRows,
+    RENDERER_ROW_PREP_CONCURRENCY,
+    (row) => ensurePhotoOrientationMetadata(row, pathExistsCache)
   );
-  const rowsWithResolvedPrintNotes = await Promise.all(
-    rowsWithAccurateOrientation.map((row) => ensurePhotoPrintNoteMetadata(row))
+  const rowsWithResolvedPrintNotes = await mapWithConcurrencyLimit(
+    rowsWithAccurateOrientation,
+    RENDERER_ROW_PREP_CONCURRENCY,
+    (row) => ensurePhotoPrintNoteMetadata(row, pathExistsCache)
   );
 
   return attachPhotoLabelsToRows(rowsWithResolvedPrintNotes);

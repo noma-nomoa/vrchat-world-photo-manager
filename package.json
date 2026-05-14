@@ -1,7 +1,7 @@
 {
   "name": "worldshot-log",
   "productName": "WorldShot Log",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "My Electron application description",
   "main": "src/index.js",
   "private": true,
