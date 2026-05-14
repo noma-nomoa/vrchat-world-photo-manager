@@ -4816,7 +4816,49 @@ function getNormalizedModalPrintNoteText(item = currentModalPhoto) {
   }
 
   const normalized = item.printNoteText.trim();
-  return /^\[object\s+[^\]]+\]$/i.test(normalized) ? '' : normalized;
+
+  if (
+    !normalized ||
+    normalized === '{}' ||
+    normalized === '[]' ||
+    /^\[object\s+[^\]]+\]$/i.test(normalized)
+  ) {
+    return '';
+  }
+
+  try {
+    const parsed = JSON.parse(normalized);
+
+    if (Array.isArray(parsed) && parsed.length === 0) {
+      return '';
+    }
+
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      Object.values(parsed).every((entry) => {
+        if (entry == null) {
+          return true;
+        }
+
+        if (typeof entry === 'string') {
+          return entry.trim().length === 0;
+        }
+
+        if (Array.isArray(entry)) {
+          return entry.length === 0;
+        }
+
+        return false;
+      })
+    ) {
+      return '';
+    }
+  } catch {
+    // Plain text notes are expected here.
+  }
+
+  return normalized;
 }
 
 function renderModalPrintNote(item = currentModalPhoto) {

@@ -1578,6 +1578,48 @@ function sanitizeExtractedText(value) {
   return sanitized.length > 0 ? sanitized : null;
 }
 
+function isEmptyPrintNotePlaceholder(value) {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  const trimmed = value.trim();
+
+  if (trimmed === '{}' || trimmed === '[]') {
+    return true;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+
+    if (Array.isArray(parsed)) {
+      return parsed.length === 0;
+    }
+
+    if (parsed && typeof parsed === 'object') {
+      return Object.values(parsed).every((entry) => {
+        if (entry == null) {
+          return true;
+        }
+
+        if (typeof entry === 'string') {
+          return entry.trim().length === 0;
+        }
+
+        if (Array.isArray(entry)) {
+          return entry.length === 0;
+        }
+
+        return false;
+      });
+    }
+  } catch {
+    // Not JSON-like, so it can still be a real print note.
+  }
+
+  return false;
+}
+
 function pickBestTextCandidate(rawValues) {
   const candidates = new Set();
 
@@ -1655,7 +1697,7 @@ function normalizeTagValue(tag) {
 function normalizePhotoPrintNoteText(value) {
   const sanitized = sanitizeExtractedText(repairUtf8Mojibake(value));
 
-  if (!sanitized) {
+  if (!sanitized || isEmptyPrintNotePlaceholder(sanitized)) {
     return null;
   }
 
@@ -1681,6 +1723,10 @@ function shouldRepairStoredPrintNote(value) {
   }
 
   if (/^\[object\s+[^\]]+\]$/i.test(trimmed)) {
+    return true;
+  }
+
+  if (isEmptyPrintNotePlaceholder(trimmed)) {
     return true;
   }
 
@@ -2767,6 +2813,19 @@ async function ensurePhotoPrintNoteMetadata(
           ...row,
           print_note_text: cachedPrintNoteText,
         };
+  }
+
+  if (
+    row &&
+    Number.isInteger(row.id) &&
+    isEmptyPrintNotePlaceholder(row.print_note_text)
+  ) {
+    const savedRow = photoDb.updatePhotoPrintNote(row.id, null);
+    setBoundedCacheEntry(photoPrintNotePreparationCache, cacheKey, '');
+    return savedRow || {
+      ...row,
+      print_note_text: null,
+    };
   }
 
   if (
