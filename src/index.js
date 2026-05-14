@@ -114,6 +114,9 @@ const DEFAULT_PHOTO_LABEL_COLORS = [
   '#06B6D4',
 ];
 const PHOTO_ORIENTATION_TIERS = new Set(['landscape', 'portrait', 'square']);
+const VRCHAT_PRINT_PHOTO_ASPECT_RATIO = 2048 / 1440;
+const VRCHAT_PRINT_PHOTO_ASPECT_TOLERANCE = 0.01;
+const VRCHAT_PRINT_PHOTO_MIN_LONG_EDGE = 1400;
 
 const SUPPORTED_IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 const PROCESSING_PROGRESS_CHANNEL = 'processing-progress';
@@ -2515,6 +2518,37 @@ function getStoredPhotoOrientationTier(row) {
   return getOrientationTier(row.image_width, row.image_height);
 }
 
+function isLikelyVrchatPrintPhotoDimensions(width, height) {
+  const imageWidth = Number(width);
+  const imageHeight = Number(height);
+
+  if (
+    !Number.isFinite(imageWidth) ||
+    !Number.isFinite(imageHeight) ||
+    imageWidth <= 0 ||
+    imageHeight <= 0
+  ) {
+    return false;
+  }
+
+  const longEdge = Math.max(imageWidth, imageHeight);
+  const shortEdge = Math.min(imageWidth, imageHeight);
+
+  if (longEdge < VRCHAT_PRINT_PHOTO_MIN_LONG_EDGE || shortEdge <= 0) {
+    return false;
+  }
+
+  const aspectRatio = longEdge / shortEdge;
+  return (
+    Math.abs(aspectRatio - VRCHAT_PRINT_PHOTO_ASPECT_RATIO) <=
+    VRCHAT_PRINT_PHOTO_ASPECT_TOLERANCE
+  );
+}
+
+function isLikelyVrchatPrintPhoto(row) {
+  return isLikelyVrchatPrintPhotoDimensions(row?.image_width, row?.image_height);
+}
+
 function extractImageMetadataFromNativeImage(image) {
   if (!image || image.isEmpty()) {
     return {
@@ -3257,6 +3291,7 @@ function toRendererPhoto(row) {
     resolutionTier: row.resolution_tier,
     orientationTier: derivedOrientationTier,
     printNoteText: normalizePhotoPrintNoteText(row.print_note_text) || '',
+    isPrintPhoto: isLikelyVrchatPrintPhoto(row),
     memoText: row.memo_text || '',
     photoLabels: resolvedPhotoLabels
       .map(toRendererPhotoLabel)

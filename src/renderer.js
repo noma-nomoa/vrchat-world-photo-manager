@@ -4864,6 +4864,7 @@ function getNormalizedModalPrintNoteText(item = currentModalPhoto) {
 function renderModalPrintNote(item = currentModalPhoto) {
   const printNoteText = getNormalizedModalPrintNoteText(item);
   const hasPrintNote = printNoteText.length > 0;
+  const hasPrintBadge = Boolean(item?.isPrintPhoto || hasPrintNote);
 
   if (modalPrintNoteValue) {
     modalPrintNoteValue.textContent = hasPrintNote ? printNoteText : '';
@@ -4875,7 +4876,7 @@ function renderModalPrintNote(item = currentModalPhoto) {
 
   if (modalPrintNoteHeroBadge) {
     modalPrintNoteHeroBadge.textContent = 'プリント';
-    modalPrintNoteHeroBadge.classList.toggle('is-hidden', !hasPrintNote);
+    modalPrintNoteHeroBadge.classList.toggle('is-hidden', !hasPrintBadge);
   }
 }
 
