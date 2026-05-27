@@ -399,10 +399,19 @@ let worldSidebarData = [];
 let currentSelection = null;
 let currentPhotos = [];
 let allCurrentMonthPhotos = [];
+let currentPhotoGroupIndexMap = new Map();
 let currentSidebarMode = 'timeline';
 let currentWorldSidebarSort = 'count';
 let currentPhotoSortOrder = 'desc';
 let currentPhotoCardDensity = 'default';
+let expandedMonthDayKey = '';
+let activeSidebarGroupDate = '';
+let activeGalleryDateSyncFrame = 0;
+let galleryDateJumpTimer = 0;
+let galleryDateJumpRenderFrame = 0;
+let galleryDateJumpRequestId = 0;
+let activeGalleryJumpTarget = null;
+let galleryJumpAnimationTimer = 0;
 let currentModalPhoto = null;
 let imageModalAnimationTimer = null;
 let imageModalSwitchTimer = null;
@@ -532,6 +541,8 @@ let monthGalleryLoadCheckScheduled = false;
 let monthGalleryLoadCheckTimer = null;
 let monthGalleryAppendFrame = 0;
 let renderedGalleryGroupMap = new Map();
+let renderedGalleryGroupList = [];
+let activeGalleryGroupIndex = -1;
 const subModalAnimationTimers = new WeakMap();
 
 const GALLERY_CARD_MIN_WIDTH = 220;
@@ -602,6 +613,39 @@ const TOOLBAR_SEARCH_SCOPE_META = {
 
 function pad2(value) {
   return String(value).padStart(2, '0');
+}
+
+function getMonthDayKey(year, month) {
+  return `${year}-${month}`;
+}
+
+function compareSidebarNumberDescending(leftValue, rightValue) {
+  return Number(rightValue) - Number(leftValue);
+}
+
+function compareSidebarDayNumber(leftDay, rightDay) {
+  const diff = Number(leftDay) - Number(rightDay);
+  return currentPhotoSortOrder === 'asc' ? diff : -diff;
+}
+
+function getOrderedTimelineSidebarData() {
+  return sidebarData
+    .map((yearEntry) => ({
+      ...yearEntry,
+      months: [...(yearEntry.months || [])]
+        .map((monthEntry) => ({
+          ...monthEntry,
+          days: [...(monthEntry.days || [])].sort((leftDay, rightDay) =>
+            compareSidebarDayNumber(leftDay.day, rightDay.day)
+          ),
+        }))
+        .sort((leftMonth, rightMonth) =>
+          compareSidebarNumberDescending(leftMonth.month, rightMonth.month)
+        ),
+    }))
+    .sort((leftYear, rightYear) =>
+      compareSidebarNumberDescending(leftYear.year, rightYear.year)
+    );
 }
 
 // Sidebar selection can now point at either a specific month or a whole year.
@@ -931,6 +975,34 @@ function sortPhotosForCurrentSortOrder(photos) {
   return [...(Array.isArray(photos) ? photos : [])].sort(
     comparePhotosForCurrentSortOrder
   );
+}
+
+function getPhotoGroupDate(photo) {
+  const groupDate =
+    typeof photo?.groupDate === 'string' ? photo.groupDate.trim() : '';
+
+  return groupDate || '日付不明';
+}
+
+function rebuildCurrentPhotoGroupIndexMap() {
+  const nextGroupIndexMap = new Map();
+
+  currentPhotos.forEach((photo, index) => {
+    const groupDate = getPhotoGroupDate(photo);
+    const groupIndex = nextGroupIndexMap.get(groupDate);
+
+    if (groupIndex) {
+      groupIndex.endIndex = index + 1;
+      return;
+    }
+
+    nextGroupIndexMap.set(groupDate, {
+      startIndex: index,
+      endIndex: index + 1,
+    });
+  });
+
+  currentPhotoGroupIndexMap = nextGroupIndexMap;
 }
 
 function setCurrentMonthPhotos(nextPhotos) {
@@ -1843,6 +1915,7 @@ function applyCurrentPhotoFilter() {
   currentPhotos = sortPhotosForCurrentSortOrder(
     allCurrentMonthPhotos.filter(photoMatchesCurrentFilters)
   );
+  rebuildCurrentPhotoGroupIndexMap();
 }
 
 function getOrientationFilterMeta(filterValue) {
@@ -3559,6 +3632,17 @@ function syncKeyboardFocusedPhotoCard({ force = false } = {}) {
   }
 }
 
+function setKeyboardFocusToFirstPhotoInGroup(groupSection) {
+  const firstCard = groupSection?.querySelector?.('.photo-card:not([hidden])');
+  const firstPhotoId = Number(firstCard?.dataset?.photoId);
+
+  if (!Number.isInteger(firstPhotoId) || firstPhotoId <= 0) {
+    return false;
+  }
+
+  return setKeyboardFocusedPhoto(firstPhotoId, { scroll: false });
+}
+
 function moveKeyboardFocusedPhoto(delta) {
   const visibleCards = getRenderedVisiblePhotoCards();
 
@@ -3974,6 +4058,24 @@ function replaceRenderedPhotoCard(updatedPhoto) {
   return true;
 }
 
+function removeRenderedGalleryGroupState(groupDate, groupState) {
+  renderedGalleryGroupMap.delete(groupDate);
+
+  const groupIndex = renderedGalleryGroupList.indexOf(groupState);
+
+  if (groupIndex === -1) {
+    return;
+  }
+
+  renderedGalleryGroupList.splice(groupIndex, 1);
+
+  if (activeGalleryGroupIndex === groupIndex) {
+    activeGalleryGroupIndex = -1;
+  } else if (activeGalleryGroupIndex > groupIndex) {
+    activeGalleryGroupIndex -= 1;
+  }
+}
+
 function removePhotoFromCurrentCollections(photoId) {
   setCurrentMonthPhotos(
     allCurrentMonthPhotos.filter((photo) => photo.id !== photoId)
@@ -4026,7 +4128,7 @@ function removeRenderedPhotoCards(
 
       for (const [groupDate, groupState] of renderedGalleryGroupMap.entries()) {
         if (groupState.section === groupSection) {
-          renderedGalleryGroupMap.delete(groupDate);
+          removeRenderedGalleryGroupState(groupDate, groupState);
           break;
         }
       }
@@ -4113,8 +4215,54 @@ function syncRenderedFavoriteFilterState() {
   }
 
   syncKeyboardFocusedPhotoCard();
+  scheduleActiveGalleryDateSync();
 
   return true;
+}
+
+function isSidebarDayButtonCurrent(button) {
+  return (
+    Boolean(activeSidebarGroupDate) &&
+    isMonthSelection(currentSelection) &&
+    button?.dataset?.groupDate === activeSidebarGroupDate
+  );
+}
+
+function syncSidebarActiveDayButtons() {
+  if (!sidebarTree) {
+    return;
+  }
+
+  for (const dayButton of sidebarTree.querySelectorAll('.day-button')) {
+    const isActive = isSidebarDayButtonCurrent(dayButton);
+    dayButton.classList.toggle('active', isActive);
+
+    if (isActive) {
+      dayButton.setAttribute('aria-current', 'date');
+    } else {
+      dayButton.removeAttribute('aria-current');
+    }
+  }
+}
+
+function setActiveSidebarGroupDate(groupDate) {
+  const normalizedGroupDate =
+    typeof groupDate === 'string' ? groupDate.trim() : '';
+  const nextActiveGalleryGroupIndex = normalizedGroupDate
+    ? renderedGalleryGroupList.findIndex(
+        (groupState) => groupState?.groupDate === normalizedGroupDate
+      )
+    : -1;
+
+  if (activeSidebarGroupDate === normalizedGroupDate) {
+    activeGalleryGroupIndex = nextActiveGalleryGroupIndex;
+    syncSidebarActiveDayButtons();
+    return;
+  }
+
+  activeSidebarGroupDate = normalizedGroupDate;
+  activeGalleryGroupIndex = nextActiveGalleryGroupIndex;
+  syncSidebarActiveDayButtons();
 }
 
 function syncSidebarSelectionState() {
@@ -4170,6 +4318,8 @@ function syncSidebarSelectionState() {
       monthButton.classList.toggle('active', Boolean(isActive));
     }
   }
+
+  syncSidebarActiveDayButtons();
 
   return hasSidebarEntries;
 }
@@ -6950,6 +7100,7 @@ function resetCurrentMonthState() {
   setCurrentSelectionValue(null);
   currentPhotos = [];
   allCurrentMonthPhotos = [];
+  currentPhotoGroupIndexMap = new Map();
 }
 
 function clearMainContent() {
@@ -7184,10 +7335,41 @@ function createPhotoCard(item, photoIndex = 0) {
   return card;
 }
 
-function resetMonthGalleryRenderState() {
-  if (monthGalleryLoadCheckTimer) {
-    clearTimeout(monthGalleryLoadCheckTimer);
-    monthGalleryLoadCheckTimer = null;
+function clearPendingGalleryDateJump() {
+  galleryDateJumpRequestId += 1;
+
+  if (galleryDateJumpRenderFrame) {
+    cancelAnimationFrame(galleryDateJumpRenderFrame);
+    galleryDateJumpRenderFrame = 0;
+  }
+
+  if (galleryDateJumpTimer) {
+    clearTimeout(galleryDateJumpTimer);
+    galleryDateJumpTimer = 0;
+  }
+
+  if (galleryJumpAnimationTimer) {
+    clearTimeout(galleryJumpAnimationTimer);
+    galleryJumpAnimationTimer = 0;
+  }
+
+  if (activeGalleryJumpTarget) {
+    activeGalleryJumpTarget.classList.remove('is-jump-target');
+    activeGalleryJumpTarget = null;
+  }
+}
+
+function startGalleryDateJumpRequest() {
+  galleryDateJumpRequestId += 1;
+
+  if (galleryDateJumpRenderFrame) {
+    cancelAnimationFrame(galleryDateJumpRenderFrame);
+    galleryDateJumpRenderFrame = 0;
+  }
+
+  if (galleryDateJumpTimer) {
+    clearTimeout(galleryDateJumpTimer);
+    galleryDateJumpTimer = 0;
   }
 
   if (monthGalleryAppendFrame) {
@@ -7195,11 +7377,39 @@ function resetMonthGalleryRenderState() {
     monthGalleryAppendFrame = 0;
   }
 
-  renderedPhotoCount = 0;
-  renderedMonthGalleryKey = '';
+  return galleryDateJumpRequestId;
+}
+
+function cancelMonthGalleryScheduledWork() {
+  if (monthGalleryLoadCheckTimer) {
+    clearTimeout(monthGalleryLoadCheckTimer);
+    monthGalleryLoadCheckTimer = null;
+  }
+
+  clearPendingGalleryDateJump();
+
+  if (activeGalleryDateSyncFrame) {
+    cancelAnimationFrame(activeGalleryDateSyncFrame);
+    activeGalleryDateSyncFrame = 0;
+  }
+
+  if (monthGalleryAppendFrame) {
+    cancelAnimationFrame(monthGalleryAppendFrame);
+    monthGalleryAppendFrame = 0;
+  }
+
   isAppendingMonthGalleryBatch = false;
   monthGalleryLoadCheckScheduled = false;
+}
+
+function resetMonthGalleryRenderState() {
+  cancelMonthGalleryScheduledWork();
+
+  renderedPhotoCount = 0;
+  renderedMonthGalleryKey = '';
   renderedGalleryGroupMap = new Map();
+  renderedGalleryGroupList = [];
+  activeGalleryGroupIndex = -1;
 }
 
 function getMonthGalleryRenderKey() {
@@ -7258,7 +7468,10 @@ function calculateInitialVisiblePhotoCount() {
     GALLERY_CARD_MIN_WIDTH
   );
   const rect = monthGalleryList.getBoundingClientRect();
-  const visibleHeight = Math.max(window.innerHeight - Math.max(rect.top, 0), 320);
+  const visibleHeight = Math.max(
+    monthGalleryList.clientHeight || window.innerHeight - Math.max(rect.top, 0),
+    320
+  );
   const visibleRows = Math.max(1, Math.ceil(visibleHeight / rowHeight));
   const targetRows = Math.max(2, visibleRows + GALLERY_INITIAL_PREFETCH_ROWS);
 
@@ -7273,9 +7486,10 @@ function calculateIncrementalVisiblePhotoCount() {
   );
 }
 
-function buildGalleryGroupSection(groupDate) {
+function buildGalleryGroupSection(groupDate, startIndex = -1) {
   const section = document.createElement('section');
   section.className = 'gallery-group';
+  section.dataset.groupDate = groupDate;
 
   const dayBox = document.createElement('div');
   dayBox.className = 'day-box';
@@ -7287,33 +7501,341 @@ function buildGalleryGroupSection(groupDate) {
   section.appendChild(dayBox);
   section.appendChild(grid);
 
-  return { section, grid };
+  return {
+    section,
+    grid,
+    groupDate,
+    startIndex,
+    endIndex: startIndex >= 0 ? startIndex + 1 : startIndex,
+  };
 }
 
-function appendMonthGalleryPhotoBatch(targetCount, { forceAll = false } = {}) {
+function getActiveGalleryGroupDateFromViewport() {
+  if (!monthGalleryList || !isMonthSelection(currentSelection)) {
+    return '';
+  }
+
+  if (renderedGalleryGroupList.length === 0) {
+    return '';
+  }
+
+  const containerRect = monthGalleryList.getBoundingClientRect();
+  const visibleTop = Math.max(containerRect.top, 0);
+  const visibleBottom = Math.min(containerRect.bottom, window.innerHeight);
+  const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+  const anchorY = visibleTop + Math.min(48, Math.max(visibleHeight, 1) * 0.18);
+  let bestGroup = null;
+  let bestIndex = -1;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  for (let index = 0; index < renderedGalleryGroupList.length; index += 1) {
+    const group = renderedGalleryGroupList[index]?.section;
+
+    if (!group || !group.isConnected || group.hidden) {
+      continue;
+    }
+
+    const rect = group.getBoundingClientRect();
+
+    if (rect.bottom < visibleTop) {
+      continue;
+    }
+
+    if (rect.top > visibleBottom) {
+      break;
+    }
+
+    const distance =
+      rect.top <= anchorY && rect.bottom >= anchorY
+        ? 0
+        : Math.abs(rect.top - anchorY);
+
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestGroup = group;
+      bestIndex = index;
+    }
+  }
+
+  activeGalleryGroupIndex = bestIndex;
+
+  return bestGroup?.dataset?.groupDate || '';
+}
+
+function syncActiveGalleryGroupDate() {
+  activeGalleryDateSyncFrame = 0;
+  setActiveSidebarGroupDate(getActiveGalleryGroupDateFromViewport());
+}
+
+function scheduleActiveGalleryDateSync() {
+  if (activeGalleryDateSyncFrame) {
+    return;
+  }
+
+  activeGalleryDateSyncFrame = requestAnimationFrame(syncActiveGalleryGroupDate);
+}
+
+function getGalleryScrollTarget() {
+  const galleryOverflowY = monthGalleryList
+    ? window.getComputedStyle(monthGalleryList).overflowY
+    : '';
+
+  if (
+    monthGalleryList &&
+    galleryOverflowY !== 'visible'
+  ) {
+    return {
+      element: monthGalleryList,
+      getCurrent: () => monthGalleryList.scrollTop,
+      setCurrent: (value) => {
+        monthGalleryList.scrollTop = value;
+      },
+      scrollTo(top, behavior) {
+        monthGalleryList.scrollTo({ top, behavior });
+      },
+      getTargetTop(targetSection) {
+        const containerRect = monthGalleryList.getBoundingClientRect();
+        const targetRect = targetSection.getBoundingClientRect();
+        return (
+          monthGalleryList.scrollTop +
+          targetRect.top -
+          containerRect.top -
+          18
+        );
+      },
+    };
+  }
+
+  if (appRoot && appRoot.scrollHeight > appRoot.clientHeight + 1) {
+    return {
+      element: appRoot,
+      getCurrent: () => appRoot.scrollTop,
+      setCurrent: (value) => {
+        appRoot.scrollTop = value;
+      },
+      scrollTo(top, behavior) {
+        appRoot.scrollTo({ top, behavior });
+      },
+      getTargetTop(targetSection) {
+        const containerRect = appRoot.getBoundingClientRect();
+        const targetRect = targetSection.getBoundingClientRect();
+        return appRoot.scrollTop + targetRect.top - containerRect.top - 18;
+      },
+    };
+  }
+
+  return {
+    element: window,
+    getCurrent: () =>
+      window.scrollY ||
+      document.documentElement.scrollTop ||
+      document.body.scrollTop ||
+      0,
+    setCurrent: (value) => {
+      window.scrollTo(0, value);
+    },
+    scrollTo(top, behavior) {
+      window.scrollTo({ top, behavior });
+    },
+    getTargetTop(targetSection) {
+      return (
+        window.scrollY +
+        targetSection.getBoundingClientRect().top -
+        18
+      );
+    },
+  };
+}
+
+function jumpGalleryToTarget(scrollTarget, targetTop) {
+  if (!scrollTarget) {
+    return;
+  }
+
+  const normalizedTargetTop = Math.max(0, targetTop);
+  scrollTarget.setCurrent(normalizedTargetTop);
+  scheduleActiveGalleryDateSync();
+}
+
+function scrollGallerySectionIntoView(targetSection) {
+  if (!targetSection || !monthGalleryList) {
+    return;
+  }
+
+  const scrollTarget = getGalleryScrollTarget();
+  jumpGalleryToTarget(scrollTarget, scrollTarget.getTargetTop(targetSection));
+}
+
+function playGalleryGroupJumpAnimation(targetSection) {
+  if (!targetSection) {
+    return;
+  }
+
+  if (galleryJumpAnimationTimer) {
+    clearTimeout(galleryJumpAnimationTimer);
+    galleryJumpAnimationTimer = 0;
+  }
+
+  if (activeGalleryJumpTarget && activeGalleryJumpTarget !== targetSection) {
+    activeGalleryJumpTarget.classList.remove('is-jump-target');
+  }
+
+  activeGalleryJumpTarget = targetSection;
+  targetSection.classList.remove('is-jump-target');
+  // Force a reflow so repeating a nearby date jump restarts the pulse.
+  void targetSection.offsetWidth;
+  targetSection.classList.add('is-jump-target');
+
+  galleryJumpAnimationTimer = setTimeout(() => {
+    targetSection.classList.remove('is-jump-target');
+    if (activeGalleryJumpTarget === targetSection) {
+      activeGalleryJumpTarget = null;
+    }
+    galleryJumpAnimationTimer = 0;
+    scheduleActiveGalleryDateSync();
+  }, 1200);
+}
+
+function scheduleGalleryDateJump(targetSection) {
+  if (!targetSection) {
+    return;
+  }
+
+  if (galleryDateJumpTimer) {
+    clearTimeout(galleryDateJumpTimer);
+    galleryDateJumpTimer = 0;
+  }
+
+  // Wait briefly for the appended card batch to enter layout, then jump once.
+  // Repeated post-jump corrections read as stutter when users switch dates.
+  galleryDateJumpTimer = setTimeout(() => {
+    galleryDateJumpTimer = 0;
+    scrollGallerySectionIntoView(targetSection);
+    setKeyboardFocusToFirstPhotoInGroup(targetSection);
+    playGalleryGroupJumpAnimation(targetSection);
+  }, 32);
+}
+
+function scheduleGalleryDateJumpAfterRender({
+  groupDate,
+  readyRenderCount,
+  backgroundRenderCount,
+  requestId,
+}) {
+  if (galleryDateJumpRenderFrame) {
+    cancelAnimationFrame(galleryDateJumpRenderFrame);
+    galleryDateJumpRenderFrame = 0;
+  }
+
+  const waitForTargetSection = () => {
+    galleryDateJumpRenderFrame = 0;
+
+    if (requestId !== galleryDateJumpRequestId) {
+      return;
+    }
+
+    const targetSection = renderedGalleryGroupMap.get(groupDate)?.section;
+
+    if (targetSection) {
+      setActiveSidebarGroupDate(groupDate);
+      scheduleGalleryDateJump(targetSection);
+
+      if (backgroundRenderCount > renderedPhotoCount) {
+        appendMonthGalleryPhotoBatch(backgroundRenderCount);
+      }
+
+      return;
+    }
+
+    if (readyRenderCount > renderedPhotoCount && !monthGalleryAppendFrame) {
+      appendMonthGalleryPhotoBatch(readyRenderCount);
+    }
+
+    if (readyRenderCount <= renderedPhotoCount && !monthGalleryAppendFrame) {
+      return;
+    }
+
+    galleryDateJumpRenderFrame = requestAnimationFrame(waitForTargetSection);
+  };
+
+  galleryDateJumpRenderFrame = requestAnimationFrame(waitForTargetSection);
+}
+
+function scrollMonthGalleryToGroupDate(groupDate) {
+  const normalizedGroupDate =
+    typeof groupDate === 'string' ? groupDate.trim() : '';
+
+  if (!normalizedGroupDate || currentPhotos.length === 0) {
+    return false;
+  }
+
+  const groupIndex = currentPhotoGroupIndexMap.get(normalizedGroupDate);
+
+  if (!groupIndex) {
+    showToast('現在の絞り込みでは、この日の写真は表示されていません');
+    return false;
+  }
+
+  const readyRenderCount = Math.min(currentPhotos.length, groupIndex.startIndex + 1);
+  const targetRenderCount = Math.min(
+    currentPhotos.length,
+    groupIndex.endIndex + calculateInitialVisiblePhotoCount()
+  );
+  const jumpRequestId = startGalleryDateJumpRequest();
+
+  if (readyRenderCount > renderedPhotoCount) {
+    appendMonthGalleryPhotoBatch(readyRenderCount);
+    scheduleGalleryDateJumpAfterRender({
+      groupDate: normalizedGroupDate,
+      readyRenderCount,
+      backgroundRenderCount: targetRenderCount,
+      requestId: jumpRequestId,
+    });
+    return true;
+  }
+
+  const groupState = renderedGalleryGroupMap.get(normalizedGroupDate);
+  const targetSection = groupState?.section;
+
+  if (!targetSection) {
+    return true;
+  }
+
+  setActiveSidebarGroupDate(normalizedGroupDate);
+  scheduleGalleryDateJump(targetSection);
+
+  if (targetRenderCount > renderedPhotoCount) {
+    appendMonthGalleryPhotoBatch(targetRenderCount);
+  }
+
+  return true;
+}
+
+function appendMonthGalleryPhotoBatch(targetCount) {
   if (!monthGalleryList || targetCount <= renderedPhotoCount) {
     return;
   }
 
   const normalizedTargetCount = Math.min(targetCount, currentPhotos.length);
-  const nextTargetCount = forceAll
-    ? normalizedTargetCount
-    : Math.min(
-        normalizedTargetCount,
-        renderedPhotoCount + GALLERY_MAX_CARDS_PER_APPEND
-      );
+  const nextTargetCount = Math.min(
+    normalizedTargetCount,
+    renderedPhotoCount + GALLERY_MAX_CARDS_PER_APPEND
+  );
   const fragment = document.createDocumentFragment();
 
   for (let index = renderedPhotoCount; index < nextTargetCount; index += 1) {
     const photo = currentPhotos[index];
-    const groupDate = photo?.groupDate || '日付不明';
+    const groupDate = getPhotoGroupDate(photo);
 
     let groupState = renderedGalleryGroupMap.get(groupDate);
 
     if (!groupState) {
-      groupState = buildGalleryGroupSection(groupDate);
+      groupState = buildGalleryGroupSection(groupDate, index);
       renderedGalleryGroupMap.set(groupDate, groupState);
+      renderedGalleryGroupList.push(groupState);
       fragment.appendChild(groupState.section);
+    } else {
+      groupState.endIndex = index + 1;
     }
 
     groupState.grid.appendChild(createPhotoCard(photo, index));
@@ -7323,6 +7845,7 @@ function appendMonthGalleryPhotoBatch(targetCount, { forceAll = false } = {}) {
   monthGalleryList.appendChild(fragment);
   syncSelectionUi();
   syncKeyboardFocusedPhotoCard();
+  scheduleActiveGalleryDateSync();
 
   if (renderedPhotoCount < normalizedTargetCount && !monthGalleryAppendFrame) {
     monthGalleryAppendFrame = requestAnimationFrame(() => {
@@ -7343,9 +7866,12 @@ function maybeLoadMoreMonthGalleryPhotos() {
     return;
   }
 
-  const rect = monthGalleryList.getBoundingClientRect();
+  const remainingScroll =
+    monthGalleryList.scrollHeight -
+    monthGalleryList.scrollTop -
+    monthGalleryList.clientHeight;
 
-  if (rect.bottom > window.innerHeight + GALLERY_LOAD_AHEAD_PX) {
+  if (remainingScroll > GALLERY_LOAD_AHEAD_PX) {
     return;
   }
 
@@ -7359,8 +7885,10 @@ function maybeLoadMoreMonthGalleryPhotos() {
 
   if (
     renderedPhotoCount < currentPhotos.length &&
-    monthGalleryList.getBoundingClientRect().bottom <=
-      window.innerHeight + GALLERY_LOAD_AHEAD_PX
+    monthGalleryList.scrollHeight -
+      monthGalleryList.scrollTop -
+      monthGalleryList.clientHeight <=
+      GALLERY_LOAD_AHEAD_PX
   ) {
     scheduleMonthGalleryLoadCheck({ immediate: true });
   }
@@ -7390,10 +7918,18 @@ function scheduleMonthGalleryLoadCheck({ immediate = false } = {}) {
 }
 
 function initializeProgressiveMonthGalleryLoading() {
-  window.addEventListener('scroll', scheduleMonthGalleryLoadCheck, true);
+  monthGalleryList?.addEventListener('scroll', () => {
+    scheduleMonthGalleryLoadCheck();
+    scheduleActiveGalleryDateSync();
+  }, { passive: true });
+  window.addEventListener('scroll', () => {
+    scheduleMonthGalleryLoadCheck();
+    scheduleActiveGalleryDateSync();
+  }, true);
   window.addEventListener('resize', () => {
     scheduleMonthGalleryLoadCheck({ immediate: true });
     scheduleMainHeaderResponsiveLayout();
+    scheduleActiveGalleryDateSync();
   });
 }
 
@@ -7437,10 +7973,12 @@ function initializeScrollToTopAnimationInterrupts() {
 
 function renderMonthGallery({ resetProgressive = false } = {}) {
   const renderStartedAt = performance.now();
+  cancelMonthGalleryScheduledWork();
   monthGalleryList.innerHTML = '';
 
   if (!currentSelection) {
     resetMonthGalleryRenderState();
+    setActiveSidebarGroupDate('');
     clearMainContent();
     monthGalleryEmpty.textContent = getDefaultSelectionEmptyMessage();
     return;
@@ -7453,6 +7991,7 @@ function renderMonthGallery({ resetProgressive = false } = {}) {
 
   if (currentPhotos.length === 0) {
     resetMonthGalleryRenderState();
+    setActiveSidebarGroupDate('');
     monthGalleryEmpty.style.display = 'block';
     monthGalleryEmpty.textContent =
       allCurrentMonthPhotos.length > 0 && isAnyPhotoFilterActive()
@@ -7473,6 +8012,8 @@ function renderMonthGallery({ resetProgressive = false } = {}) {
   renderedMonthGalleryKey = nextRenderKey;
   renderedPhotoCount = 0;
   renderedGalleryGroupMap = new Map();
+  renderedGalleryGroupList = [];
+  activeGalleryGroupIndex = -1;
 
   appendMonthGalleryPhotoBatch(
     Math.min(
@@ -7481,6 +8022,7 @@ function renderMonthGallery({ resetProgressive = false } = {}) {
     )
   );
   scheduleMonthGalleryLoadCheck({ immediate: true });
+  scheduleActiveGalleryDateSync();
   syncKeyboardFocusedPhotoCard();
 
   logRendererPerformance('renderMonthGallery', performance.now() - renderStartedAt, {
@@ -7894,7 +8436,7 @@ function renderSidebar() {
     return;
   }
 
-  for (const yearEntry of sidebarData) {
+  for (const yearEntry of getOrderedTimelineSidebarData()) {
     const yearBlock = document.createElement('div');
     yearBlock.className = 'year-block';
     yearBlock.dataset.year = String(yearEntry.year);
@@ -7951,13 +8493,21 @@ function renderSidebar() {
       monthButton.className = 'month-button';
       monthButton.type = 'button';
       monthButton.dataset.month = String(monthEntry.month);
-
-      if (
-        currentSelection &&
+      const monthDayKey = getMonthDayKey(yearEntry.year, monthEntry.month);
+      const isActiveMonth =
+        isMonthSelection(currentSelection) &&
         currentSelection.year === yearEntry.year &&
-        currentSelection.month === monthEntry.month
-      ) {
+        currentSelection.month === monthEntry.month;
+      const isDayListOpen = expandedMonthDayKey === monthDayKey;
+      const hasMonthDays =
+        Array.isArray(monthEntry.days) && monthEntry.days.length > 0;
+
+      if (isActiveMonth) {
         monthButton.classList.add('active');
+      }
+
+      if (isDayListOpen) {
+        monthButton.classList.add('is-days-open');
       }
 
       const monthName = document.createElement('span');
@@ -7968,20 +8518,104 @@ function renderSidebar() {
       monthCount.className = 'month-count';
       monthCount.textContent = `${monthEntry.count}枚`;
 
+      const monthMeta = document.createElement('span');
+      monthMeta.className = 'month-meta';
+
+      const monthChevron = document.createElement('span');
+      monthChevron.className = 'month-day-toggle';
+      monthChevron.setAttribute('aria-hidden', 'true');
+      monthChevron.textContent = '▾';
+
+      monthMeta.append(monthCount);
+
+      if (hasMonthDays) {
+        monthMeta.appendChild(monthChevron);
+        monthButton.setAttribute(
+          'aria-expanded',
+          isDayListOpen ? 'true' : 'false'
+        );
+        monthButton.setAttribute(
+          'aria-label',
+          `${yearEntry.year}年${monthEntry.month}月 ${
+            isDayListOpen ? '日付一覧を閉じる' : '日付一覧を開く'
+          }`
+        );
+      }
+
       monthButton.appendChild(monthName);
-      monthButton.appendChild(monthCount);
+      monthButton.appendChild(monthMeta);
 
       monthButton.addEventListener('click', async () => {
-        await selectMonth(yearEntry.year, monthEntry.month);
+        if (isDayListOpen) {
+          expandedMonthDayKey = '';
+
+          if (isActiveMonth) {
+            renderSidebar();
+            return;
+          }
+
+          await selectMonth(yearEntry.year, monthEntry.month, {
+            expandDays: false,
+          });
+          return;
+        }
+
+        expandedMonthDayKey = monthDayKey;
+        await selectMonth(yearEntry.year, monthEntry.month, {
+          expandDays: false,
+        });
       });
 
       monthList.appendChild(monthButton);
+
+      if (
+        isDayListOpen &&
+        hasMonthDays
+      ) {
+        const dayList = document.createElement('div');
+        dayList.className = 'day-list';
+
+        for (const dayEntry of monthEntry.days) {
+          const groupDate =
+            typeof dayEntry.groupDate === 'string'
+              ? dayEntry.groupDate.trim()
+              : '';
+
+          if (!groupDate) {
+            continue;
+          }
+
+          const dayButton = document.createElement('button');
+          dayButton.className = 'day-button';
+          dayButton.type = 'button';
+          dayButton.dataset.groupDate = groupDate;
+
+          const dayName = document.createElement('span');
+          dayName.className = 'day-name';
+          dayName.textContent = String(dayEntry.day);
+
+          const dayCount = document.createElement('span');
+          dayCount.className = 'day-count';
+          dayCount.textContent = `${dayEntry.count}枚`;
+
+          dayButton.append(dayName, dayCount);
+          dayButton.addEventListener('click', async () => {
+            await selectMonthDay(yearEntry.year, monthEntry.month, groupDate);
+          });
+
+          dayList.appendChild(dayButton);
+        }
+
+        monthList.appendChild(dayList);
+      }
     }
 
     yearBlock.appendChild(yearButton);
     yearBlock.appendChild(monthList);
     sidebarTree.appendChild(yearBlock);
   }
+
+  syncSidebarActiveDayButtons();
 }
 
 async function refreshSidebar() {
@@ -8032,7 +8666,7 @@ async function selectPhotoScope(fetchPhotos, nextSelection) {
   const renderStartedAt = performance.now();
   setCurrentMonthPhotos(photos);
 
-  syncSelectionLinkedUi();
+  syncSelectionLinkedUi({ forceSidebarRender: true });
   stopScrollToTopAnimation();
   scrollGalleryViewToTop({ animated: false });
   renderMonthGallery({ resetProgressive: true });
@@ -8072,11 +8706,40 @@ async function selectWorld(worldEntry) {
   );
 }
 
-async function selectMonth(year, month) {
+async function selectMonth(year, month, { expandDays = false } = {}) {
+  if (expandDays) {
+    expandedMonthDayKey = getMonthDayKey(year, month);
+  }
+
   await selectPhotoScope(
     () => window.electronAPI.getPhotosByMonth(year, month),
     createMonthSelection(year, month)
   );
+}
+
+async function selectMonthDay(year, month, groupDate) {
+  const normalizedGroupDate =
+    typeof groupDate === 'string' ? groupDate.trim() : '';
+
+  if (!normalizedGroupDate) {
+    return;
+  }
+
+  expandedMonthDayKey = getMonthDayKey(year, month);
+
+  const isCurrentMonth =
+    isMonthSelection(currentSelection) &&
+    currentSelection.year === year &&
+    currentSelection.month === month;
+
+  if (!isCurrentMonth) {
+    await selectMonth(year, month);
+  } else {
+    renderSidebar();
+  }
+
+  setActiveSidebarGroupDate(normalizedGroupDate);
+  scrollMonthGalleryToGroupDate(normalizedGroupDate);
 }
 
 async function selectCurrentSelection(selection = currentSelection) {
@@ -9652,6 +10315,7 @@ function bindHeaderFilterControls() {
 
     currentPhotoSortOrder = currentPhotoSortOrder === 'asc' ? 'desc' : 'asc';
     setCurrentMonthPhotos(allCurrentMonthPhotos);
+    renderSidebar();
     await syncCurrentPhotoFilterPresentation({ animate: false });
   });
 

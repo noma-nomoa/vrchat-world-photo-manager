@@ -2479,12 +2479,24 @@ function getResolutionTier(width, height) {
   const longEdge = Math.max(width, height);
   const shortEdge = Math.min(width, height);
 
+  if (longEdge >= 7680 && shortEdge >= 4320) {
+    return '8K';
+  }
+
   if (longEdge >= 3840 && shortEdge >= 2160) {
     return '4K';
   }
 
+  if (longEdge >= 2560 && shortEdge >= 1440) {
+    return 'QHD';
+  }
+
   if (longEdge >= 1920 && shortEdge >= 1080) {
     return 'FHD';
+  }
+
+  if (longEdge >= 1280 && shortEdge >= 720) {
+    return 'HD';
   }
 
   return null;

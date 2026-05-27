@@ -530,6 +530,72 @@ body[data-theme="light"] .month-button.active {
   font-weight: 700;
 }
 
+.day-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: -2px 2px 4px 18px;
+  padding: 4px 0 4px 10px;
+  border-left: 1px solid rgba(126, 155, 202, 0.28);
+}
+
+.day-button {
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text-2);
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+}
+
+.day-button:hover {
+  color: var(--text-0);
+  background: rgba(79, 140, 255, 0.14);
+}
+
+.month-button:focus-visible,
+.day-button:focus-visible {
+  outline: 2px solid rgba(111, 159, 255, 0.86);
+  outline-offset: 2px;
+}
+
+.day-name {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.day-count {
+  font-size: 11px;
+  opacity: 0.82;
+}
+
+.month-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 64px;
+}
+
+.month-day-toggle {
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.month-button.is-days-open .month-day-toggle {
+  transform: rotate(180deg);
+  color: currentColor;
+}
+
 .month-count {
   font-size: 12px;
   opacity: 0.92;
@@ -679,6 +745,24 @@ body[data-theme="light"] .month-button.active {
   border: 1px solid var(--line);
   border-radius: 20px;
   padding: 16px;
+  scroll-margin-top: 22px;
+  position: relative;
+  isolation: isolate;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.gallery-group.is-jump-target {
+  border-color: rgba(79, 140, 255, 0.86);
+  box-shadow:
+    0 0 0 1px rgba(79, 140, 255, 0.38),
+    0 18px 42px rgba(79, 140, 255, 0.16);
+}
+
+.gallery-group > * {
+  position: relative;
+  z-index: 1;
 }
 
 .day-box {
@@ -6067,8 +6151,18 @@ body[data-theme="light"] .year-button.active {
 
 body[data-theme="light"] .year-toggle,
 body[data-theme="light"] .year-count,
-body[data-theme="light"] .month-count {
+body[data-theme="light"] .month-count,
+body[data-theme="light"] .day-button {
   color: var(--text-muted);
+}
+
+body[data-theme="light"] .day-list {
+  border-left-color: rgba(147, 163, 184, 0.34);
+}
+
+body[data-theme="light"] .day-button:hover {
+  color: #243248;
+  background: rgba(226, 235, 255, 0.88);
 }
 
 body[data-theme="light"] .month-button:hover {
@@ -6952,4 +7046,202 @@ body.is-density-switching .photo-card {
   opacity: 0.92;
   transform: scale(0.992);
   filter: saturate(0.98);
+}
+
+/* Split navigation and gallery scrolling so long day lists do not push the
+   whole app canvas. */
+.app {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden !important;
+}
+
+.top-sticky-shell {
+  position: relative !important;
+  top: auto !important;
+  flex: 0 0 auto;
+}
+
+.app-layout {
+  flex: 1 1 0;
+  height: auto;
+  min-height: 0;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.sidebar,
+.main-content {
+  align-self: stretch;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+}
+
+.sidebar {
+  position: relative !important;
+  top: auto !important;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch !important;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  flex: 0 0 auto;
+  margin-bottom: 14px;
+}
+
+.sidebar-tree {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+.sidebar-tree > * {
+  flex: 0 0 auto;
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch !important;
+  overflow: hidden;
+}
+
+.main-header,
+.gallery-empty {
+  flex: 0 0 auto;
+}
+
+.gallery-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scroll-padding-top: 14px;
+}
+
+.gallery-group {
+  scroll-margin-top: 14px;
+}
+
+.day-button.active {
+  color: var(--text-0);
+  background: rgba(79, 140, 255, 0.18);
+  box-shadow:
+    inset 3px 0 0 rgba(111, 159, 255, 0.95),
+    0 8px 16px rgba(79, 140, 255, 0.10);
+}
+
+.day-button.active .day-count {
+  opacity: 0.95;
+}
+
+.gallery-group.is-jump-target {
+  border-color: rgba(111, 159, 255, 0.9);
+}
+
+.gallery-group.is-jump-target::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 24px;
+  border: 1px solid rgba(111, 159, 255, 0.72);
+  opacity: 0;
+  transform: scale(1.008);
+  background:
+    radial-gradient(
+      circle at 18% 0%,
+      rgba(111, 159, 255, 0.24),
+      transparent 42%
+    ),
+    linear-gradient(135deg, rgba(79, 140, 255, 0.16), transparent 58%);
+  box-shadow:
+    0 0 0 0 rgba(111, 159, 255, 0.36),
+    0 22px 46px rgba(79, 140, 255, 0.18);
+  animation: galleryGroupJumpAura 1.05s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.gallery-group.is-jump-target .day-box {
+  animation: galleryGroupJumpChip 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes galleryGroupJumpAura {
+  0% {
+    opacity: 0;
+    transform: scale(0.986);
+    box-shadow:
+      0 0 0 0 rgba(111, 159, 255, 0),
+      0 12px 28px rgba(79, 140, 255, 0.10);
+  }
+  34% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow:
+      0 0 0 6px rgba(111, 159, 255, 0.24),
+      0 24px 52px rgba(79, 140, 255, 0.20);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.008);
+    box-shadow:
+      0 0 0 14px rgba(111, 159, 255, 0),
+      0 10px 22px rgba(79, 140, 255, 0);
+  }
+}
+
+@keyframes galleryGroupJumpChip {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  38% {
+    transform: translateY(-2px) scale(1.045);
+    box-shadow: 0 10px 22px rgba(79, 140, 255, 0.22);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+body[data-theme="light"] .day-button.active {
+  color: #243248;
+  background: rgba(219, 230, 255, 0.96);
+  box-shadow:
+    inset 3px 0 0 #2563eb,
+    0 8px 16px rgba(37, 99, 235, 0.10);
+}
+
+@media (max-width: 1100px) {
+  .app {
+    overflow-y: auto !important;
+  }
+
+  .app-layout {
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .sidebar {
+    height: min(520px, calc(100vh - 32px));
+    max-height: min(520px, calc(100vh - 32px));
+  }
+
+  .main-content {
+    height: min(760px, calc(100vh - 32px));
+    max-height: min(760px, calc(100vh - 32px));
+  }
+
+  .sidebar-tree,
+  .gallery-list {
+    overflow-y: auto;
+    max-height: 100%;
+  }
 }

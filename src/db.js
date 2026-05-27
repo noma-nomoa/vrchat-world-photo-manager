@@ -404,6 +404,17 @@ function initDatabase(dbPath) {
     GROUP BY year, month
     ORDER BY year DESC, month DESC
   `);
+  const getSidebarDayRowsStmt = db.prepare(`
+    SELECT
+      year,
+      month,
+      day,
+      group_date,
+      COUNT(*) AS count
+    FROM photos
+    GROUP BY year, month, day, group_date
+    ORDER BY year DESC, month DESC, day DESC
+  `);
 
   const getLatestMonthStmt = db.prepare(`
     SELECT year, month
@@ -889,7 +900,23 @@ function initDatabase(dbPath) {
 
   function getSidebarTree() {
     const rows = getSidebarRowsStmt.all();
+    const dayRows = getSidebarDayRowsStmt.all();
+    const daysByMonthKey = new Map();
     const yearMap = new Map();
+
+    for (const row of dayRows) {
+      const monthKey = `${row.year}-${row.month}`;
+
+      if (!daysByMonthKey.has(monthKey)) {
+        daysByMonthKey.set(monthKey, []);
+      }
+
+      daysByMonthKey.get(monthKey).push({
+        day: row.day,
+        groupDate: row.group_date,
+        count: row.count,
+      });
+    }
 
     for (const row of rows) {
       if (!yearMap.has(row.year)) {
@@ -905,6 +932,7 @@ function initDatabase(dbPath) {
       yearEntry.months.push({
         month: row.month,
         count: row.count,
+        days: daysByMonthKey.get(`${row.year}-${row.month}`) || [],
       });
     }
 
