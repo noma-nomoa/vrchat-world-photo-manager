@@ -2210,6 +2210,10 @@ body[data-theme="light"] .primary-link-button {
   cursor: move;
 }
 
+#photo-editor-canvas.is-text-tool-active {
+  cursor: text;
+}
+
 .photo-editor-status {
   min-height: 20px;
   margin: 0;
@@ -2468,6 +2472,51 @@ body[data-theme="light"] .primary-link-button {
   gap: 8px;
 }
 
+.photo-editor-text-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.photo-editor-text-field {
+  display: grid;
+  gap: 6px;
+  color: var(--text-1);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.photo-editor-text-field-full {
+  grid-column: 1 / -1;
+}
+
+.photo-editor-text-field textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 78px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-card);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.photo-editor-text-field textarea::placeholder {
+  color: var(--text-2);
+}
+
+.photo-editor-text-field textarea:hover,
+.photo-editor-text-field textarea:focus {
+  border-color: var(--accent-soft-line);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-card));
+  outline: none;
+}
+
 .photo-editor-select-field {
   display: grid;
   gap: 6px;
@@ -2494,6 +2543,62 @@ body[data-theme="light"] .primary-link-button {
 .photo-editor-select-field select:hover {
   border-color: var(--accent-soft-line);
   background: color-mix(in srgb, var(--accent) 12%, var(--surface-card));
+}
+
+.photo-editor-color-field,
+.photo-editor-checkbox-field {
+  display: grid;
+  gap: 6px;
+  color: var(--text-1);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.photo-editor-color-field input[type='color'] {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-card);
+  cursor: pointer;
+}
+
+.photo-editor-color-field input[type='color']:hover {
+  border-color: var(--accent-soft-line);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-card));
+}
+
+.photo-editor-checkbox-field {
+  min-height: 38px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  align-content: end;
+  gap: 8px;
+  padding: 0 10px 7px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-card);
+  cursor: pointer;
+}
+
+.photo-editor-checkbox-field:hover {
+  border-color: var(--accent-soft-line);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-card));
+}
+
+.photo-editor-checkbox-field input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.photo-editor-checkbox-field span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #photo-editor-preset-name {

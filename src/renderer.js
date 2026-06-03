@@ -356,6 +356,48 @@ const photoEditorExportQualityValue = document.getElementById(
 const photoEditorExportQualityRow = document.getElementById(
   'photo-editor-export-quality-row'
 );
+const photoEditorTextResetButton = document.getElementById(
+  'photo-editor-text-reset-btn'
+);
+const photoEditorTextContentInput = document.getElementById(
+  'photo-editor-text-content'
+);
+const photoEditorTextFontSelect = document.getElementById(
+  'photo-editor-text-font'
+);
+const photoEditorTextSizeInput = document.getElementById(
+  'photo-editor-text-size'
+);
+const photoEditorTextSizeValue = document.getElementById(
+  'photo-editor-text-size-value'
+);
+const photoEditorTextColorInput = document.getElementById(
+  'photo-editor-text-color'
+);
+const photoEditorTextWeightSelect = document.getElementById(
+  'photo-editor-text-weight'
+);
+const photoEditorTextStrokeTypeSelect = document.getElementById(
+  'photo-editor-text-stroke-type'
+);
+const photoEditorTextStrokeWidthInput = document.getElementById(
+  'photo-editor-text-stroke-width'
+);
+const photoEditorTextStrokeWidthValue = document.getElementById(
+  'photo-editor-text-stroke-width-value'
+);
+const photoEditorTextStrokeColorInput = document.getElementById(
+  'photo-editor-text-stroke-color'
+);
+const photoEditorTextFillTransparentInput = document.getElementById(
+  'photo-editor-text-fill-transparent'
+);
+const photoEditorTextLetterSpacingInput = document.getElementById(
+  'photo-editor-text-letter-spacing'
+);
+const photoEditorTextLetterSpacingValue = document.getElementById(
+  'photo-editor-text-letter-spacing-value'
+);
 const photoEditorBlurResetButton = document.getElementById(
   'photo-editor-blur-reset-btn'
 );
@@ -608,6 +650,7 @@ let photoEditorWorker = null;
 let photoEditorWorkerRequestId = 0;
 let photoEditorWorkerUnavailable = false;
 const photoEditorWorkerRequests = new Map();
+let photoEditorTextRecentFonts = [];
 let photoCardDensityAnimationTimer = null;
 let modalShellRestoreTimer = null;
 let modalWorldMetadataRequestId = 0;
@@ -821,6 +864,43 @@ const PHOTO_EDITOR_MASK_ROTATE_HANDLE_OFFSET = 34;
 const PHOTO_EDITOR_USER_PRESET_LIMIT = 24;
 const PHOTO_EDITOR_USER_PRESETS_STORAGE_KEY =
   'vrchat-world-photo-manager-photo-editor-user-presets';
+const PHOTO_EDITOR_TEXT_RECENT_FONTS_STORAGE_KEY =
+  'vrchat-world-photo-manager-photo-editor-recent-text-fonts';
+const PHOTO_EDITOR_TEXT_RECENT_FONT_LIMIT = 10;
+const PHOTO_EDITOR_TEXT_FONT_OPTIONS = Object.freeze([
+  {
+    key: 'system',
+    label: 'システム',
+    family: '"Segoe UI", "Yu Gothic UI", sans-serif',
+  },
+  {
+    key: 'zenmaru',
+    label: 'Zen Maru Gothic',
+    family: '"Zen Maru Gothic", "Segoe UI", "Yu Gothic UI", sans-serif',
+  },
+  {
+    key: 'mplus',
+    label: 'M PLUS 1',
+    family: '"M PLUS 1", "Segoe UI", "Yu Gothic UI", sans-serif',
+  },
+  {
+    key: 'kiwimaru',
+    label: 'Kiwi Maru',
+    family: '"Kiwi Maru", "Segoe UI", "Yu Gothic UI", sans-serif',
+  },
+  {
+    key: 'sawarabimincho',
+    label: 'Sawarabi Mincho',
+    family: '"Sawarabi Mincho", "Yu Gothic UI", "Segoe UI", serif',
+  },
+]);
+const PHOTO_EDITOR_TEXT_STROKE_TYPES = Object.freeze([
+  'none',
+  'outline',
+  'shadow',
+  'glow',
+]);
+const PHOTO_EDITOR_TEXT_WEIGHTS = Object.freeze(['400', '500', '700', '900']);
 const PHOTO_EDITOR_EXPORT_FORMATS = Object.freeze({
   png: {
     label: 'PNG',
@@ -1220,6 +1300,78 @@ const PHOTO_EDIT_PRESETS = {
       vignette: 14,
     },
   },
+  sweetPink: {
+    label: 'スイートピンク1',
+    values: {
+      brightness: 6,
+      exposure: 3,
+      contrast: -4,
+      highlights: -12,
+      shadows: 14,
+      whites: 10,
+      blacks: 4,
+      gamma: 4,
+      temperature: 8,
+      tint: 22,
+      saturation: 8,
+      vibrance: 16,
+      clarity: -8,
+      texture: -10,
+      sharpness: 2,
+      denoise: 8,
+      fade: 8,
+      grain: 0,
+      vignette: 4,
+    },
+  },
+  pastelPink: {
+    label: 'スイートピンク2',
+    values: {
+      brightness: 9,
+      exposure: 4,
+      contrast: -12,
+      highlights: -18,
+      shadows: 20,
+      whites: 12,
+      blacks: 8,
+      gamma: 6,
+      temperature: 4,
+      tint: 30,
+      saturation: -2,
+      vibrance: 20,
+      clarity: -16,
+      texture: -18,
+      sharpness: 0,
+      denoise: 12,
+      fade: 14,
+      grain: 2,
+      vignette: 0,
+    },
+  },
+  vividPink: {
+    label: 'スイートピンク3',
+    values: {
+      brightness: 3,
+      exposure: 1,
+      contrast: 14,
+      highlights: -10,
+      shadows: 8,
+      whites: 14,
+      blacks: -10,
+      gamma: 0,
+      temperature: 2,
+      tint: 28,
+      saturation: 14,
+      vibrance: 24,
+      clarity: 8,
+      texture: 4,
+      sharpness: 8,
+      denoise: 4,
+      fade: 2,
+      grain: 4,
+      vignette: 10,
+    },
+  },
   shadowLift: {
     label: '暗部クリア',
     values: {
@@ -1306,7 +1458,7 @@ const PHOTO_EDITOR_CROP_PRESETS = [
   },
   {
     key: 'vrcSticker',
-    label: '絵文字ステッカー',
+    label: '絵文字・ステッカー',
     ratio: 1,
     transparentPadding: true,
     exportMaxEdge: 1024,
@@ -6401,6 +6553,117 @@ function normalizePhotoEditorExportSettings(settings = {}) {
   };
 }
 
+function getPhotoEditorTextFontOption(fontKey) {
+  return (
+    PHOTO_EDITOR_TEXT_FONT_OPTIONS.find((font) => font.key === fontKey) ||
+    PHOTO_EDITOR_TEXT_FONT_OPTIONS[0]
+  );
+}
+
+function normalizePhotoEditorTextColor(value, fallback = '#ffffff') {
+  const color = String(value || '').trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : fallback;
+}
+
+function getDefaultPhotoEditorTextState() {
+  const defaultFont = getPhotoEditorTextFontOption('system');
+
+  return {
+    enabled: false,
+    text: '',
+    x: 0.5,
+    y: 0.5,
+    fontKey: defaultFont.key,
+    fontFamily: defaultFont.family,
+    size: 64,
+    color: '#ffffff',
+    weight: '700',
+    strokeType: 'outline',
+    strokeWidth: 4,
+    strokeColor: '#111827',
+    fillTransparent: false,
+    letterSpacing: 0,
+  };
+}
+
+function normalizePhotoEditorTextState(textState = {}) {
+  const defaults = getDefaultPhotoEditorTextState();
+  const text = String(textState?.text || '').slice(0, 160);
+  const font = getPhotoEditorTextFontOption(textState?.fontKey);
+  const strokeType = PHOTO_EDITOR_TEXT_STROKE_TYPES.includes(
+    textState?.strokeType
+  )
+    ? textState.strokeType
+    : defaults.strokeType;
+  const weight = PHOTO_EDITOR_TEXT_WEIGHTS.includes(String(textState?.weight))
+    ? String(textState.weight)
+    : defaults.weight;
+
+  return {
+    enabled: Boolean(textState?.enabled || text.trim()),
+    text,
+    x: clampNumber(textState?.x, 0, 1, defaults.x),
+    y: clampNumber(textState?.y, 0, 1, defaults.y),
+    fontKey: font.key,
+    fontFamily: font.family,
+    size: clampNumber(textState?.size, 12, 220, defaults.size),
+    color: normalizePhotoEditorTextColor(textState?.color, defaults.color),
+    weight,
+    strokeType,
+    strokeWidth: clampNumber(
+      textState?.strokeWidth,
+      0,
+      28,
+      defaults.strokeWidth
+    ),
+    strokeColor: normalizePhotoEditorTextColor(
+      textState?.strokeColor,
+      defaults.strokeColor
+    ),
+    fillTransparent: Boolean(textState?.fillTransparent),
+    letterSpacing: clampNumber(
+      textState?.letterSpacing,
+      -10,
+      40,
+      defaults.letterSpacing
+    ),
+  };
+}
+
+function loadPhotoEditorRecentTextFonts() {
+  try {
+    const parsed = JSON.parse(
+      localStorage.getItem(PHOTO_EDITOR_TEXT_RECENT_FONTS_STORAGE_KEY) || '[]'
+    );
+    return (Array.isArray(parsed) ? parsed : [])
+      .filter((fontKey) => getPhotoEditorTextFontOption(fontKey).key === fontKey)
+      .slice(0, PHOTO_EDITOR_TEXT_RECENT_FONT_LIMIT);
+  } catch {
+    return [];
+  }
+}
+
+function savePhotoEditorRecentTextFonts() {
+  try {
+    localStorage.setItem(
+      PHOTO_EDITOR_TEXT_RECENT_FONTS_STORAGE_KEY,
+      JSON.stringify(photoEditorTextRecentFonts.slice(0, PHOTO_EDITOR_TEXT_RECENT_FONT_LIMIT))
+    );
+  } catch {
+    // Font recents are a convenience only; rendering should continue normally.
+  }
+}
+
+function rememberPhotoEditorTextFont(fontKey) {
+  const font = getPhotoEditorTextFontOption(fontKey);
+  photoEditorTextRecentFonts = [
+    font.key,
+    ...photoEditorTextRecentFonts.filter((key) => key !== font.key),
+  ].slice(0, PHOTO_EDITOR_TEXT_RECENT_FONT_LIMIT);
+  savePhotoEditorRecentTextFonts();
+  renderPhotoEditorTextFontOptions();
+}
+
 function getDefaultPhotoEditorBlurState() {
   return {
     mode: 'full',
@@ -6570,6 +6833,7 @@ function createPhotoEditorState(photo) {
     blur: getDefaultPhotoEditorBlurState(),
     curve: getDefaultPhotoEditorCurveState(),
     autoEnhance: getDefaultPhotoEditorAutoEnhanceState(),
+    textOverlay: getDefaultPhotoEditorTextState(),
     exportSettings: getDefaultPhotoEditorExportSettings(),
     masks: [],
     maskTool: 'none',
@@ -6583,6 +6847,7 @@ function createPhotoEditorState(photo) {
     dragInitialSourceRect: null,
     dragInitialBlur: null,
     dragInitialMask: null,
+    dragInitialText: null,
     dragCurvePointIndex: null,
     draftMask: null,
     showOriginalPreview: false,
@@ -6618,6 +6883,7 @@ function capturePhotoEditorHistorySnapshot() {
     autoEnhance: normalizePhotoEditorAutoEnhanceState(
       photoEditorState.autoEnhance
     ),
+    textOverlay: normalizePhotoEditorTextState(photoEditorState.textOverlay),
     exportSettings: normalizePhotoEditorExportSettings(
       photoEditorState.exportSettings
     ),
@@ -6729,6 +6995,9 @@ function applyPhotoEditorHistorySnapshot(snapshot) {
   photoEditorState.autoEnhance = normalizePhotoEditorAutoEnhanceState(
     snapshot.autoEnhance
   );
+  photoEditorState.textOverlay = normalizePhotoEditorTextState(
+    snapshot.textOverlay
+  );
   photoEditorState.exportSettings = normalizePhotoEditorExportSettings(
     snapshot.exportSettings
   );
@@ -6752,10 +7021,15 @@ function applyPhotoEditorHistorySnapshot(snapshot) {
   photoEditorState.dragInitialSourceRect = null;
   photoEditorState.dragInitialBlur = null;
   photoEditorState.dragInitialMask = null;
+  photoEditorState.dragInitialText = null;
   photoEditorState.dragCurvePointIndex = null;
   photoEditorState.draftMask = null;
   photoEditorState.lastClipInfo = null;
-  photoEditorCanvas?.classList.remove('is-panning', 'is-mask-draft-active');
+  photoEditorCanvas?.classList.remove(
+    'is-panning',
+    'is-mask-draft-active',
+    'is-text-tool-active'
+  );
   clearPhotoEditorAdjustmentLivePreview();
   syncPhotoEditorUi();
   schedulePhotoEditorRender();
@@ -7593,6 +7867,187 @@ function syncPhotoEditorMaskToolUi() {
   }
 }
 
+function renderPhotoEditorTextFontOptions() {
+  if (!photoEditorTextFontSelect) {
+    return;
+  }
+
+  const selectedKey =
+    normalizePhotoEditorTextState(photoEditorState?.textOverlay).fontKey;
+  const currentValue = photoEditorTextFontSelect.value || selectedKey;
+  photoEditorTextFontSelect.innerHTML = '';
+  const recentKeys = photoEditorTextRecentFonts.filter(
+    (fontKey) => getPhotoEditorTextFontOption(fontKey).key === fontKey
+  );
+  const appendedKeys = new Set();
+
+  if (recentKeys.length > 0) {
+    const recentGroup = document.createElement('optgroup');
+    recentGroup.label = '最近使用';
+
+    for (const fontKey of recentKeys) {
+      const font = getPhotoEditorTextFontOption(fontKey);
+      const option = document.createElement('option');
+      option.value = font.key;
+      option.textContent = font.label;
+      recentGroup.appendChild(option);
+      appendedKeys.add(font.key);
+    }
+
+    photoEditorTextFontSelect.appendChild(recentGroup);
+  }
+
+  const fontGroup = document.createElement('optgroup');
+  fontGroup.label = 'フォント';
+
+  for (const font of PHOTO_EDITOR_TEXT_FONT_OPTIONS) {
+    if (appendedKeys.has(font.key)) {
+      continue;
+    }
+
+    const option = document.createElement('option');
+    option.value = font.key;
+    option.textContent = font.label;
+    fontGroup.appendChild(option);
+  }
+
+  photoEditorTextFontSelect.appendChild(fontGroup);
+  photoEditorTextFontSelect.value = getPhotoEditorTextFontOption(currentValue).key;
+}
+
+function syncPhotoEditorTextControls() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const textOverlay = normalizePhotoEditorTextState(photoEditorState.textOverlay);
+  photoEditorState.textOverlay = textOverlay;
+
+  if (
+    photoEditorTextFontSelect &&
+    !Array.from(photoEditorTextFontSelect.options).some(
+      (option) => option.value === textOverlay.fontKey
+    )
+  ) {
+    renderPhotoEditorTextFontOptions();
+  }
+
+  if (
+    photoEditorTextContentInput &&
+    document.activeElement !== photoEditorTextContentInput
+  ) {
+    photoEditorTextContentInput.value = textOverlay.text;
+  }
+
+  if (photoEditorTextFontSelect) {
+    photoEditorTextFontSelect.value = textOverlay.fontKey;
+  }
+
+  if (photoEditorTextSizeInput) {
+    photoEditorTextSizeInput.value = String(textOverlay.size);
+  }
+
+  if (photoEditorTextSizeValue) {
+    photoEditorTextSizeValue.textContent = String(Math.round(textOverlay.size));
+  }
+
+  if (photoEditorTextColorInput) {
+    photoEditorTextColorInput.value = textOverlay.color;
+  }
+
+  if (photoEditorTextWeightSelect) {
+    photoEditorTextWeightSelect.value = textOverlay.weight;
+  }
+
+  if (photoEditorTextStrokeTypeSelect) {
+    photoEditorTextStrokeTypeSelect.value = textOverlay.strokeType;
+  }
+
+  if (photoEditorTextStrokeWidthInput) {
+    photoEditorTextStrokeWidthInput.value = String(textOverlay.strokeWidth);
+  }
+
+  if (photoEditorTextStrokeWidthValue) {
+    photoEditorTextStrokeWidthValue.textContent = String(
+      Math.round(textOverlay.strokeWidth)
+    );
+  }
+
+  if (photoEditorTextStrokeColorInput) {
+    photoEditorTextStrokeColorInput.value = textOverlay.strokeColor;
+  }
+
+  if (photoEditorTextFillTransparentInput) {
+    photoEditorTextFillTransparentInput.checked = textOverlay.fillTransparent;
+  }
+
+  if (photoEditorTextLetterSpacingInput) {
+    photoEditorTextLetterSpacingInput.value = String(textOverlay.letterSpacing);
+  }
+
+  if (photoEditorTextLetterSpacingValue) {
+    photoEditorTextLetterSpacingValue.textContent = String(
+      Math.round(textOverlay.letterSpacing)
+    );
+  }
+
+  photoEditorCanvas?.classList.toggle(
+    'is-text-tool-active',
+    textOverlay.enabled &&
+      Boolean(textOverlay.text.trim()) &&
+      isPhotoEditorAccordionOpen('text') &&
+      photoEditorState.maskTool === 'none' &&
+      !photoEditorState.draftMask
+  );
+}
+
+function updatePhotoEditorTextOverlay(nextText = {}, { interactive = true } = {}) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  if (photoEditorState.draftMask || photoEditorState.maskTool !== 'none') {
+    cancelPhotoEditorPendingMask();
+  }
+
+  const currentState = normalizePhotoEditorTextState(photoEditorState.textOverlay);
+  const nextState = normalizePhotoEditorTextState({
+    ...currentState,
+    ...nextText,
+    enabled:
+      nextText.enabled !== undefined
+        ? nextText.enabled
+        : currentState.enabled || String(nextText.text ?? currentState.text).trim(),
+  });
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.textOverlay = nextState;
+
+  if (nextText.fontKey !== undefined) {
+    rememberPhotoEditorTextFont(nextState.fontKey);
+  }
+
+  syncPhotoEditorTextControls();
+  schedulePhotoEditorRender({
+    debounceMs: interactive ? PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS : 0,
+    interactive,
+  });
+  schedulePhotoEditorHistoryCommit();
+}
+
+function resetPhotoEditorTextOverlay() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.textOverlay = getDefaultPhotoEditorTextState();
+  photoEditorState.dragInitialText = null;
+  syncPhotoEditorTextControls();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
 function syncPhotoEditorExportControls() {
   if (!photoEditorState) {
     return;
@@ -7671,6 +8126,7 @@ function syncPhotoEditorUi() {
   syncPhotoEditorAdjustmentControls();
   syncPhotoEditorAutoEnhanceControls();
   syncPhotoEditorCropControls();
+  syncPhotoEditorTextControls();
   syncPhotoEditorExportControls();
   syncPhotoEditorBlurControls();
   syncPhotoEditorCurveControls();
@@ -7735,6 +8191,16 @@ function getPhotoEditorSourceRect(image) {
   }
 
   const crop = photoEditorState?.crop || getDefaultPhotoEditorCropState();
+
+  if (isPhotoEditorTransparentPaddingCrop(crop)) {
+    return {
+      x: 0,
+      y: 0,
+      width: imageWidth,
+      height: imageHeight,
+    };
+  }
+
   const targetRatio = getPhotoEditorCropRatio(image);
   const imageRatio = imageWidth / imageHeight;
   let baseWidth = imageWidth;
@@ -7831,18 +8297,34 @@ function getPhotoEditorCropRenderGeometry(sourceRect, width, height, crop = {}) 
   const absCos = Math.abs(Math.cos(rotationRadians));
   const absSin = Math.abs(Math.sin(rotationRadians));
   const coverScale = shouldUseTransparentPadding
-    ? 1
+    ? getPhotoEditorCropZoomScale(crop)
     : Math.max(
         1,
         (width * absCos + height * absSin) / drawWidth,
         (width * absSin + height * absCos) / drawHeight
       );
+  const scaledDrawWidth = drawWidth * coverScale;
+  const scaledDrawHeight = drawHeight * coverScale;
+  const rotatedWidth = scaledDrawWidth * absCos + scaledDrawHeight * absSin;
+  const rotatedHeight = scaledDrawWidth * absSin + scaledDrawHeight * absCos;
+  const overflowX = Math.max(0, (rotatedWidth - width) / 2);
+  const overflowY = Math.max(0, (rotatedHeight - height) / 2);
+  const translateX = shouldUseTransparentPadding
+    ? overflowX * clampNumber(crop?.offsetX, -100, 100, 0) / 100
+    : 0;
+  const translateY = shouldUseTransparentPadding
+    ? overflowY * clampNumber(crop?.offsetY, -100, 100, 0) / 100
+    : 0;
 
   return {
     drawWidth,
     drawHeight,
     rotationRadians,
     coverScale,
+    overflowX,
+    overflowY,
+    translateX,
+    translateY,
     flipX: Boolean(crop?.flipX),
     flipY: Boolean(crop?.flipY),
   };
@@ -7865,7 +8347,10 @@ function drawPhotoEditorCroppedSourceToCanvas(
   const drawHeight = geometry.drawHeight * geometry.coverScale;
 
   ctx.save();
-  ctx.translate(outputSize.width / 2, outputSize.height / 2);
+  ctx.translate(
+    outputSize.width / 2 + geometry.translateX,
+    outputSize.height / 2 + geometry.translateY
+  );
   ctx.rotate(geometry.rotationRadians);
   ctx.scale(geometry.flipX ? -1 : 1, geometry.flipY ? -1 : 1);
   ctx.drawImage(
@@ -9123,12 +9608,13 @@ function mapPhotoEditorMaskPointToCanvas(
     geometry.drawHeight *
     geometry.coverScale;
   const flippedX = geometry.flipX ? -localX : localX;
+  const flippedY = geometry.flipY ? -localY : localY;
   const cos = Math.cos(geometry.rotationRadians);
   const sin = Math.sin(geometry.rotationRadians);
 
   return {
-    x: width / 2 + flippedX * cos - localY * sin,
-    y: height / 2 + flippedX * sin + localY * cos,
+    x: width / 2 + geometry.translateX + flippedX * cos - flippedY * sin,
+    y: height / 2 + geometry.translateY + flippedX * sin + flippedY * cos,
   };
 }
 
@@ -9636,6 +10122,98 @@ function applyPhotoEditorMasksToCanvas(
   }
 }
 
+function getPhotoEditorTextLines(text) {
+  return String(text || '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter((line) => line.length > 0)
+    .slice(0, 6);
+}
+
+function measurePhotoEditorTextLineWidth(ctx, line, letterSpacing = 0) {
+  const characters = Array.from(String(line || ''));
+
+  if (characters.length === 0) {
+    return 0;
+  }
+
+  return characters.reduce((width, character, index) => {
+    const spacing = index < characters.length - 1 ? letterSpacing : 0;
+    return width + ctx.measureText(character).width + spacing;
+  }, 0);
+}
+
+function drawPhotoEditorTextLine(ctx, line, x, y, textState) {
+  const characters = Array.from(String(line || ''));
+  const letterSpacing = clampNumber(textState.letterSpacing, -10, 40, 0);
+  let currentX =
+    x - measurePhotoEditorTextLineWidth(ctx, line, letterSpacing) / 2;
+
+  for (const character of characters) {
+    if (textState.strokeType !== 'none' && textState.strokeWidth > 0) {
+      ctx.strokeText(character, currentX, y);
+    }
+
+    if (!textState.fillTransparent) {
+      ctx.fillText(character, currentX, y);
+    }
+
+    currentX += ctx.measureText(character).width + letterSpacing;
+  }
+}
+
+function applyPhotoEditorTextOverlayToCanvas(ctx, width, height, textOverlay) {
+  const textState = normalizePhotoEditorTextState(textOverlay);
+  const lines = textState.enabled ? getPhotoEditorTextLines(textState.text) : [];
+
+  if (lines.length === 0) {
+    return;
+  }
+
+  const x = clampNumber(textState.x, 0, 1, 0.5) * width;
+  const y = clampNumber(textState.y, 0, 1, 0.5) * height;
+  const size = clampNumber(textState.size, 12, 220, 64);
+  const lineHeight = size * 1.18;
+  const startY = y - (lineHeight * (lines.length - 1)) / 2;
+  const strokeWidth = clampNumber(textState.strokeWidth, 0, 28, 4);
+
+  ctx.save();
+  ctx.font = `${textState.weight} ${size}px ${textState.fontFamily}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = textState.color;
+  ctx.strokeStyle = textState.strokeColor;
+  ctx.lineWidth =
+    textState.strokeType === 'none' ? 0 : Math.max(1, strokeWidth);
+  ctx.lineJoin = 'round';
+  ctx.miterLimit = 2;
+
+  if (textState.strokeType === 'shadow') {
+    ctx.shadowColor = textState.strokeColor;
+    ctx.shadowBlur = Math.max(2, strokeWidth * 1.4);
+    ctx.shadowOffsetX = Math.max(1, strokeWidth * 0.45);
+    ctx.shadowOffsetY = Math.max(2, strokeWidth * 0.8);
+  } else if (textState.strokeType === 'glow') {
+    ctx.shadowColor = textState.strokeColor;
+    ctx.shadowBlur = Math.max(6, strokeWidth * 2.8);
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  }
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    drawPhotoEditorTextLine(
+      ctx,
+      lines[lineIndex],
+      x,
+      startY + lineHeight * lineIndex,
+      textState
+    );
+  }
+
+  ctx.restore();
+}
+
 function drawPhotoEditorDraftMask(ctx, width, height, sourceRect = null, sourceImage = null) {
   const draftMask = photoEditorState?.draftMask;
 
@@ -9746,6 +10324,7 @@ function getPhotoEditorRenderPayload({
     curve: normalizePhotoEditorCurveState(photoEditorState.curve),
     crop: normalizePhotoEditorCropState(photoEditorState.crop),
     blur: normalizePhotoEditorBlurState(photoEditorState.blur),
+    textOverlay: normalizePhotoEditorTextState(photoEditorState.textOverlay),
     masks: clonePhotoEditorPlainValue(photoEditorState.masks || []),
     draftMask:
       includeDraft && photoEditorState.draftMask
@@ -10026,6 +10605,13 @@ function applyPhotoEditorEffectsToCanvas(
       { isInteractivePreview }
     );
   }
+
+  applyPhotoEditorTextOverlayToCanvas(
+    ctx,
+    outputSize.width,
+    outputSize.height,
+    photoEditorState.textOverlay
+  );
 
   if (includeDraft && drawOverlays) {
     drawPhotoEditorDraftMask(
@@ -10497,6 +11083,7 @@ function resetPhotoEditorAll() {
   clearPhotoEditorAutoEnhanceState();
   photoEditorState.crop = getDefaultPhotoEditorCropState();
   photoEditorState.exportSettings = getDefaultPhotoEditorExportSettings();
+  photoEditorState.textOverlay = getDefaultPhotoEditorTextState();
   photoEditorState.blur = getDefaultPhotoEditorBlurState();
   photoEditorState.curve = getDefaultPhotoEditorCurveState();
   photoEditorState.masks = [];
@@ -10510,12 +11097,17 @@ function resetPhotoEditorAll() {
   photoEditorState.dragInitialSourceRect = null;
   photoEditorState.dragInitialBlur = null;
   photoEditorState.dragInitialMask = null;
+  photoEditorState.dragInitialText = null;
   photoEditorState.dragCurvePointIndex = null;
   photoEditorState.draftMask = null;
   photoEditorState.showOriginalPreview = false;
   photoEditorState.isInteractivePreview = false;
   photoEditorState.lastClipInfo = null;
-  photoEditorCanvas?.classList.remove('is-panning', 'is-mask-draft-active');
+  photoEditorCanvas?.classList.remove(
+    'is-panning',
+    'is-mask-draft-active',
+    'is-text-tool-active'
+  );
   clearPhotoEditorAdjustmentLivePreview();
   syncPhotoEditorUi();
   schedulePhotoEditorRender();
@@ -11848,6 +12440,30 @@ function getPanAdjustedCropOffset(axis, deltaRatio) {
   const image = photoEditorState?.sourceImage;
   const initialCrop = photoEditorState?.dragInitialCrop;
   const initialRect = photoEditorState?.dragInitialSourceRect;
+
+  if (isPhotoEditorTransparentPaddingCrop(initialCrop)) {
+    const outputSize = getPhotoEditorOutputSize(initialRect, null, initialCrop);
+    const geometry = getPhotoEditorCropRenderGeometry(
+      initialRect,
+      outputSize.width,
+      outputSize.height,
+      initialCrop
+    );
+    const overflow = axis === 'x' ? geometry.overflowX : geometry.overflowY;
+
+    if (!Number.isFinite(overflow) || overflow <= 0) {
+      return 0;
+    }
+
+    const initialOffset = axis === 'x'
+      ? Number(initialCrop?.offsetX) || 0
+      : Number(initialCrop?.offsetY) || 0;
+    const outputLength = axis === 'x' ? outputSize.width : outputSize.height;
+    const nextTranslate = overflow * initialOffset / 100 + deltaRatio * outputLength;
+
+    return clampNumber(nextTranslate / overflow * 100, -100, 100, 0);
+  }
+
   const imageSize =
     axis === 'x'
       ? Number(image?.naturalWidth || image?.width) || 0
@@ -11897,6 +12513,79 @@ function finishPhotoEditorPanDrag() {
   photoEditorState.dragInitialSourceRect = null;
   photoEditorCanvas?.classList.remove('is-panning');
   finishPhotoEditorInteractivePreview();
+}
+
+function canPhotoEditorDragTextOverlay() {
+  const textOverlay = normalizePhotoEditorTextState(photoEditorState?.textOverlay);
+
+  return (
+    textOverlay.enabled &&
+    Boolean(textOverlay.text.trim()) &&
+    photoEditorState?.maskTool === 'none' &&
+    !photoEditorState?.draftMask &&
+    isPhotoEditorAccordionOpen('text')
+  );
+}
+
+function beginPhotoEditorTextDrag(point) {
+  if (!photoEditorState || !point) {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  const initialText = normalizePhotoEditorTextState({
+    ...photoEditorState.textOverlay,
+    x: point.x,
+    y: point.y,
+  });
+  photoEditorState.textOverlay = initialText;
+  photoEditorState.dragMode = 'text';
+  photoEditorState.dragStart = point;
+  photoEditorState.dragInitialText = initialText;
+  photoEditorCanvas?.classList.add('is-panning');
+  syncPhotoEditorTextControls();
+  schedulePhotoEditorRender({
+    debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
+    interactive: true,
+  });
+}
+
+function updatePhotoEditorTextDrag(point) {
+  if (
+    !photoEditorState ||
+    photoEditorState.dragMode !== 'text' ||
+    !photoEditorState.dragStart ||
+    !photoEditorState.dragInitialText
+  ) {
+    return;
+  }
+
+  const deltaX = point.x - photoEditorState.dragStart.x;
+  const deltaY = point.y - photoEditorState.dragStart.y;
+  photoEditorState.textOverlay = normalizePhotoEditorTextState({
+    ...photoEditorState.dragInitialText,
+    x: photoEditorState.dragInitialText.x + deltaX,
+    y: photoEditorState.dragInitialText.y + deltaY,
+  });
+  syncPhotoEditorTextControls();
+  schedulePhotoEditorRender({
+    debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
+    interactive: true,
+  });
+}
+
+function finishPhotoEditorTextDrag() {
+  if (!photoEditorState || photoEditorState.dragMode !== 'text') {
+    return;
+  }
+
+  photoEditorState.dragMode = null;
+  photoEditorState.dragStart = null;
+  photoEditorState.dragInitialText = null;
+  photoEditorCanvas?.classList.remove('is-panning');
+  syncPhotoEditorTextControls();
+  finishPhotoEditorInteractivePreview();
+  commitPhotoEditorHistoryMutation();
 }
 
 function getPhotoEditorCanvasDisplaySize() {
@@ -12558,10 +13247,12 @@ function mapPhotoEditorOutputPointToSource(
   );
   const outputX =
     clampNumber(point?.x, bounds.min, bounds.max, 0) * outputSize.width -
-    outputSize.width / 2;
+    outputSize.width / 2 -
+    geometry.translateX;
   const outputY =
     clampNumber(point?.y, bounds.min, bounds.max, 0) * outputSize.height -
-    outputSize.height / 2;
+    outputSize.height / 2 -
+    geometry.translateY;
   const cos = Math.cos(geometry.rotationRadians);
   const sin = Math.sin(geometry.rotationRadians);
   let localX = outputX * cos + outputY * sin;
@@ -12844,6 +13535,11 @@ function beginPhotoEditorMaskDrag(event) {
   }
 
   if (photoEditorState.maskTool === 'none') {
+    if (canPhotoEditorDragTextOverlay()) {
+      beginPhotoEditorTextDrag(point);
+      return;
+    }
+
     const blurDragMode = getPhotoEditorRadialBlurDragMode(point);
 
     if (blurDragMode) {
@@ -12902,6 +13598,11 @@ function updatePhotoEditorMaskDrag(event) {
 
   if (photoEditorState.dragMode === 'pan') {
     updatePhotoEditorPanDrag(point);
+    return;
+  }
+
+  if (photoEditorState.dragMode === 'text') {
+    updatePhotoEditorTextDrag(point);
     return;
   }
 
@@ -12989,6 +13690,11 @@ function finishPhotoEditorMaskDrag(event) {
 
   if (photoEditorState.dragMode === 'pan') {
     finishPhotoEditorPanDrag();
+    return;
+  }
+
+  if (photoEditorState.dragMode === 'text') {
+    finishPhotoEditorTextDrag();
     return;
   }
 
@@ -13201,7 +13907,8 @@ function closePhotoEditorModal() {
           'is-blur-tool-active',
           'is-mask-tool-active',
           'is-mask-draft-active',
-          'is-panning'
+          'is-panning',
+          'is-text-tool-active'
         );
       }
       if (photoEditorPreviewWorkCanvas) {
@@ -14639,6 +15346,8 @@ function initializeImageModalUi() {
 function initializePhotoEditorUi() {
   initializePhotoEditorAccordions();
   photoEditorUserPresets = loadPhotoEditorUserPresets();
+  photoEditorTextRecentFonts = loadPhotoEditorRecentTextFonts();
+  renderPhotoEditorTextFontOptions();
   renderPhotoEditorPresetButtons();
 
   if (photoEditorCropPresetList && !photoEditorCropPresetList.dataset.initialized) {
@@ -18952,6 +19661,89 @@ function bindPhotoAndEditModalControls() {
     resetPhotoEditorCrop();
   });
 
+  photoEditorTextResetButton?.addEventListener('click', () => {
+    resetPhotoEditorTextOverlay();
+  });
+
+  photoEditorTextContentInput?.addEventListener('input', () => {
+    updatePhotoEditorTextOverlay({
+      text: photoEditorTextContentInput.value,
+      enabled: Boolean(photoEditorTextContentInput.value.trim()),
+    });
+  });
+  photoEditorTextContentInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorTextFontSelect?.addEventListener('change', () => {
+    updatePhotoEditorTextOverlay(
+      { fontKey: photoEditorTextFontSelect.value },
+      { interactive: false }
+    );
+  });
+
+  photoEditorTextSizeInput?.addEventListener('input', () => {
+    updatePhotoEditorTextOverlay({ size: photoEditorTextSizeInput.value });
+  });
+  photoEditorTextSizeInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorTextColorInput?.addEventListener('input', () => {
+    updatePhotoEditorTextOverlay({ color: photoEditorTextColorInput.value });
+  });
+  photoEditorTextColorInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorTextWeightSelect?.addEventListener('change', () => {
+    updatePhotoEditorTextOverlay(
+      { weight: photoEditorTextWeightSelect.value },
+      { interactive: false }
+    );
+  });
+
+  photoEditorTextStrokeTypeSelect?.addEventListener('change', () => {
+    updatePhotoEditorTextOverlay(
+      { strokeType: photoEditorTextStrokeTypeSelect.value },
+      { interactive: false }
+    );
+  });
+
+  photoEditorTextStrokeWidthInput?.addEventListener('input', () => {
+    updatePhotoEditorTextOverlay({
+      strokeWidth: photoEditorTextStrokeWidthInput.value,
+    });
+  });
+  photoEditorTextStrokeWidthInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorTextStrokeColorInput?.addEventListener('input', () => {
+    updatePhotoEditorTextOverlay({
+      strokeColor: photoEditorTextStrokeColorInput.value,
+    });
+  });
+  photoEditorTextStrokeColorInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorTextFillTransparentInput?.addEventListener('change', () => {
+    updatePhotoEditorTextOverlay(
+      { fillTransparent: photoEditorTextFillTransparentInput.checked },
+      { interactive: false }
+    );
+  });
+
+  photoEditorTextLetterSpacingInput?.addEventListener('input', () => {
+    updatePhotoEditorTextOverlay({
+      letterSpacing: photoEditorTextLetterSpacingInput.value,
+    });
+  });
+  photoEditorTextLetterSpacingInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
   photoEditorExportResetButton?.addEventListener('click', () => {
     resetPhotoEditorExportSettings();
   });
@@ -19027,6 +19819,10 @@ function bindPhotoAndEditModalControls() {
       if (key === 'curve') {
         syncPhotoEditorCurveControls();
       }
+
+      if (key === 'text') {
+        syncPhotoEditorTextControls();
+      }
     });
   }
 
@@ -19052,6 +19848,17 @@ function bindPhotoAndEditModalControls() {
     photoEditorCropTiltInput,
     photoEditorCropXInput,
     photoEditorCropYInput,
+    photoEditorTextResetButton,
+    photoEditorTextContentInput,
+    photoEditorTextFontSelect,
+    photoEditorTextSizeInput,
+    photoEditorTextColorInput,
+    photoEditorTextWeightSelect,
+    photoEditorTextStrokeTypeSelect,
+    photoEditorTextStrokeWidthInput,
+    photoEditorTextStrokeColorInput,
+    photoEditorTextFillTransparentInput,
+    photoEditorTextLetterSpacingInput,
     photoEditorExportResetButton,
     photoEditorExportFormatSelect,
     photoEditorExportMaxEdgeSelect,

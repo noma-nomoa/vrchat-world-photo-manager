@@ -1013,6 +1013,26 @@ function getPhotoEditorCropRotationDegrees(crop = {}) {
   );
 }
 
+function normalizePhotoEditorCropZoomValue(crop = {}) {
+  const rawZoom = Number(crop?.zoom);
+
+  if (!Number.isFinite(rawZoom)) {
+    return 0;
+  }
+
+  const nextZoom = crop?.zoomMode === 'offset'
+    ? rawZoom
+    : rawZoom >= 100
+      ? rawZoom - 100
+      : rawZoom;
+
+  return clampNumber(nextZoom, 0, 300, 0);
+}
+
+function getPhotoEditorCropZoomScale(crop = {}) {
+  return 1 + normalizePhotoEditorCropZoomValue(crop) / 100;
+}
+
 function isPhotoEditorTransparentPaddingCrop(crop = {}) {
   return ['vrcGallery', 'vrcSticker'].includes(String(crop?.preset || ''));
 }
@@ -1032,18 +1052,34 @@ function getPhotoEditorCropRenderGeometry(sourceRect, width, height, crop = {}) 
   const absCos = Math.abs(Math.cos(rotationRadians));
   const absSin = Math.abs(Math.sin(rotationRadians));
   const coverScale = shouldUseTransparentPadding
-    ? 1
+    ? getPhotoEditorCropZoomScale(crop)
     : Math.max(
         1,
         (width * absCos + height * absSin) / drawWidth,
         (width * absSin + height * absCos) / drawHeight
       );
+  const scaledDrawWidth = drawWidth * coverScale;
+  const scaledDrawHeight = drawHeight * coverScale;
+  const rotatedWidth = scaledDrawWidth * absCos + scaledDrawHeight * absSin;
+  const rotatedHeight = scaledDrawWidth * absSin + scaledDrawHeight * absCos;
+  const overflowX = Math.max(0, (rotatedWidth - width) / 2);
+  const overflowY = Math.max(0, (rotatedHeight - height) / 2);
+  const translateX = shouldUseTransparentPadding
+    ? overflowX * clampNumber(crop?.offsetX, -100, 100, 0) / 100
+    : 0;
+  const translateY = shouldUseTransparentPadding
+    ? overflowY * clampNumber(crop?.offsetY, -100, 100, 0) / 100
+    : 0;
 
   return {
     drawWidth,
     drawHeight,
     rotationRadians,
     coverScale,
+    overflowX,
+    overflowY,
+    translateX,
+    translateY,
     flipX: Boolean(crop?.flipX),
     flipY: Boolean(crop?.flipY),
   };
@@ -1086,8 +1122,8 @@ function mapPhotoEditorMaskPointToCanvas(point, mask, width, height, sourceRect,
   const sin = Math.sin(geometry.rotationRadians);
 
   return {
-    x: width / 2 + flippedX * cos - flippedY * sin,
-    y: height / 2 + flippedX * sin + flippedY * cos,
+    x: width / 2 + geometry.translateX + flippedX * cos - flippedY * sin,
+    y: height / 2 + geometry.translateY + flippedX * sin + flippedY * cos,
   };
 }
 
@@ -1423,6 +1459,135 @@ function applyPhotoEditorMasksToCanvas(
   }
 }
 
+function normalizePhotoEditorTextColor(value, fallback = '#ffffff') {
+  const color = String(value || '').trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : fallback;
+}
+
+function normalizePhotoEditorTextState(textState = {}) {
+  const strokeTypes = ['none', 'outline', 'shadow', 'glow'];
+  const weights = ['400', '500', '700', '900'];
+  const text = String(textState?.text || '').slice(0, 160);
+  const fontFamily =
+    typeof textState?.fontFamily === 'string' && textState.fontFamily.trim()
+      ? textState.fontFamily
+      : '"Segoe UI", "Yu Gothic UI", sans-serif';
+  const strokeType = strokeTypes.includes(textState?.strokeType)
+    ? textState.strokeType
+    : 'outline';
+  const weight = weights.includes(String(textState?.weight))
+    ? String(textState.weight)
+    : '700';
+
+  return {
+    enabled: Boolean(textState?.enabled || text.trim()),
+    text,
+    x: clampNumber(textState?.x, 0, 1, 0.5),
+    y: clampNumber(textState?.y, 0, 1, 0.5),
+    fontFamily,
+    size: clampNumber(textState?.size, 12, 220, 64),
+    color: normalizePhotoEditorTextColor(textState?.color, '#ffffff'),
+    weight,
+    strokeType,
+    strokeWidth: clampNumber(textState?.strokeWidth, 0, 28, 4),
+    strokeColor: normalizePhotoEditorTextColor(textState?.strokeColor, '#111827'),
+    fillTransparent: Boolean(textState?.fillTransparent),
+    letterSpacing: clampNumber(textState?.letterSpacing, -10, 40, 0),
+  };
+}
+
+function getPhotoEditorTextLines(text) {
+  return String(text || '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter((line) => line.length > 0)
+    .slice(0, 6);
+}
+
+function measurePhotoEditorTextLineWidth(ctx, line, letterSpacing = 0) {
+  const characters = Array.from(String(line || ''));
+
+  if (characters.length === 0) {
+    return 0;
+  }
+
+  return characters.reduce((width, character, index) => {
+    const spacing = index < characters.length - 1 ? letterSpacing : 0;
+    return width + ctx.measureText(character).width + spacing;
+  }, 0);
+}
+
+function drawPhotoEditorTextLine(ctx, line, x, y, textState) {
+  const characters = Array.from(String(line || ''));
+  const letterSpacing = clampNumber(textState.letterSpacing, -10, 40, 0);
+  let currentX =
+    x - measurePhotoEditorTextLineWidth(ctx, line, letterSpacing) / 2;
+
+  for (const character of characters) {
+    if (textState.strokeType !== 'none' && textState.strokeWidth > 0) {
+      ctx.strokeText(character, currentX, y);
+    }
+
+    if (!textState.fillTransparent) {
+      ctx.fillText(character, currentX, y);
+    }
+
+    currentX += ctx.measureText(character).width + letterSpacing;
+  }
+}
+
+function applyPhotoEditorTextOverlayToCanvas(ctx, width, height, textOverlay) {
+  const textState = normalizePhotoEditorTextState(textOverlay);
+  const lines = textState.enabled ? getPhotoEditorTextLines(textState.text) : [];
+
+  if (lines.length === 0) {
+    return;
+  }
+
+  const x = clampNumber(textState.x, 0, 1, 0.5) * width;
+  const y = clampNumber(textState.y, 0, 1, 0.5) * height;
+  const size = clampNumber(textState.size, 12, 220, 64);
+  const lineHeight = size * 1.18;
+  const startY = y - (lineHeight * (lines.length - 1)) / 2;
+  const strokeWidth = clampNumber(textState.strokeWidth, 0, 28, 4);
+
+  ctx.save();
+  ctx.font = `${textState.weight} ${size}px ${textState.fontFamily}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = textState.color;
+  ctx.strokeStyle = textState.strokeColor;
+  ctx.lineWidth =
+    textState.strokeType === 'none' ? 0 : Math.max(1, strokeWidth);
+  ctx.lineJoin = 'round';
+  ctx.miterLimit = 2;
+
+  if (textState.strokeType === 'shadow') {
+    ctx.shadowColor = textState.strokeColor;
+    ctx.shadowBlur = Math.max(2, strokeWidth * 1.4);
+    ctx.shadowOffsetX = Math.max(1, strokeWidth * 0.45);
+    ctx.shadowOffsetY = Math.max(2, strokeWidth * 0.8);
+  } else if (textState.strokeType === 'glow') {
+    ctx.shadowColor = textState.strokeColor;
+    ctx.shadowBlur = Math.max(6, strokeWidth * 2.8);
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  }
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    drawPhotoEditorTextLine(
+      ctx,
+      lines[lineIndex],
+      x,
+      startY + lineHeight * lineIndex,
+      textState
+    );
+  }
+
+  ctx.restore();
+}
+
 function applyPhotoEditorEffectsToCanvas(ctx, payload) {
   const width = payload.width;
   const height = payload.height;
@@ -1463,6 +1628,13 @@ function applyPhotoEditorEffectsToCanvas(ctx, payload) {
       { isInteractivePreview }
     );
   }
+
+  applyPhotoEditorTextOverlayToCanvas(
+    ctx,
+    width,
+    height,
+    payload.textOverlay || {}
+  );
 }
 
 async function renderPhotoEditorPayload(payload) {
