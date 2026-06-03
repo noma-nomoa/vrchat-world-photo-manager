@@ -387,6 +387,13 @@
               >
                 保存先フォルダを開く
               </button>
+              <button
+                id="modal-edit-photo-btn"
+                type="button"
+                class="primary-link-button"
+              >
+                画像を加工する
+              </button>
             </div>
 
             <div class="modal-meta-list">
@@ -481,6 +488,695 @@
               >
                 この登録を削除
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Photo editor modal -->
+    <div id="photo-editor-modal" class="sub-modal hidden">
+      <div id="photo-editor-backdrop" class="sub-modal-backdrop"></div>
+
+      <div class="sub-modal-content photo-editor-modal-content">
+        <div class="sub-modal-body photo-editor-body">
+          <div class="photo-editor-header">
+            <div>
+              <h3>画像編集</h3>
+              <p id="photo-editor-file-name" class="photo-editor-file-name">
+                -
+              </p>
+            </div>
+            <div class="photo-editor-header-actions">
+              <button
+                id="photo-editor-undo-btn"
+                type="button"
+                class="secondary photo-editor-history-button"
+                aria-label="元に戻す"
+                title="元に戻す"
+                disabled
+              >
+                <span class="material-symbols-outlined">undo</span>
+              </button>
+              <button
+                id="photo-editor-redo-btn"
+                type="button"
+                class="secondary photo-editor-history-button"
+                aria-label="やり直す"
+                title="やり直す"
+                disabled
+              >
+                <span class="material-symbols-outlined">redo</span>
+              </button>
+              <button
+                id="photo-editor-reset-btn"
+                type="button"
+                class="photo-editor-slider-reset photo-editor-header-reset-button"
+                aria-label="編集内容をリセット"
+                title="編集内容をリセット"
+              >
+                <span class="material-symbols-outlined">restart_alt</span>
+              </button>
+              <button
+                id="photo-editor-compare-btn"
+                type="button"
+                class="secondary photo-editor-compare-button"
+                aria-pressed="false"
+                title="編集前と比較"
+              >
+                <span class="material-symbols-outlined">visibility</span>
+                <span>比較</span>
+              </button>
+              <button
+                id="photo-editor-save-btn"
+                type="button"
+                class="primary-link-button photo-editor-save-button"
+              >
+                別名で保存
+              </button>
+              <button
+                id="photo-editor-close"
+                class="sub-modal-close"
+                type="button"
+                aria-label="画像編集モーダルを閉じる"
+              ></button>
+            </div>
+          </div>
+
+          <div class="photo-editor-layout">
+            <div class="photo-editor-preview-panel">
+              <div id="photo-editor-canvas-wrap" class="photo-editor-canvas-wrap">
+                <div class="photo-editor-preview-tools" aria-label="プレビュー補助">
+                  <button
+                    id="photo-editor-rule-grid-btn"
+                    type="button"
+                    class="photo-editor-preview-tool-button"
+                    aria-label="三分割グリッド"
+                    aria-pressed="false"
+                    title="三分割グリッド"
+                  >
+                    <span class="material-symbols-outlined">grid_3x3</span>
+                  </button>
+                  <button
+                    id="photo-editor-ruler-btn"
+                    type="button"
+                    class="photo-editor-preview-tool-button"
+                    aria-label="ルーラー"
+                    aria-pressed="false"
+                    title="ルーラー"
+                  >
+                    <span class="material-symbols-outlined">straighten</span>
+                  </button>
+                </div>
+                <canvas id="photo-editor-canvas"></canvas>
+              </div>
+              <p id="photo-editor-status" class="photo-editor-status" aria-live="polite"></p>
+            </div>
+
+            <div class="photo-editor-controls">
+              <section
+                class="photo-editor-section photo-editor-accordion-section"
+                data-photo-editor-accordion="crop"
+              >
+                <div class="photo-editor-accordion-heading">
+                  <button
+                    type="button"
+                    class="photo-editor-accordion-toggle"
+                    data-photo-editor-accordion-toggle="crop"
+                    aria-expanded="false"
+                    aria-controls="photo-editor-crop-panel"
+                  >
+                    <span>切り抜き</span>
+                    <span class="material-symbols-outlined photo-editor-accordion-chevron">
+                      expand_more
+                    </span>
+                  </button>
+                  <button
+                    id="photo-editor-crop-reset-btn"
+                    type="button"
+                    class="photo-editor-slider-reset"
+                    aria-label="切り抜きをリセット"
+                    title="切り抜きをリセット"
+                  >
+                    <span class="material-symbols-outlined">restart_alt</span>
+                  </button>
+                </div>
+                <div
+                  id="photo-editor-crop-panel"
+                  class="photo-editor-accordion-panel"
+                  hidden
+                >
+                  <div id="photo-editor-crop-presets" class="photo-editor-crop-grid"></div>
+                  <div class="photo-editor-crop-transform-panel">
+                    <div class="photo-editor-crop-transform-heading">
+                      <span>回転</span>
+                      <div class="photo-editor-crop-transform-row">
+                        <button
+                          id="photo-editor-crop-rotate-left"
+                          type="button"
+                          class="small-action-button photo-editor-crop-transform-button"
+                          aria-label="左に90度回転"
+                          title="左に90度回転"
+                        >
+                          <span class="material-symbols-outlined">rotate_left</span>
+                        </button>
+                        <button
+                          id="photo-editor-crop-rotate-right"
+                          type="button"
+                          class="small-action-button photo-editor-crop-transform-button"
+                          aria-label="右に90度回転"
+                          title="右に90度回転"
+                        >
+                          <span class="material-symbols-outlined">rotate_right</span>
+                        </button>
+                        <button
+                          id="photo-editor-crop-flip-x"
+                          type="button"
+                          class="small-action-button photo-editor-crop-transform-button"
+                          aria-pressed="false"
+                          aria-label="左右反転"
+                          title="左右反転"
+                        >
+                          <span class="material-symbols-outlined">flip</span>
+                          <span>左右反転</span>
+                        </button>
+                        <button
+                          id="photo-editor-crop-flip-y"
+                          type="button"
+                          class="small-action-button photo-editor-crop-transform-button"
+                          aria-pressed="false"
+                          aria-label="上下反転"
+                          title="上下反転"
+                        >
+                          <span class="material-symbols-outlined">flip</span>
+                          <span>上下反転</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="photo-editor-slider-row photo-editor-crop-rotation-slider">
+                      <div class="photo-editor-slider-label">
+                        <span>自由回転</span>
+                        <span id="photo-editor-crop-tilt-value">0°</span>
+                      </div>
+                      <input
+                        id="photo-editor-crop-tilt"
+                        type="range"
+                        min="-45"
+                        max="45"
+                        value="0"
+                      />
+                    </div>
+                  </div>
+                  <div class="photo-editor-slider-row">
+                    <div class="photo-editor-slider-label">
+                      <span>ズーム</span>
+                      <span id="photo-editor-crop-zoom-value">0</span>
+                    </div>
+                    <input
+                      id="photo-editor-crop-zoom"
+                      type="range"
+                      min="0"
+                      max="300"
+                      value="0"
+                    />
+                  </div>
+                  <div class="photo-editor-slider-row">
+                    <div class="photo-editor-slider-label">
+                      <span>左右位置</span>
+                      <span id="photo-editor-crop-x-value">0</span>
+                    </div>
+                    <input
+                      id="photo-editor-crop-x"
+                      type="range"
+                      min="-100"
+                      max="100"
+                      value="0"
+                    />
+                  </div>
+                  <div class="photo-editor-slider-row">
+                    <div class="photo-editor-slider-label">
+                      <span>上下位置</span>
+                      <span id="photo-editor-crop-y-value">0</span>
+                    </div>
+                    <input
+                      id="photo-editor-crop-y"
+                      type="range"
+                      min="-100"
+                      max="100"
+                      value="0"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section
+                class="photo-editor-section photo-editor-accordion-section"
+                data-photo-editor-accordion="presets"
+              >
+                <div class="photo-editor-accordion-heading">
+                  <button
+                    type="button"
+                    class="photo-editor-accordion-toggle"
+                    data-photo-editor-accordion-toggle="presets"
+                    aria-expanded="false"
+                    aria-controls="photo-editor-preset-panel"
+                  >
+                    <span>プリセット</span>
+                    <span class="material-symbols-outlined photo-editor-accordion-chevron">
+                      expand_more
+                    </span>
+                  </button>
+                  <button
+                    id="photo-editor-preset-reset-btn"
+                    type="button"
+                    class="photo-editor-slider-reset"
+                    aria-label="プリセットをリセット"
+                    title="プリセットをリセット"
+                  >
+                    <span class="material-symbols-outlined">restart_alt</span>
+                  </button>
+                </div>
+                <div
+                  id="photo-editor-preset-panel"
+                  class="photo-editor-accordion-panel"
+                  hidden
+                >
+                  <div id="photo-editor-presets" class="photo-editor-preset-grid"></div>
+                  <div class="photo-editor-auto-enhance-panel">
+                    <div class="photo-editor-slider-row">
+                      <div class="photo-editor-slider-label">
+                        <span>補正の強さ</span>
+                        <span id="photo-editor-auto-strength-value">50</span>
+                      </div>
+                      <input
+                        id="photo-editor-auto-strength"
+                        type="range"
+                        min="0"
+                        max="100"
+                        value="50"
+                      />
+                    </div>
+                  </div>
+                  <div class="photo-editor-preset-save-row">
+                    <input
+                      id="photo-editor-preset-name"
+                      type="text"
+                      maxlength="32"
+                      placeholder="プリセット名"
+                    />
+                    <button
+                      id="photo-editor-save-preset-btn"
+                      type="button"
+                      class="small-action-button"
+                    >
+                      保存
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                class="photo-editor-section photo-editor-accordion-section"
+                data-photo-editor-accordion="adjustments"
+              >
+                <div class="photo-editor-accordion-heading">
+                  <button
+                    type="button"
+                    class="photo-editor-accordion-toggle"
+                    data-photo-editor-accordion-toggle="adjustments"
+                    aria-expanded="false"
+                    aria-controls="photo-editor-adjustment-panel"
+                  >
+                    <span>補正</span>
+                    <span class="material-symbols-outlined photo-editor-accordion-chevron">
+                      expand_more
+                    </span>
+                  </button>
+                  <button
+                    id="photo-editor-adjustment-reset-btn"
+                    type="button"
+                    class="photo-editor-slider-reset"
+                    aria-label="補正をリセット"
+                    title="補正をリセット"
+                  >
+                    <span class="material-symbols-outlined">restart_alt</span>
+                  </button>
+                </div>
+                <div
+                  id="photo-editor-adjustment-panel"
+                  class="photo-editor-accordion-panel"
+                  hidden
+                >
+                  <div id="photo-editor-adjustments" class="photo-editor-adjustments"></div>
+                </div>
+              </section>
+
+              <section
+                class="photo-editor-section photo-editor-accordion-section"
+                data-photo-editor-accordion="curve"
+              >
+                <div class="photo-editor-accordion-heading">
+                  <button
+                    type="button"
+                    class="photo-editor-accordion-toggle"
+                    data-photo-editor-accordion-toggle="curve"
+                    aria-expanded="false"
+                    aria-controls="photo-editor-curve-panel"
+                  >
+                    <span>トーンカーブ</span>
+                    <span class="material-symbols-outlined photo-editor-accordion-chevron">
+                      expand_more
+                    </span>
+                  </button>
+                  <button
+                    id="photo-editor-curve-reset-btn"
+                    type="button"
+                    class="photo-editor-slider-reset"
+                    aria-label="トーンカーブをリセット"
+                    title="トーンカーブをリセット"
+                  >
+                    <span class="material-symbols-outlined">restart_alt</span>
+                  </button>
+                </div>
+                <div
+                  id="photo-editor-curve-panel"
+                  class="photo-editor-accordion-panel"
+                  hidden
+                >
+                  <div id="photo-editor-curve-mode" class="photo-editor-curve-toggle">
+                    <button
+                      type="button"
+                      class="photo-editor-curve-mode-button"
+                      data-photo-editor-curve-mode="rgb"
+                    >
+                      RGB
+                    </button>
+                    <button
+                      type="button"
+                      class="photo-editor-curve-mode-button"
+                      data-photo-editor-curve-mode="hsv"
+                    >
+                      HSV
+                    </button>
+                  </div>
+                  <div id="photo-editor-curve-channels" class="photo-editor-curve-channel-grid"></div>
+                  <canvas
+                    id="photo-editor-curve-canvas"
+                    class="photo-editor-curve-canvas"
+                    width="280"
+                    height="160"
+                  ></canvas>
+                </div>
+              </section>
+
+              <section
+                class="photo-editor-section photo-editor-accordion-section"
+                data-photo-editor-accordion="blur"
+              >
+                <div class="photo-editor-accordion-heading">
+                  <button
+                    type="button"
+                    class="photo-editor-accordion-toggle"
+                    data-photo-editor-accordion-toggle="blur"
+                    aria-expanded="false"
+                    aria-controls="photo-editor-blur-panel"
+                  >
+                    <span>ぼかし</span>
+                    <span class="material-symbols-outlined photo-editor-accordion-chevron">
+                      expand_more
+                    </span>
+                  </button>
+                  <button
+                    id="photo-editor-blur-reset-btn"
+                    type="button"
+                    class="photo-editor-slider-reset"
+                    aria-label="ぼかしをリセット"
+                    title="ぼかしをリセット"
+                  >
+                    <span class="material-symbols-outlined">restart_alt</span>
+                  </button>
+                </div>
+                <div
+                  id="photo-editor-blur-panel"
+                  class="photo-editor-accordion-panel"
+                  hidden
+                >
+                  <div class="photo-editor-blur-mode-row">
+                    <span>どこをぼかしにするか</span>
+                    <div id="photo-editor-blur-mode" class="photo-editor-blur-mode-toggle">
+                      <button
+                        type="button"
+                        class="photo-editor-blur-mode-button"
+                        data-photo-editor-blur-mode="radial"
+                      >
+                        放射
+                      </button>
+                      <button
+                        type="button"
+                        class="photo-editor-blur-mode-button"
+                        data-photo-editor-blur-mode="full"
+                      >
+                        全体
+                      </button>
+                    </div>
+                  </div>
+                  <div class="photo-editor-slider-row">
+                    <div class="photo-editor-slider-label">
+                      <span>ぼかし量</span>
+                      <span id="photo-editor-blur-amount-value">0</span>
+                    </div>
+                    <input
+                      id="photo-editor-blur-amount"
+                      type="range"
+                      min="0"
+                      max="100"
+                      value="0"
+                    />
+                  </div>
+                  <div class="photo-editor-blur-actions">
+                    <button
+                      id="photo-editor-blur-confirm-btn"
+                      type="button"
+                      class="small-action-button photo-editor-blur-confirm-btn"
+                      hidden
+                    >
+                      <span class="material-symbols-outlined">check</span>
+                      <span id="photo-editor-blur-confirm-label">確定</span>
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                class="photo-editor-section photo-editor-accordion-section"
+                data-photo-editor-accordion="mask"
+              >
+                <div class="photo-editor-accordion-heading">
+                  <button
+                    type="button"
+                    class="photo-editor-accordion-toggle"
+                    data-photo-editor-accordion-toggle="mask"
+                    aria-expanded="false"
+                    aria-controls="photo-editor-mask-panel"
+                  >
+                    <span>目隠し加工</span>
+                    <span class="material-symbols-outlined photo-editor-accordion-chevron">
+                      expand_more
+                    </span>
+                  </button>
+                  <button
+                    id="photo-editor-mask-clear-btn"
+                    type="button"
+                    class="photo-editor-slider-reset"
+                    aria-label="目隠し加工をリセット"
+                    title="目隠し加工をリセット"
+                  >
+                    <span class="material-symbols-outlined">restart_alt</span>
+                  </button>
+                </div>
+                <div
+                  id="photo-editor-mask-panel"
+                  class="photo-editor-accordion-panel"
+                  hidden
+                >
+                  <div id="photo-editor-mask-tools" class="photo-editor-tool-grid">
+                    <button
+                      type="button"
+                      class="small-action-button"
+                      data-photo-editor-mask-tool="blur"
+                    >
+                      ぼかし
+                    </button>
+                    <button
+                      type="button"
+                      class="small-action-button"
+                      data-photo-editor-mask-tool="mosaic"
+                    >
+                      モザイク
+                    </button>
+                    <button
+                      type="button"
+                      class="small-action-button"
+                      data-photo-editor-mask-tool="fill"
+                    >
+                      塗りつぶし
+                    </button>
+                  </div>
+                  <div id="photo-editor-mask-options" class="photo-editor-mask-options" hidden>
+                    <div class="photo-editor-mask-option-heading">
+                      <p class="photo-editor-section-title">範囲</p>
+                      <div
+                        id="photo-editor-mask-shapes"
+                        class="photo-editor-shape-button-group"
+                      >
+                        <button
+                          type="button"
+                          class="photo-editor-shape-button"
+                          data-photo-editor-mask-shape="rect"
+                          aria-label="四角で範囲選択"
+                          title="四角で範囲選択"
+                        >
+                          <span class="material-symbols-outlined">crop_square</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="photo-editor-shape-button"
+                          data-photo-editor-mask-shape="ellipse"
+                          aria-label="丸で範囲選択"
+                          title="丸で範囲選択"
+                        >
+                          <span class="material-symbols-outlined">radio_button_unchecked</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="photo-editor-shape-button"
+                          data-photo-editor-mask-shape="freehand"
+                          aria-label="フリーハンドで範囲選択"
+                          title="フリーハンドで範囲選択"
+                        >
+                          <span class="material-symbols-outlined">gesture</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      id="photo-editor-mask-blur-strength-row"
+                      class="photo-editor-slider-row"
+                    >
+                      <div class="photo-editor-slider-label">
+                        <span id="photo-editor-mask-strength-label">ぼかしの濃さ</span>
+                        <span id="photo-editor-mask-blur-strength-value">45</span>
+                      </div>
+                      <input
+                        id="photo-editor-mask-blur-strength"
+                        type="range"
+                        min="0"
+                        max="100"
+                        value="45"
+                      />
+                    </div>
+                    <div
+                      id="photo-editor-fill-color-row"
+                      class="photo-editor-fill-color-row"
+                    >
+                      <label class="photo-editor-fill-color-label" for="photo-editor-fill-color">
+                        色
+                      </label>
+                      <input id="photo-editor-fill-color" type="color" value="#111827" />
+                    </div>
+                  </div>
+                  <div class="photo-editor-mask-actions">
+                    <button
+                      id="photo-editor-mask-confirm-btn"
+                      type="button"
+                      class="small-action-button photo-editor-mask-confirm-btn"
+                      disabled
+                    >
+                      <span class="material-symbols-outlined">check</span>
+                      <span>確定</span>
+                    </button>
+                    <button
+                      id="photo-editor-mask-undo-btn"
+                      type="button"
+                      class="secondary"
+                    >
+                      1つ戻す
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                class="photo-editor-section photo-editor-accordion-section"
+                data-photo-editor-accordion="export"
+              >
+                <div class="photo-editor-accordion-heading">
+                  <button
+                    type="button"
+                    class="photo-editor-accordion-toggle"
+                    data-photo-editor-accordion-toggle="export"
+                    aria-expanded="false"
+                    aria-controls="photo-editor-export-panel"
+                  >
+                    <span>書き出し</span>
+                    <span class="material-symbols-outlined photo-editor-accordion-chevron">
+                      expand_more
+                    </span>
+                  </button>
+                  <button
+                    id="photo-editor-export-reset-btn"
+                    type="button"
+                    class="photo-editor-slider-reset"
+                    aria-label="書き出し設定をリセット"
+                    title="書き出し設定をリセット"
+                  >
+                    <span class="material-symbols-outlined">restart_alt</span>
+                  </button>
+                </div>
+                <div
+                  id="photo-editor-export-panel"
+                  class="photo-editor-accordion-panel"
+                  hidden
+                >
+                  <div class="photo-editor-export-grid">
+                    <label class="photo-editor-select-field" for="photo-editor-export-format">
+                      <span>形式</span>
+                      <select id="photo-editor-export-format">
+                        <option value="png">PNG</option>
+                        <option value="jpeg">JPEG</option>
+                        <option value="webp">WebP</option>
+                      </select>
+                    </label>
+                    <label class="photo-editor-select-field" for="photo-editor-export-max-edge">
+                      <span>サイズ</span>
+                      <select id="photo-editor-export-max-edge">
+                        <option value="0">オリジナル</option>
+                        <option value="3840">長辺 3840px</option>
+                        <option value="2560">長辺 2560px</option>
+                        <option value="2048">長辺 2048px</option>
+                        <option value="1600">長辺 1600px</option>
+                        <option value="1200">長辺 1200px</option>
+                        <option value="1024">長辺 1024px</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div
+                    id="photo-editor-export-quality-row"
+                    class="photo-editor-slider-row"
+                  >
+                    <div class="photo-editor-slider-label">
+                      <span>品質</span>
+                      <span id="photo-editor-export-quality-value">92</span>
+                    </div>
+                    <input
+                      id="photo-editor-export-quality"
+                      type="range"
+                      min="60"
+                      max="100"
+                      value="92"
+                    />
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
         </div>

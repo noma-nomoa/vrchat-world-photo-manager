@@ -104,6 +104,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openLocalFile: (payload) => ipcRenderer.invoke('open-local-file', payload),
   openContainingFolder: (payload) =>
     ipcRenderer.invoke('open-containing-folder', payload),
+  saveEditedPhoto: (payload) =>
+    ipcRenderer.invoke('save-edited-photo', payload),
   updateFavoriteStatus: (photoId, isFavorite) =>
     ipcRenderer.invoke('update-favorite-status', { photoId, isFavorite }),
   updateFavoriteStatuses: (photoIds, isFavorite) =>

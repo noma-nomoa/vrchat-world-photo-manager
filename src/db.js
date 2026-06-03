@@ -675,6 +675,26 @@ function initDatabase(dbPath) {
     WHERE id = ?
   `);
 
+  const updateEditedPhotoSourceMetadataStmt = db.prepare(`
+    UPDATE photos
+    SET
+      taken_at = ?,
+      taken_at_timestamp = ?,
+      group_date = ?,
+      year = ?,
+      month = ?,
+      day = ?,
+      world_id = ?,
+      world_name = ?,
+      world_name_manual = ?,
+      world_url = ?,
+      print_note_text = ?,
+      memo_text = ?,
+      is_favorite = ?,
+      updated_at = ?
+    WHERE id = ?
+  `);
+
   const updatePhotoFileLocationStmt = db.prepare(`
     UPDATE photos
     SET
@@ -1129,6 +1149,46 @@ function initDatabase(dbPath) {
     return getPhotoByIdStmt.get(photoId) || null;
   }
 
+  function updateEditedPhotoSourceMetadata(photoId, payload = {}) {
+    const normalizedPhotoId = Number.parseInt(photoId, 10);
+    const toOptionalInteger = (value) => {
+      const numericValue = Number(value);
+      return Number.isInteger(numericValue) && numericValue > 0
+        ? numericValue
+        : null;
+    };
+    const toOptionalTimestamp = (value) => {
+      const numericValue = Number(value);
+      return Number.isFinite(numericValue) && numericValue > 0
+        ? numericValue
+        : null;
+    };
+
+    if (!Number.isInteger(normalizedPhotoId) || normalizedPhotoId <= 0) {
+      return null;
+    }
+
+    updateEditedPhotoSourceMetadataStmt.run(
+      payload.takenAt || null,
+      toOptionalTimestamp(payload.takenAtTimestamp),
+      payload.groupDate || null,
+      toOptionalInteger(payload.year),
+      toOptionalInteger(payload.month),
+      toOptionalInteger(payload.day),
+      payload.worldId || null,
+      payload.worldName || null,
+      payload.worldNameManual || null,
+      payload.worldUrl || null,
+      payload.printNoteText || null,
+      payload.memoText || null,
+      payload.isFavorite ? 1 : 0,
+      new Date().toISOString(),
+      normalizedPhotoId
+    );
+
+    return getPhotoByIdStmt.get(normalizedPhotoId) || null;
+  }
+
   function getPhotosByWorldId(worldId) {
     const normalizedWorldId =
       typeof worldId === 'string' && worldId.trim().length > 0
@@ -1498,6 +1558,7 @@ function initDatabase(dbPath) {
     updateFavoriteStatus,
     updateFavoriteStatuses,
     updateImageMetadata,
+    updateEditedPhotoSourceMetadata,
     updatePhotoFileLocation,
     updatePhotoMemo,
     updatePhotoPrintNote,

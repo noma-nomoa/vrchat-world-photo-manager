@@ -7,10 +7,12 @@
   "private": true,
   "scripts": {
     "start": "electron-forge start",
-    "package": "electron-forge package",
-    "package:win": "electron-forge package --platform win32",
-    "make": "electron-forge make",
-    "make:win": "electron-forge make --platform win32",
+    "patch:electron-winstaller": "node scripts/patch-electron-winstaller.js",
+    "postinstall": "npm run patch:electron-winstaller",
+    "package": "npm run patch:electron-winstaller && electron-forge package",
+    "package:win": "npm run patch:electron-winstaller && electron-forge package --platform win32",
+    "make": "npm run patch:electron-winstaller && electron-forge make",
+    "make:win": "npm run patch:electron-winstaller && electron-forge make --platform win32",
     "publish": "electron-forge publish",
     "publish:win": "electron-forge publish --platform win32",
     "lint": "echo \"No linting configured\""

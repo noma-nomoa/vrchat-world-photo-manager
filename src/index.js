@@ -80,6 +80,25 @@ const THUMBNAIL_DIRNAME = 'thumbnails';
 const THUMBNAIL_SIZE = 320;
 const THUMBNAIL_EXTENSION = '.jpg';
 const THUMBNAIL_JPEG_QUALITY = 82;
+const PHOTO_EDITOR_EXPORT_FORMATS = Object.freeze({
+  png: {
+    mimeType: 'image/png',
+    extension: '.png',
+    filterName: 'PNG Image',
+  },
+  jpeg: {
+    mimeType: 'image/jpeg',
+    extension: '.jpg',
+    aliases: ['.jpeg'],
+    filterName: 'JPEG Image',
+  },
+  webp: {
+    mimeType: 'image/webp',
+    extension: '.webp',
+    filterName: 'WebP Image',
+  },
+});
+const PHOTO_EDITOR_DATA_URL_PATTERN = /^data:(image\/(?:png|jpeg|webp));base64,/;
 const WORLD_METADATA_API_BASE_URL = 'https://api.vrchat.cloud/api/1/worlds';
 const WORLD_METADATA_FETCH_TIMEOUT_MS = 10000;
 const IMPORT_PREPROCESS_CONCURRENCY = Math.max(
@@ -3713,6 +3732,437 @@ function createResolvedPhotoAccessResult(
   return payload;
 }
 
+function sanitizeEditedPhotoFileNamePart(value, fallback = 'photo') {
+  const normalizedValue =
+    typeof value === 'string' && value.trim().length > 0
+      ? value.trim()
+      : fallback;
+  const sanitizedValue = normalizedValue
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return sanitizedValue || fallback;
+}
+
+function formatEditedPhotoTimestamp(date = new Date()) {
+  const safeDate = date instanceof Date && !Number.isNaN(date.getTime())
+    ? date
+    : new Date();
+
+  return [
+    safeDate.getFullYear(),
+    pad2(safeDate.getMonth() + 1),
+    pad2(safeDate.getDate()),
+  ].join('') + '-' + [
+    pad2(safeDate.getHours()),
+    pad2(safeDate.getMinutes()),
+    pad2(safeDate.getSeconds()),
+  ].join('');
+}
+
+function normalizePhotoEditorOutputFormat(format) {
+  return PHOTO_EDITOR_EXPORT_FORMATS[format]
+    ? format
+    : 'png';
+}
+
+function getPhotoEditorOutputFormatMeta(format) {
+  return PHOTO_EDITOR_EXPORT_FORMATS[normalizePhotoEditorOutputFormat(format)];
+}
+
+function buildEditedPhotoDefaultPath(payload = {}) {
+  const sourceFilePath = normalizeKnownFilePath(payload.sourceFilePath);
+  const outputFormat = getPhotoEditorOutputFormatMeta(payload.outputFormat);
+  const sourceFileName =
+    typeof payload.sourceFileName === 'string' && payload.sourceFileName.trim()
+      ? payload.sourceFileName.trim()
+      : sourceFilePath
+        ? path.basename(sourceFilePath)
+        : 'photo.png';
+  const parsedName = path.parse(sourceFileName);
+  const baseName = sanitizeEditedPhotoFileNamePart(parsedName.name, 'photo');
+  const outputFileName = `${baseName}_edited_${formatEditedPhotoTimestamp()}${outputFormat.extension}`;
+  const outputDirectory = sourceFilePath
+    ? path.dirname(sourceFilePath)
+    : app.getPath('pictures');
+
+  return path.join(outputDirectory, outputFileName);
+}
+
+function parseEditedPhotoDataUrl(dataUrl) {
+  if (typeof dataUrl !== 'string') {
+    throw new Error('編集済み画像データが不正です');
+  }
+
+  const match = PHOTO_EDITOR_DATA_URL_PATTERN.exec(dataUrl);
+
+  if (!match) {
+    throw new Error('編集済み画像データが不正です');
+  }
+
+  const mimeType = match[1];
+  const formatKey = Object.entries(PHOTO_EDITOR_EXPORT_FORMATS).find(
+    ([, meta]) => meta.mimeType === mimeType
+  )?.[0];
+  const formatMeta = getPhotoEditorOutputFormatMeta(formatKey);
+  const base64Data = dataUrl.slice(match[0].length);
+  const imageBuffer = Buffer.from(base64Data, 'base64');
+
+  if (!imageBuffer || imageBuffer.length === 0) {
+    throw new Error('編集済み画像データが空です');
+  }
+
+  return {
+    imageBuffer,
+    formatKey: formatKey || 'png',
+    formatMeta,
+  };
+}
+
+function isPngBuffer(buffer) {
+  return (
+    Buffer.isBuffer(buffer) &&
+    buffer.length > 8 &&
+    buffer.readUInt32BE(0) === 0x89504e47 &&
+    buffer.readUInt32BE(4) === 0x0d0a1a0a
+  );
+}
+
+function getPngChunks(buffer) {
+  if (!isPngBuffer(buffer)) {
+    return [];
+  }
+
+  const chunks = [];
+  let offset = 8;
+
+  while (offset + 12 <= buffer.length) {
+    const length = buffer.readUInt32BE(offset);
+    const chunkEnd = offset + 12 + length;
+
+    if (chunkEnd > buffer.length) {
+      return [];
+    }
+
+    const type = buffer.toString('ascii', offset + 4, offset + 8);
+    chunks.push({
+      type,
+      buffer: buffer.subarray(offset, chunkEnd),
+    });
+    offset = chunkEnd;
+
+    if (type === 'IEND') {
+      break;
+    }
+  }
+
+  return chunks;
+}
+
+function preservePngMetadataChunks(outputBuffer, sourceBuffer) {
+  const metadataTypes = new Set(['tEXt', 'zTXt', 'iTXt', 'eXIf', 'tIME', 'pHYs']);
+  const sourceChunks = getPngChunks(sourceBuffer).filter((chunk) =>
+    metadataTypes.has(chunk.type)
+  );
+
+  if (sourceChunks.length === 0 || !isPngBuffer(outputBuffer)) {
+    return outputBuffer;
+  }
+
+  const outputChunks = getPngChunks(outputBuffer).filter(
+    (chunk) => !metadataTypes.has(chunk.type)
+  );
+  const firstIdatIndex = outputChunks.findIndex((chunk) => chunk.type === 'IDAT');
+  const insertIndex = firstIdatIndex >= 0 ? firstIdatIndex : 1;
+
+  return Buffer.concat([
+    outputBuffer.subarray(0, 8),
+    ...outputChunks.slice(0, insertIndex).map((chunk) => chunk.buffer),
+    ...sourceChunks.map((chunk) => chunk.buffer),
+    ...outputChunks.slice(insertIndex).map((chunk) => chunk.buffer),
+  ]);
+}
+
+function isJpegBuffer(buffer) {
+  return (
+    Buffer.isBuffer(buffer) &&
+    buffer.length > 4 &&
+    buffer[0] === 0xff &&
+    buffer[1] === 0xd8
+  );
+}
+
+function getJpegExifSegments(buffer) {
+  if (!isJpegBuffer(buffer)) {
+    return [];
+  }
+
+  const segments = [];
+  let offset = 2;
+
+  while (offset + 4 <= buffer.length) {
+    if (buffer[offset] !== 0xff) {
+      break;
+    }
+
+    const marker = buffer[offset + 1];
+
+    if (marker === 0xda || marker === 0xd9) {
+      break;
+    }
+
+    const length = buffer.readUInt16BE(offset + 2);
+    const segmentEnd = offset + 2 + length;
+
+    if (length < 2 || segmentEnd > buffer.length) {
+      break;
+    }
+
+    if (
+      marker === 0xe1 &&
+      buffer.toString('ascii', offset + 4, offset + 10) === 'Exif\u0000\u0000'
+    ) {
+      segments.push(buffer.subarray(offset, segmentEnd));
+    }
+
+    offset = segmentEnd;
+  }
+
+  return segments;
+}
+
+function preserveJpegExifSegments(outputBuffer, sourceBuffer) {
+  const exifSegments = getJpegExifSegments(sourceBuffer);
+
+  if (exifSegments.length === 0 || !isJpegBuffer(outputBuffer)) {
+    return outputBuffer;
+  }
+
+  return Buffer.concat([
+    outputBuffer.subarray(0, 2),
+    ...exifSegments,
+    outputBuffer.subarray(2),
+  ]);
+}
+
+async function preserveEditedPhotoEmbeddedMetadata(
+  imageBuffer,
+  { sourceFilePath, formatKey } = {}
+) {
+  if (!sourceFilePath) {
+    return imageBuffer;
+  }
+
+  try {
+    const sourceBuffer = await fs.readFile(sourceFilePath);
+
+    if (formatKey === 'png') {
+      return preservePngMetadataChunks(imageBuffer, sourceBuffer);
+    }
+
+    if (formatKey === 'jpeg') {
+      return preserveJpegExifSegments(imageBuffer, sourceBuffer);
+    }
+  } catch {
+    // Embedded metadata is best-effort; saving the edited image takes priority.
+  }
+
+  return imageBuffer;
+}
+
+function isSameFilePath(leftPath, rightPath) {
+  if (!leftPath || !rightPath) {
+    return false;
+  }
+
+  return path.resolve(leftPath).toLowerCase() === path.resolve(rightPath).toLowerCase();
+}
+
+async function applyEditedPhotoSourceTimestamp(savePath, timestamp) {
+  const numericTimestamp = Number(timestamp);
+
+  if (!Number.isFinite(numericTimestamp) || numericTimestamp <= 0) {
+    return;
+  }
+
+  const sourceDate = new Date(numericTimestamp);
+
+  if (Number.isNaN(sourceDate.getTime())) {
+    return;
+  }
+
+  try {
+    await fs.utimes(savePath, sourceDate, sourceDate);
+  } catch {
+    // Keeping the image saved is more important than preserving file times.
+  }
+}
+
+function normalizeEditedPhotoSourceMetadata(metadata = {}) {
+  const timestamp = Number(metadata.takenAtTimestamp);
+  const date = Number.isFinite(timestamp) && timestamp > 0
+    ? new Date(timestamp)
+    : null;
+  const hasValidDate = date && !Number.isNaN(date.getTime());
+  const toOptionalInteger = (value, fallback = null) => {
+    const numericValue = Number(value);
+    return Number.isInteger(numericValue) && numericValue > 0
+      ? numericValue
+      : fallback;
+  };
+
+  return {
+    takenAt:
+      typeof metadata.takenAt === 'string' && metadata.takenAt.trim()
+        ? metadata.takenAt.trim()
+        : hasValidDate
+          ? formatDateTime(date)
+          : null,
+    takenAtTimestamp: hasValidDate ? timestamp : null,
+    groupDate:
+      typeof metadata.groupDate === 'string' && metadata.groupDate.trim()
+        ? metadata.groupDate.trim()
+        : hasValidDate
+          ? formatGroupDate(date)
+          : null,
+    year: toOptionalInteger(metadata.year, hasValidDate ? date.getFullYear() : null),
+    month: toOptionalInteger(metadata.month, hasValidDate ? date.getMonth() + 1 : null),
+    day: toOptionalInteger(metadata.day, hasValidDate ? date.getDate() : null),
+    worldId:
+      typeof metadata.worldId === 'string' && metadata.worldId.trim()
+        ? metadata.worldId.trim()
+        : null,
+    worldName:
+      typeof metadata.worldName === 'string' && metadata.worldName.trim()
+        ? metadata.worldName.trim()
+        : null,
+    worldNameManual:
+      typeof metadata.worldNameManual === 'string' && metadata.worldNameManual.trim()
+        ? metadata.worldNameManual.trim()
+        : null,
+    worldUrl:
+      typeof metadata.worldUrl === 'string' && metadata.worldUrl.trim()
+        ? metadata.worldUrl.trim()
+        : null,
+    isFavorite: Boolean(metadata.isFavorite),
+    printNoteText:
+      typeof metadata.printNoteText === 'string' && metadata.printNoteText.trim()
+        ? metadata.printNoteText.trim()
+        : null,
+    memoText:
+      typeof metadata.memoText === 'string' && metadata.memoText.trim()
+        ? metadata.memoText.trim()
+        : null,
+    labels: normalizePhotoLabelPayload(metadata.labels),
+  };
+}
+
+async function saveEditedPhotoFile(payload = {}) {
+  const parsedImage = parseEditedPhotoDataUrl(payload.dataUrl);
+  const { formatMeta } = parsedImage;
+  const sourceFilePath = normalizeKnownFilePath(payload.sourceFilePath);
+  const dialogResult = await dialog.showSaveDialog({
+    title: '編集済み画像を保存',
+    defaultPath: buildEditedPhotoDefaultPath({
+      ...payload,
+      outputFormat: parsedImage.formatKey,
+    }),
+    filters: [
+      {
+        name: formatMeta.filterName,
+        extensions: [
+          formatMeta.extension,
+          ...(Array.isArray(formatMeta.aliases) ? formatMeta.aliases : []),
+        ].map((extension) => extension.slice(1)),
+      },
+      {
+        name: 'Images',
+        extensions: Object.values(PHOTO_EDITOR_EXPORT_FORMATS).map((meta) =>
+          meta.extension.slice(1)
+        ),
+      },
+    ],
+  });
+
+  if (dialogResult.canceled || !dialogResult.filePath) {
+    return {
+      ok: true,
+      canceled: true,
+    };
+  }
+
+  let savePath = dialogResult.filePath;
+  const saveExtension = path.extname(savePath).toLowerCase();
+  const allowedExtensions = [
+    formatMeta.extension,
+    ...(Array.isArray(formatMeta.aliases) ? formatMeta.aliases : []),
+  ];
+
+  if (!allowedExtensions.includes(saveExtension)) {
+    savePath += formatMeta.extension;
+  }
+
+  if (sourceFilePath && isSameFilePath(savePath, sourceFilePath)) {
+    return {
+      ok: false,
+      message: '元画像は上書きできません。別名で保存してください。',
+    };
+  }
+
+  await ensureDir(path.dirname(savePath));
+  const imageBuffer = await preserveEditedPhotoEmbeddedMetadata(
+    parsedImage.imageBuffer,
+    {
+      sourceFilePath,
+      formatKey: parsedImage.formatKey,
+    }
+  );
+  await fs.writeFile(savePath, imageBuffer);
+  await applyEditedPhotoSourceTimestamp(savePath, payload.sourceTakenAtTimestamp);
+
+  const imageHash = createHash('sha256').update(imageBuffer).digest('hex');
+  let importResult = null;
+  let importedPhoto = null;
+  let importFailed = false;
+  let importMessage = '';
+
+  try {
+    importResult = await importManyFiles([savePath]);
+    let savedRow = photoDb.getPhotoByHash(imageHash);
+
+    if (savedRow && payload.sourcePhotoMetadata) {
+      const sourceMetadata = normalizeEditedPhotoSourceMetadata(
+        payload.sourcePhotoMetadata
+      );
+      savedRow = photoDb.updateEditedPhotoSourceMetadata(
+        savedRow.id,
+        sourceMetadata
+      ) || savedRow;
+
+      if (Array.isArray(sourceMetadata.labels) && sourceMetadata.labels.length > 0) {
+        photoDb.replacePhotoTags(savedRow.id, sourceMetadata.labels);
+      }
+    }
+
+    importedPhoto = savedRow ? toRendererPhoto(savedRow) : null;
+  } catch (error) {
+    importFailed = true;
+    importMessage = error.message;
+  }
+
+  return {
+    ok: true,
+    canceled: false,
+    filePath: savePath,
+    fileName: path.basename(savePath),
+    importResult,
+    importFailed,
+    importMessage,
+    photo: importedPhoto,
+  };
+}
+
 // ------------------------------
 // World metadata sync: queue target normalization
 // ------------------------------
@@ -5965,6 +6415,17 @@ app.whenReady().then(async () => {
   ipcMain.handle('open-containing-folder', async (_event, filePath) => {
     try {
       return await openContainingFolderOnDiskActive(filePath);
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+      };
+    }
+  });
+
+  ipcMain.handle('save-edited-photo', async (_event, payload) => {
+    try {
+      return await saveEditedPhotoFile(payload);
     } catch (error) {
       return {
         ok: false,

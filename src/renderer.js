@@ -236,6 +236,7 @@ const modalOpenWorldButton = document.getElementById('modal-open-world-btn');
 const modalOpenOriginalButton = document.getElementById(
   'modal-open-original-btn'
 );
+const modalEditPhotoButton = document.getElementById('modal-edit-photo-btn');
 const modalOpenFolderButton = document.getElementById('modal-open-folder-btn');
 const modalDeletePhotoButton = document.getElementById(
   'modal-delete-photo-btn'
@@ -263,6 +264,185 @@ const rereadWorldNameButton = document.getElementById(
   'reread-world-name-btn'
 );
 const worldNameSaveStatus = document.getElementById('world-name-save-status');
+
+// Photo editor modal.
+const photoEditorModal = document.getElementById('photo-editor-modal');
+const photoEditorBackdrop = document.getElementById('photo-editor-backdrop');
+const photoEditorClose = document.getElementById('photo-editor-close');
+const photoEditorFileName = document.getElementById('photo-editor-file-name');
+const photoEditorResetButton = document.getElementById('photo-editor-reset-btn');
+const photoEditorSaveButton = document.getElementById('photo-editor-save-btn');
+const photoEditorUndoButton = document.getElementById('photo-editor-undo-btn');
+const photoEditorRedoButton = document.getElementById('photo-editor-redo-btn');
+const photoEditorCompareButton = document.getElementById(
+  'photo-editor-compare-btn'
+);
+const photoEditorCanvas = document.getElementById('photo-editor-canvas');
+const photoEditorCanvasWrap = document.getElementById('photo-editor-canvas-wrap');
+const photoEditorRuleGridButton = document.getElementById(
+  'photo-editor-rule-grid-btn'
+);
+const photoEditorRulerButton = document.getElementById('photo-editor-ruler-btn');
+const photoEditorStatus = document.getElementById('photo-editor-status');
+const photoEditorPresetResetButton = document.getElementById(
+  'photo-editor-preset-reset-btn'
+);
+const photoEditorPresetList = document.getElementById('photo-editor-presets');
+const photoEditorAutoStrengthInput = document.getElementById(
+  'photo-editor-auto-strength'
+);
+const photoEditorAutoStrengthValue = document.getElementById(
+  'photo-editor-auto-strength-value'
+);
+const photoEditorPresetNameInput = document.getElementById(
+  'photo-editor-preset-name'
+);
+const photoEditorSavePresetButton = document.getElementById(
+  'photo-editor-save-preset-btn'
+);
+const photoEditorCropPresetList = document.getElementById(
+  'photo-editor-crop-presets'
+);
+const photoEditorCropResetButton = document.getElementById(
+  'photo-editor-crop-reset-btn'
+);
+const photoEditorCropZoomInput = document.getElementById(
+  'photo-editor-crop-zoom'
+);
+const photoEditorCropZoomValue = document.getElementById(
+  'photo-editor-crop-zoom-value'
+);
+const photoEditorCropXInput = document.getElementById('photo-editor-crop-x');
+const photoEditorCropXValue = document.getElementById(
+  'photo-editor-crop-x-value'
+);
+const photoEditorCropYInput = document.getElementById('photo-editor-crop-y');
+const photoEditorCropYValue = document.getElementById(
+  'photo-editor-crop-y-value'
+);
+const photoEditorCropTiltInput = document.getElementById(
+  'photo-editor-crop-tilt'
+);
+const photoEditorCropTiltValue = document.getElementById(
+  'photo-editor-crop-tilt-value'
+);
+const photoEditorCropRotateLeftButton = document.getElementById(
+  'photo-editor-crop-rotate-left'
+);
+const photoEditorCropRotateRightButton = document.getElementById(
+  'photo-editor-crop-rotate-right'
+);
+const photoEditorCropFlipXButton = document.getElementById(
+  'photo-editor-crop-flip-x'
+);
+const photoEditorCropFlipYButton = document.getElementById(
+  'photo-editor-crop-flip-y'
+);
+const photoEditorExportResetButton = document.getElementById(
+  'photo-editor-export-reset-btn'
+);
+const photoEditorExportFormatSelect = document.getElementById(
+  'photo-editor-export-format'
+);
+const photoEditorExportMaxEdgeSelect = document.getElementById(
+  'photo-editor-export-max-edge'
+);
+const photoEditorExportQualityInput = document.getElementById(
+  'photo-editor-export-quality'
+);
+const photoEditorExportQualityValue = document.getElementById(
+  'photo-editor-export-quality-value'
+);
+const photoEditorExportQualityRow = document.getElementById(
+  'photo-editor-export-quality-row'
+);
+const photoEditorBlurResetButton = document.getElementById(
+  'photo-editor-blur-reset-btn'
+);
+const photoEditorBlurModeGroup = document.getElementById(
+  'photo-editor-blur-mode'
+);
+const photoEditorBlurModeButtons = Array.from(
+  document.querySelectorAll('[data-photo-editor-blur-mode]')
+);
+const photoEditorBlurAmountInput = document.getElementById(
+  'photo-editor-blur-amount'
+);
+const photoEditorBlurAmountValue = document.getElementById(
+  'photo-editor-blur-amount-value'
+);
+const photoEditorBlurConfirmButton = document.getElementById(
+  'photo-editor-blur-confirm-btn'
+);
+const photoEditorBlurConfirmLabel = document.getElementById(
+  'photo-editor-blur-confirm-label'
+);
+const photoEditorMaskToolGroup = document.getElementById(
+  'photo-editor-mask-tools'
+);
+const photoEditorMaskToolButtons = Array.from(
+  document.querySelectorAll('[data-photo-editor-mask-tool]')
+);
+const photoEditorMaskOptions = document.getElementById(
+  'photo-editor-mask-options'
+);
+const photoEditorMaskShapeButtons = Array.from(
+  document.querySelectorAll('[data-photo-editor-mask-shape]')
+);
+const photoEditorMaskShapeGroup = document.getElementById(
+  'photo-editor-mask-shapes'
+);
+const photoEditorMaskBlurStrengthRow = document.getElementById(
+  'photo-editor-mask-blur-strength-row'
+);
+const photoEditorMaskBlurStrengthInput = document.getElementById(
+  'photo-editor-mask-blur-strength'
+);
+const photoEditorMaskBlurStrengthValue = document.getElementById(
+  'photo-editor-mask-blur-strength-value'
+);
+const photoEditorMaskStrengthLabel = document.getElementById(
+  'photo-editor-mask-strength-label'
+);
+const photoEditorFillColorInput = document.getElementById(
+  'photo-editor-fill-color'
+);
+const photoEditorFillColorRow = document.getElementById(
+  'photo-editor-fill-color-row'
+);
+const photoEditorMaskConfirmButton = document.getElementById(
+  'photo-editor-mask-confirm-btn'
+);
+const photoEditorMaskUndoButton = document.getElementById(
+  'photo-editor-mask-undo-btn'
+);
+const photoEditorMaskClearButton = document.getElementById(
+  'photo-editor-mask-clear-btn'
+);
+const photoEditorAdjustmentResetButton = document.getElementById(
+  'photo-editor-adjustment-reset-btn'
+);
+const photoEditorAdjustmentList = document.getElementById(
+  'photo-editor-adjustments'
+);
+const photoEditorCurveResetButton = document.getElementById(
+  'photo-editor-curve-reset-btn'
+);
+const photoEditorCurveModeGroup = document.getElementById(
+  'photo-editor-curve-mode'
+);
+const photoEditorCurveModeButtons = Array.from(
+  document.querySelectorAll('[data-photo-editor-curve-mode]')
+);
+const photoEditorCurveChannelList = document.getElementById(
+  'photo-editor-curve-channels'
+);
+const photoEditorCurveCanvas = document.getElementById(
+  'photo-editor-curve-canvas'
+);
+const photoEditorAccordionToggles = Array.from(
+  document.querySelectorAll('[data-photo-editor-accordion-toggle]')
+);
 
 // Settings modal, tracked folders, and maintenance actions.
 const settingsModal = document.getElementById('settings-modal');
@@ -413,8 +593,21 @@ let galleryDateJumpRequestId = 0;
 let activeGalleryJumpTarget = null;
 let galleryJumpAnimationTimer = 0;
 let currentModalPhoto = null;
+let photoEditorState = null;
 let imageModalAnimationTimer = null;
 let imageModalSwitchTimer = null;
+let photoEditorRenderFrame = 0;
+let photoEditorRenderDebounceTimer = 0;
+let photoEditorPreviewSettleTimer = 0;
+let photoEditorPreviewRenderToken = 0;
+let photoEditorPreviewWorkCanvas = null;
+let photoEditorPreviewOverlayCanvas = null;
+let photoEditorPreviewOverlayMeta = null;
+let photoEditorPreviewCommittedValues = null;
+let photoEditorWorker = null;
+let photoEditorWorkerRequestId = 0;
+let photoEditorWorkerUnavailable = false;
+const photoEditorWorkerRequests = new Map();
 let photoCardDensityAnimationTimer = null;
 let modalShellRestoreTimer = null;
 let modalWorldMetadataRequestId = 0;
@@ -523,6 +716,7 @@ let worldMetadataSyncResetTimer = null;
 let appUpdatePromptQueue = Promise.resolve();
 let lastTimelineSelection = null;
 let lastWorldSelection = null;
+let photoEditorUserPresets = [];
 
 // Expanded tree state and transient UI timers/overlays.
 const expandedYears = new Set();
@@ -610,6 +804,515 @@ const TOOLBAR_SEARCH_SCOPE_META = {
     summaryPrefix: 'プリントのノート',
   },
 };
+const PHOTO_EDITOR_PREVIEW_MAX_EDGE = 3200;
+const PHOTO_EDITOR_INTERACTIVE_PREVIEW_MAX_EDGE = 1200;
+const PHOTO_EDITOR_CURVE_DRAG_PREVIEW_MAX_EDGE = 820;
+const PHOTO_EDITOR_HEAVY_INTERACTIVE_PREVIEW_MAX_EDGE = 760;
+const PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS = 16;
+const PHOTO_EDITOR_HEAVY_INTERACTIVE_PREVIEW_DEBOUNCE_MS = 42;
+const PHOTO_EDITOR_EFFECT_DRAG_PREVIEW_DEBOUNCE_MS = 58;
+const PHOTO_EDITOR_INTERACTIVE_PREVIEW_SETTLE_MS = 140;
+const PHOTO_EDITOR_MIN_MASK_SIZE = 0.006;
+const PHOTO_EDITOR_HISTORY_LIMIT = 40;
+const PHOTO_EDITOR_HISTORY_COMMIT_DELAY_MS = 420;
+const PHOTO_EDITOR_MASK_OUTSIDE_MARGIN = 1.25;
+const PHOTO_EDITOR_MASK_HANDLE_HIT_RADIUS = 22;
+const PHOTO_EDITOR_MASK_ROTATE_HANDLE_OFFSET = 34;
+const PHOTO_EDITOR_USER_PRESET_LIMIT = 24;
+const PHOTO_EDITOR_USER_PRESETS_STORAGE_KEY =
+  'vrchat-world-photo-manager-photo-editor-user-presets';
+const PHOTO_EDITOR_EXPORT_FORMATS = Object.freeze({
+  png: {
+    label: 'PNG',
+    mimeType: 'image/png',
+    extension: 'png',
+    supportsQuality: false,
+  },
+  jpeg: {
+    label: 'JPEG',
+    mimeType: 'image/jpeg',
+    extension: 'jpg',
+    supportsQuality: true,
+  },
+  webp: {
+    label: 'WebP',
+    mimeType: 'image/webp',
+    extension: 'webp',
+    supportsQuality: true,
+  },
+});
+const PHOTO_EDITOR_EXPORT_MAX_EDGES = Object.freeze([0, 3840, 2560, 2048, 1600, 1200, 1024]);
+const PHOTO_EDITOR_AUTO_ENHANCE_ANALYSIS_MAX_EDGE = 512;
+const PHOTO_EDITOR_AUTO_ENHANCE_DEFAULT_STRENGTH = 50;
+const PHOTO_EDITOR_CROP_ZOOM_MAX = 300;
+const PHOTO_EDIT_SLIDERS = [
+  { key: 'brightness', label: '明るさ', min: -100, max: 100, defaultValue: 0 },
+  { key: 'exposure', label: '露出', min: -100, max: 100, defaultValue: 0 },
+  { key: 'contrast', label: 'コントラスト', min: -60, max: 60, defaultValue: 0 },
+  { key: 'highlights', label: 'ハイライト', min: -60, max: 60, defaultValue: 0 },
+  { key: 'shadows', label: 'シャドウ', min: -100, max: 100, defaultValue: 0 },
+  { key: 'whites', label: 'ホワイト', min: -100, max: 100, defaultValue: 0 },
+  { key: 'blacks', label: 'ブラック', min: -100, max: 100, defaultValue: 0 },
+  { key: 'gamma', label: 'ガンマ', min: -100, max: 100, defaultValue: 0 },
+  { key: 'temperature', label: '色温度', min: -100, max: 100, defaultValue: 0 },
+  { key: 'tint', label: '色合い', min: -100, max: 100, defaultValue: 0 },
+  { key: 'saturation', label: '彩度', min: -100, max: 100, defaultValue: 0 },
+  { key: 'vibrance', label: '自然な彩度', min: -100, max: 100, defaultValue: 0 },
+  { key: 'clarity', label: '明瞭度', min: -100, max: 100, defaultValue: 0 },
+  { key: 'texture', label: 'テクスチャ', min: -100, max: 100, defaultValue: 0 },
+  { key: 'sharpness', label: 'シャープ', min: 0, max: 100, defaultValue: 0 },
+  { key: 'denoise', label: 'ノイズ低減', min: 0, max: 100, defaultValue: 0 },
+  { key: 'fade', label: 'フェード', min: 0, max: 100, defaultValue: 0 },
+  { key: 'grain', label: '粒子', min: 0, max: 100, defaultValue: 0 },
+  { key: 'vignette', label: 'ビネット', min: -100, max: 100, defaultValue: 0 },
+];
+const PHOTO_EDIT_DEFAULT_VALUES = Object.freeze(
+  Object.fromEntries(
+    PHOTO_EDIT_SLIDERS.map((slider) => [slider.key, slider.defaultValue])
+  )
+);
+const PHOTO_EDITOR_MASK_STRENGTH_LABELS = Object.freeze({
+  blur: 'ぼかしの濃さ',
+  mosaic: 'モザイクの濃さ',
+  fill: '塗りつぶしの濃さ',
+});
+const PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS = Object.freeze({
+  blur: 45,
+  mosaic: 60,
+  fill: 100,
+});
+const PHOTO_EDITOR_BLUR_MODES = Object.freeze(['radial', 'full']);
+const PHOTO_EDITOR_RADIAL_BLUR_MIN_RADIUS = 0.08;
+const PHOTO_EDITOR_RADIAL_BLUR_MAX_RADIUS = 1.12;
+const PHOTO_EDITOR_RADIAL_BLUR_MIN_FEATHER = 0.04;
+const PHOTO_EDITOR_CURVE_MODES = Object.freeze(['rgb', 'hsv']);
+const PHOTO_EDITOR_CURVE_CHANNELS = Object.freeze({
+  rgb: [
+    { key: 'master', label: '全体' },
+    { key: 'r', label: 'R' },
+    { key: 'g', label: 'G' },
+    { key: 'b', label: 'B' },
+  ],
+  hsv: [
+    { key: 'master', label: '全体' },
+    { key: 'h', label: 'H' },
+    { key: 's', label: 'S' },
+    { key: 'v', label: 'V' },
+  ],
+});
+const PHOTO_EDITOR_CURVE_DEFAULT_POINTS = Object.freeze([0, 0.25, 0.5, 0.75, 1]);
+const PHOTO_EDITOR_CURVE_HISTOGRAM_BINS = 64;
+const PHOTO_EDITOR_CURVE_PREVIEW_DEBOUNCE_MS = 96;
+const PHOTO_EDIT_PRESETS = {
+  auto: {
+    label: '✨ 自動補正',
+    isAuto: true,
+    values: {
+      brightness: 0,
+      exposure: 0,
+      contrast: 0,
+      highlights: 0,
+      shadows: 0,
+      whites: 0,
+      blacks: 0,
+      temperature: 0,
+      saturation: 0,
+      vibrance: 0,
+      clarity: 0,
+      texture: 0,
+      sharpness: 0,
+      denoise: 0,
+      fade: 0,
+      grain: 0,
+      vignette: 0,
+    },
+  },
+  learningAuto: {
+    label: '学習補正',
+    isLearningAuto: true,
+    values: {
+      brightness: 0,
+      exposure: 0,
+      contrast: 0,
+      highlights: 0,
+      shadows: 0,
+      whites: 0,
+      blacks: 0,
+      temperature: 0,
+      saturation: 0,
+      vibrance: 0,
+      clarity: 0,
+      texture: 0,
+      sharpness: 0,
+      denoise: 0,
+      fade: 0,
+      grain: 0,
+      vignette: 0,
+    },
+  },
+  vrchatPost: {
+    label: '投稿クリア',
+    values: {
+      brightness: 5,
+      exposure: 4,
+      contrast: 12,
+      highlights: -12,
+      shadows: 10,
+      whites: 12,
+      blacks: -6,
+      temperature: 2,
+      saturation: 10,
+      vibrance: 12,
+      clarity: 8,
+      texture: 6,
+      sharpness: 10,
+      denoise: 4,
+      fade: 0,
+      grain: 0,
+      vignette: 8,
+    },
+  },
+  naturalClear: {
+    label: '自然クリア',
+    values: {
+      brightness: 4,
+      exposure: 2,
+      contrast: 8,
+      highlights: -8,
+      shadows: 8,
+      whites: 8,
+      blacks: -4,
+      temperature: 1,
+      saturation: 6,
+      vibrance: 10,
+      clarity: 6,
+      texture: 4,
+      sharpness: 8,
+      denoise: 5,
+      fade: 0,
+      grain: 0,
+      vignette: 6,
+    },
+  },
+  night: {
+    label: '夜景強調',
+    values: {
+      brightness: 8,
+      exposure: 5,
+      contrast: 18,
+      highlights: -24,
+      shadows: 26,
+      whites: -8,
+      blacks: -12,
+      temperature: -4,
+      saturation: 8,
+      vibrance: 10,
+      clarity: 12,
+      texture: 8,
+      sharpness: 8,
+      denoise: 6,
+      fade: 0,
+      grain: 5,
+      vignette: 16,
+    },
+  },
+  neon: {
+    label: 'ネオン強調',
+    values: {
+      brightness: 3,
+      exposure: 2,
+      contrast: 18,
+      highlights: -10,
+      shadows: 8,
+      whites: 8,
+      blacks: -10,
+      temperature: -6,
+      saturation: 22,
+      vibrance: 18,
+      clarity: 14,
+      texture: 10,
+      sharpness: 10,
+      denoise: 3,
+      fade: 0,
+      grain: 3,
+      vignette: 12,
+    },
+  },
+  soft: {
+    label: 'ふんわり1',
+    values: {
+      brightness: 7,
+      exposure: 3,
+      contrast: -8,
+      highlights: -12,
+      shadows: 16,
+      whites: 6,
+      blacks: 4,
+      temperature: 7,
+      saturation: 4,
+      vibrance: 8,
+      clarity: -12,
+      texture: -10,
+      sharpness: 0,
+      denoise: 8,
+      fade: 7,
+      grain: 0,
+      vignette: 4,
+    },
+  },
+  soft2: {
+    label: 'ふんわり2',
+    values: {
+      brightness: 9,
+      exposure: 4,
+      contrast: -12,
+      highlights: -18,
+      shadows: 20,
+      whites: 8,
+      blacks: 8,
+      temperature: 10,
+      saturation: 2,
+      vibrance: 12,
+      clarity: -18,
+      texture: -16,
+      sharpness: 0,
+      denoise: 12,
+      fade: 10,
+      grain: 0,
+      vignette: 0,
+    },
+  },
+  soft3: {
+    label: 'ふんわり3',
+    values: {
+      brightness: 5,
+      exposure: 2,
+      contrast: -4,
+      highlights: -8,
+      shadows: 12,
+      whites: 12,
+      blacks: 2,
+      temperature: -2,
+      saturation: 8,
+      vibrance: 16,
+      clarity: -10,
+      texture: -8,
+      sharpness: 2,
+      denoise: 8,
+      fade: 5,
+      grain: 3,
+      vignette: 6,
+    },
+  },
+  film: {
+    label: 'フィルム風',
+    values: {
+      brightness: 2,
+      exposure: 0,
+      contrast: 8,
+      highlights: -14,
+      shadows: 10,
+      whites: -6,
+      blacks: -6,
+      temperature: 8,
+      saturation: -6,
+      vibrance: 2,
+      clarity: 2,
+      texture: -2,
+      sharpness: 3,
+      denoise: 0,
+      fade: 12,
+      grain: 18,
+      vignette: 14,
+    },
+  },
+  highContrast: {
+    label: '高コントラスト1',
+    values: {
+      brightness: 0,
+      exposure: 1,
+      contrast: 30,
+      highlights: -12,
+      shadows: -6,
+      whites: 16,
+      blacks: -18,
+      temperature: 0,
+      saturation: 10,
+      vibrance: 8,
+      clarity: 18,
+      texture: 12,
+      sharpness: 14,
+      denoise: 0,
+      fade: 0,
+      grain: 0,
+      vignette: 10,
+    },
+  },
+  highContrast2: {
+    label: '高コントラスト2',
+    values: {
+      brightness: -2,
+      exposure: 0,
+      contrast: 42,
+      highlights: -20,
+      shadows: -10,
+      whites: 8,
+      blacks: -30,
+      gamma: -4,
+      temperature: -2,
+      tint: 0,
+      saturation: 6,
+      vibrance: 12,
+      clarity: 24,
+      texture: 16,
+      sharpness: 16,
+      denoise: 0,
+      fade: 0,
+      grain: 0,
+      vignette: 16,
+    },
+  },
+  coolBlue: {
+    label: 'クールブルー1',
+    values: {
+      brightness: 1,
+      exposure: 0,
+      contrast: 12,
+      highlights: -18,
+      shadows: 8,
+      whites: -4,
+      blacks: -8,
+      gamma: -2,
+      temperature: -22,
+      tint: -4,
+      saturation: 2,
+      vibrance: 12,
+      clarity: 8,
+      texture: 6,
+      sharpness: 8,
+      denoise: 3,
+      fade: 0,
+      grain: 0,
+      vignette: 8,
+    },
+  },
+  deepBlue: {
+    label: 'クールブルー2',
+    values: {
+      brightness: -1,
+      exposure: -2,
+      contrast: 18,
+      highlights: -24,
+      shadows: 12,
+      whites: -8,
+      blacks: -14,
+      gamma: -6,
+      temperature: -34,
+      tint: 6,
+      saturation: -2,
+      vibrance: 18,
+      clarity: 12,
+      texture: 8,
+      sharpness: 10,
+      denoise: 4,
+      fade: 2,
+      grain: 4,
+      vignette: 14,
+    },
+  },
+  shadowLift: {
+    label: '暗部クリア',
+    values: {
+      brightness: 6,
+      exposure: 5,
+      contrast: 10,
+      highlights: -18,
+      shadows: 30,
+      whites: 4,
+      blacks: -10,
+      temperature: 0,
+      saturation: 6,
+      vibrance: 10,
+      clarity: 12,
+      texture: 8,
+      sharpness: 10,
+      denoise: 10,
+      fade: 0,
+      grain: 0,
+      vignette: 4,
+    },
+  },
+  thumbnailPop: {
+    label: 'サムネ強調',
+    values: {
+      brightness: 3,
+      exposure: 2,
+      contrast: 22,
+      highlights: -12,
+      shadows: 6,
+      whites: 18,
+      blacks: -18,
+      temperature: 1,
+      saturation: 14,
+      vibrance: 14,
+      clarity: 16,
+      texture: 12,
+      sharpness: 16,
+      denoise: 2,
+      fade: 0,
+      grain: 0,
+      vignette: 8,
+    },
+  },
+  monochrome: {
+    label: 'モノクロ',
+    values: {
+      brightness: 4,
+      exposure: 2,
+      contrast: 20,
+      highlights: -10,
+      shadows: 8,
+      whites: 10,
+      blacks: -12,
+      temperature: 0,
+      saturation: -100,
+      vibrance: 0,
+      clarity: 10,
+      texture: 8,
+      sharpness: 8,
+      denoise: 0,
+      fade: 4,
+      grain: 12,
+      vignette: 12,
+    },
+  },
+};
+const PHOTO_EDITOR_CROP_PRESETS = [
+  { key: 'original', label: 'オリジナル', ratio: null },
+  { key: 'square', label: '1:1', ratio: 1 },
+  { key: 'wide', label: '16:9', ratio: 16 / 9 },
+  { key: 'portrait', label: '9:16', ratio: 9 / 16 },
+  { key: 'fiveFour', label: '5:4', ratio: 5 / 4 },
+  { key: 'booth', label: '4:5', ratio: 4 / 5 },
+  { key: 'classic', label: '3:2', ratio: 3 / 2 },
+  { key: 'twoThree', label: '2:3', ratio: 2 / 3 },
+  {
+    key: 'vrcGallery',
+    label: 'VRCギャラリー',
+    ratio: 1,
+    transparentPadding: true,
+    exportMaxEdge: 2048,
+    exportFormat: 'png',
+  },
+  {
+    key: 'vrcSticker',
+    label: '絵文字ステッカー',
+    ratio: 1,
+    transparentPadding: true,
+    exportMaxEdge: 1024,
+    exportFormat: 'png',
+  },
+];
 
 function pad2(value) {
   return String(value).padStart(2, '0');
@@ -4724,6 +5427,10 @@ function populateModal(item) {
     modalOpenOriginalButton.disabled = !item.filePath;
   }
 
+  if (modalEditPhotoButton) {
+    modalEditPhotoButton.disabled = !item.filePath;
+  }
+
   if (modalOpenFolderButton) {
     modalOpenFolderButton.disabled = !item.filePath;
   }
@@ -5358,6 +6065,7441 @@ function closePhotoLabelModal() {
   });
 }
 
+function clonePhotoEditValues(values = {}) {
+  return {
+    ...PHOTO_EDIT_DEFAULT_VALUES,
+    ...Object.fromEntries(
+      PHOTO_EDIT_SLIDERS.map((slider) => [
+        slider.key,
+        clampNumber(values[slider.key], slider.min, slider.max, slider.defaultValue),
+      ])
+    ),
+  };
+}
+
+function normalizePhotoEditorPresetName(name) {
+  return String(name || '').replace(/\s+/g, ' ').trim().slice(0, 32);
+}
+
+function createPhotoEditorUserPresetId() {
+  return `user-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+}
+
+function normalizePhotoEditorUserPreset(rawPreset) {
+  const label = normalizePhotoEditorPresetName(rawPreset?.label);
+
+  if (!label) {
+    return null;
+  }
+
+  const id =
+    typeof rawPreset?.id === 'string' && rawPreset.id.trim()
+      ? rawPreset.id.trim()
+      : createPhotoEditorUserPresetId();
+
+  return {
+    id,
+    label,
+    values: clonePhotoEditValues(rawPreset?.values),
+    crop: rawPreset?.crop ? normalizePhotoEditorCropState(rawPreset.crop) : null,
+    blur: rawPreset?.blur ? normalizePhotoEditorBlurState(rawPreset.blur) : null,
+    curve: rawPreset?.curve ? normalizePhotoEditorCurveState(rawPreset.curve) : null,
+    exportSettings: rawPreset?.exportSettings
+      ? normalizePhotoEditorExportSettings(rawPreset.exportSettings)
+      : null,
+  };
+}
+
+function getPhotoEditorUserPresetOrder(preset, fallbackOrder) {
+  const match = /^user-([a-z0-9]+)-/i.exec(String(preset?.id || ''));
+
+  if (!match) {
+    return fallbackOrder;
+  }
+
+  const order = Number.parseInt(match[1], 36);
+  return Number.isFinite(order) ? order : fallbackOrder;
+}
+
+function loadPhotoEditorUserPresets() {
+  try {
+    const parsed = JSON.parse(
+      localStorage.getItem(PHOTO_EDITOR_USER_PRESETS_STORAGE_KEY) || '[]'
+    );
+
+    return (Array.isArray(parsed) ? parsed : [])
+      .map(normalizePhotoEditorUserPreset)
+      .filter(Boolean)
+      .map((preset, index) => ({
+        preset,
+        order: getPhotoEditorUserPresetOrder(preset, index),
+        index,
+      }))
+      .sort((left, right) => left.order - right.order || left.index - right.index)
+      .map((entry) => entry.preset)
+      .slice(-PHOTO_EDITOR_USER_PRESET_LIMIT);
+  } catch {
+    return [];
+  }
+}
+
+function savePhotoEditorUserPresetsToStorage() {
+  try {
+    localStorage.setItem(
+      PHOTO_EDITOR_USER_PRESETS_STORAGE_KEY,
+      JSON.stringify(photoEditorUserPresets)
+    );
+  } catch {
+    showToast('プリセットを保存できませんでした');
+  }
+}
+
+function getPhotoEditorPreset(presetKey) {
+  if (PHOTO_EDIT_PRESETS[presetKey]) {
+    return PHOTO_EDIT_PRESETS[presetKey];
+  }
+
+  if (typeof presetKey === 'string' && presetKey.startsWith('user:')) {
+    const userPresetId = presetKey.slice('user:'.length);
+    return (
+      photoEditorUserPresets.find((preset) => preset.id === userPresetId) ||
+      null
+    );
+  }
+
+  return null;
+}
+
+function createPhotoEditorPresetButton({ key, label, isUserPreset = false }) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = isUserPreset
+    ? 'photo-editor-preset-button is-user-preset'
+    : 'photo-editor-preset-button';
+  button.dataset.photoEditorPreset = key;
+  button.textContent = label;
+  button.addEventListener('click', () => {
+    applyPhotoEditorPreset(key);
+  });
+  return button;
+}
+
+function deletePhotoEditorUserPreset(presetId) {
+  const presetIndex = photoEditorUserPresets.findIndex(
+    (preset) => preset.id === presetId
+  );
+
+  if (presetIndex < 0) {
+    return;
+  }
+
+  const [deletedPreset] = photoEditorUserPresets.splice(presetIndex, 1);
+  savePhotoEditorUserPresetsToStorage();
+  renderPhotoEditorPresetButtons();
+  setPhotoEditorStatus(`プリセットを削除しました: ${deletedPreset.label}`);
+  showToast(`プリセットを削除しました: ${deletedPreset.label}`);
+}
+
+function createPhotoEditorUserPresetItem(preset) {
+  const item = document.createElement('div');
+  item.className = 'photo-editor-user-preset-item';
+
+  item.appendChild(
+    createPhotoEditorPresetButton({
+      key: `user:${preset.id}`,
+      label: preset.label,
+      isUserPreset: true,
+    })
+  );
+
+  const deleteButton = document.createElement('button');
+  deleteButton.type = 'button';
+  deleteButton.className = 'photo-editor-user-preset-delete';
+  deleteButton.setAttribute('aria-label', `${preset.label}を削除`);
+  deleteButton.title = `${preset.label}を削除`;
+  deleteButton.innerHTML = '<span class="material-symbols-outlined">delete</span>';
+  deleteButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    deletePhotoEditorUserPreset(preset.id);
+  });
+  item.appendChild(deleteButton);
+
+  return item;
+}
+
+function renderPhotoEditorPresetButtons() {
+  if (!photoEditorPresetList) {
+    return;
+  }
+
+  photoEditorPresetList.innerHTML = '';
+
+  for (const [presetKey, preset] of Object.entries(PHOTO_EDIT_PRESETS)) {
+    photoEditorPresetList.appendChild(
+      createPhotoEditorPresetButton({
+        key: presetKey,
+        label: preset.label,
+      })
+    );
+  }
+
+  for (const preset of photoEditorUserPresets) {
+    photoEditorPresetList.appendChild(createPhotoEditorUserPresetItem(preset));
+  }
+}
+
+function createPhotoEditorPresetStateFromEditor() {
+  if (!photoEditorState) {
+    return {
+      values: clonePhotoEditValues(),
+      crop: getDefaultPhotoEditorCropState(),
+      blur: getDefaultPhotoEditorBlurState(),
+      curve: getDefaultPhotoEditorCurveState(),
+      exportSettings: getDefaultPhotoEditorExportSettings(),
+    };
+  }
+
+  return {
+    values: clonePhotoEditValues(photoEditorState.values),
+    crop: normalizePhotoEditorCropState(photoEditorState.crop),
+    blur: normalizePhotoEditorBlurState(photoEditorState.blur),
+    curve: normalizePhotoEditorCurveState(photoEditorState.curve),
+    exportSettings: normalizePhotoEditorExportSettings(photoEditorState.exportSettings),
+  };
+}
+
+function saveCurrentPhotoEditorPreset() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const label = normalizePhotoEditorPresetName(photoEditorPresetNameInput?.value);
+
+  if (!label) {
+    setPhotoEditorStatus('プリセット名を入力してください');
+    return;
+  }
+
+  const nextPreset = {
+    id: createPhotoEditorUserPresetId(),
+    label,
+    ...createPhotoEditorPresetStateFromEditor(),
+  };
+  const existingIndex = photoEditorUserPresets.findIndex(
+    (preset) => preset.label.toLowerCase() === label.toLowerCase()
+  );
+
+  if (existingIndex >= 0) {
+    nextPreset.id = photoEditorUserPresets[existingIndex].id;
+    photoEditorUserPresets.splice(existingIndex, 1, nextPreset);
+  } else {
+    photoEditorUserPresets.push(nextPreset);
+  }
+
+  photoEditorUserPresets = photoEditorUserPresets.slice(
+    -PHOTO_EDITOR_USER_PRESET_LIMIT
+  );
+  savePhotoEditorUserPresetsToStorage();
+  renderPhotoEditorPresetButtons();
+
+  if (photoEditorPresetNameInput) {
+    photoEditorPresetNameInput.value = '';
+  }
+
+  setPhotoEditorStatus(`プリセットを保存しました: ${label}`);
+  showToast(`プリセットを保存しました: ${label}`);
+}
+
+function normalizePhotoEditorCropRotation(value) {
+  const numericValue = Number(value);
+  const roundedValue = Number.isFinite(numericValue)
+    ? Math.round(numericValue / 90) * 90
+    : 0;
+
+  return ((roundedValue % 360) + 360) % 360;
+}
+
+function normalizePhotoEditorCropZoomValue(crop = {}) {
+  const rawZoom = Number(crop?.zoom);
+
+  if (!Number.isFinite(rawZoom)) {
+    return 0;
+  }
+
+  const nextZoom = crop?.zoomMode === 'offset'
+    ? rawZoom
+    : rawZoom >= 100
+      ? rawZoom - 100
+      : rawZoom;
+
+  return clampNumber(nextZoom, 0, PHOTO_EDITOR_CROP_ZOOM_MAX, 0);
+}
+
+function getPhotoEditorCropZoomScale(crop = {}) {
+  return 1 + normalizePhotoEditorCropZoomValue(crop) / 100;
+}
+
+function getDefaultPhotoEditorCropState() {
+  return {
+    preset: 'original',
+    zoomMode: 'offset',
+    zoom: 0,
+    offsetX: 0,
+    offsetY: 0,
+    rotation: 0,
+    flipX: false,
+    flipY: false,
+    tilt: 0,
+  };
+}
+
+function normalizePhotoEditorCropState(crop = {}) {
+  const preset = getPhotoEditorCropPreset(crop?.preset);
+
+  return {
+    preset: preset.key,
+    zoomMode: 'offset',
+    zoom: normalizePhotoEditorCropZoomValue(crop),
+    offsetX: clampNumber(crop?.offsetX, -100, 100, 0),
+    offsetY: clampNumber(crop?.offsetY, -100, 100, 0),
+    rotation: normalizePhotoEditorCropRotation(crop?.rotation),
+    flipX: Boolean(crop?.flipX),
+    flipY: Boolean(crop?.flipY),
+    tilt: clampNumber(crop?.tilt, -45, 45, 0),
+  };
+}
+
+function getDefaultPhotoEditorExportSettings() {
+  return {
+    format: 'png',
+    quality: 92,
+    maxEdge: 0,
+  };
+}
+
+function normalizePhotoEditorExportSettings(settings = {}) {
+  const defaults = getDefaultPhotoEditorExportSettings();
+  const format = PHOTO_EDITOR_EXPORT_FORMATS[settings?.format]
+    ? settings.format
+    : defaults.format;
+  const maxEdge = clampNumber(
+    settings?.maxEdge,
+    0,
+    Math.max(...PHOTO_EDITOR_EXPORT_MAX_EDGES),
+    defaults.maxEdge
+  );
+  const normalizedMaxEdge = PHOTO_EDITOR_EXPORT_MAX_EDGES.includes(maxEdge)
+    ? maxEdge
+    : defaults.maxEdge;
+
+  return {
+    format,
+    quality: clampNumber(settings?.quality, 60, 100, defaults.quality),
+    maxEdge: normalizedMaxEdge,
+  };
+}
+
+function getDefaultPhotoEditorBlurState() {
+  return {
+    mode: 'full',
+    amount: 0,
+    centerX: 0.5,
+    centerY: 0.5,
+    radius: 0.34,
+    outerRadius: 0.52,
+    isConfirmed: false,
+  };
+}
+
+function normalizePhotoEditorBlurState(blur = {}) {
+  const defaults = getDefaultPhotoEditorBlurState();
+  const mode = PHOTO_EDITOR_BLUR_MODES.includes(blur?.mode)
+    ? blur.mode
+    : defaults.mode;
+  const radius = clampNumber(
+    blur?.radius,
+    PHOTO_EDITOR_RADIAL_BLUR_MIN_RADIUS,
+    PHOTO_EDITOR_RADIAL_BLUR_MAX_RADIUS - PHOTO_EDITOR_RADIAL_BLUR_MIN_FEATHER,
+    defaults.radius
+  );
+  const fallbackOuterRadius = clampNumber(
+    Math.max(defaults.outerRadius, radius + 0.18),
+    radius + PHOTO_EDITOR_RADIAL_BLUR_MIN_FEATHER,
+    PHOTO_EDITOR_RADIAL_BLUR_MAX_RADIUS,
+    defaults.outerRadius
+  );
+  const outerRadius = clampNumber(
+    blur?.outerRadius,
+    radius + PHOTO_EDITOR_RADIAL_BLUR_MIN_FEATHER,
+    PHOTO_EDITOR_RADIAL_BLUR_MAX_RADIUS,
+    fallbackOuterRadius
+  );
+
+  return {
+    mode,
+    amount: clampNumber(blur?.amount, 0, 100, defaults.amount),
+    centerX: clampNumber(blur?.centerX, 0, 1, defaults.centerX),
+    centerY: clampNumber(blur?.centerY, 0, 1, defaults.centerY),
+    radius,
+    outerRadius,
+    isConfirmed: Boolean(blur?.isConfirmed),
+  };
+}
+
+function clonePhotoEditorCurvePoints(points) {
+  if (Array.isArray(points) && points.length === 3) {
+    const legacyPoints = points.map((point, index) =>
+      clampNumber(point, 0, 1, PHOTO_EDITOR_CURVE_DEFAULT_POINTS[index * 2])
+    );
+
+    return [
+      legacyPoints[0],
+      legacyPoints[0] * 0.5 + legacyPoints[1] * 0.5,
+      legacyPoints[1],
+      legacyPoints[1] * 0.5 + legacyPoints[2] * 0.5,
+      legacyPoints[2],
+    ];
+  }
+
+  return PHOTO_EDITOR_CURVE_DEFAULT_POINTS.map((defaultValue, index) =>
+    clampNumber(points?.[index], 0, 1, defaultValue)
+  );
+}
+
+function getDefaultPhotoEditorCurveState() {
+  return {
+    mode: 'rgb',
+    channel: 'master',
+    points: {
+      rgb: {
+        master: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
+        r: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
+        g: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
+        b: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
+      },
+      hsv: {
+        master: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
+        h: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
+        s: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
+        v: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
+      },
+    },
+  };
+}
+
+function normalizePhotoEditorCurveState(curve = {}) {
+  const defaults = getDefaultPhotoEditorCurveState();
+  const mode = PHOTO_EDITOR_CURVE_MODES.includes(curve?.mode)
+    ? curve.mode
+    : defaults.mode;
+  const defaultChannel = 'master';
+  const validChannels = PHOTO_EDITOR_CURVE_CHANNELS[mode].map(
+    (channel) => channel.key
+  );
+  const channel = validChannels.includes(curve?.channel)
+    ? curve.channel
+    : defaultChannel;
+  const sourcePoints = curve?.points || {};
+
+  return {
+    mode,
+    channel,
+    points: {
+      rgb: {
+        master: clonePhotoEditorCurvePoints(sourcePoints.rgb?.master),
+        r: clonePhotoEditorCurvePoints(sourcePoints.rgb?.r),
+        g: clonePhotoEditorCurvePoints(sourcePoints.rgb?.g),
+        b: clonePhotoEditorCurvePoints(sourcePoints.rgb?.b),
+      },
+      hsv: {
+        master: clonePhotoEditorCurvePoints(sourcePoints.hsv?.master),
+        h: clonePhotoEditorCurvePoints(sourcePoints.hsv?.h),
+        s: clonePhotoEditorCurvePoints(sourcePoints.hsv?.s),
+        v: clonePhotoEditorCurvePoints(sourcePoints.hsv?.v),
+      },
+    },
+  };
+}
+
+function getDefaultPhotoEditorAutoEnhanceState() {
+  return {
+    enabled: false,
+    originalValuesBeforeAuto: null,
+    generatedValues: null,
+    strength: PHOTO_EDITOR_AUTO_ENHANCE_DEFAULT_STRENGTH,
+    presetKey: '',
+  };
+}
+
+function normalizePhotoEditorAutoEnhanceState(autoEnhance = {}) {
+  const defaults = getDefaultPhotoEditorAutoEnhanceState();
+  const strength = clampNumber(
+    autoEnhance?.strength,
+    0,
+    100,
+    defaults.strength
+  );
+  const originalValues = autoEnhance?.originalValuesBeforeAuto
+    ? clonePhotoEditValues(autoEnhance.originalValuesBeforeAuto)
+    : null;
+  const generatedValues = autoEnhance?.generatedValues
+    ? clonePhotoEditValues(autoEnhance.generatedValues)
+    : null;
+
+  return {
+    enabled: Boolean(autoEnhance?.enabled && originalValues && generatedValues),
+    originalValuesBeforeAuto: originalValues,
+    generatedValues,
+    strength,
+    presetKey:
+      typeof autoEnhance?.presetKey === 'string'
+        ? autoEnhance.presetKey
+        : defaults.presetKey,
+  };
+}
+
+function createPhotoEditorState(photo) {
+  return {
+    sourcePhoto: photo,
+    sourceImage: null,
+    loadToken: null,
+    values: clonePhotoEditValues(),
+    crop: getDefaultPhotoEditorCropState(),
+    blur: getDefaultPhotoEditorBlurState(),
+    curve: getDefaultPhotoEditorCurveState(),
+    autoEnhance: getDefaultPhotoEditorAutoEnhanceState(),
+    exportSettings: getDefaultPhotoEditorExportSettings(),
+    masks: [],
+    maskTool: 'none',
+    maskShape: 'rect',
+    maskStrengths: { ...PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS },
+    blurStrength: PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS.blur,
+    fillColor: '#111827',
+    dragMode: null,
+    dragStart: null,
+    dragInitialCrop: null,
+    dragInitialSourceRect: null,
+    dragInitialBlur: null,
+    dragInitialMask: null,
+    dragCurvePointIndex: null,
+    draftMask: null,
+    showOriginalPreview: false,
+    showRuleOfThirdsGrid: false,
+    showRulers: false,
+    isInteractivePreview: false,
+    lastClipInfo: null,
+    curveHistogram: null,
+    curveHistogramKey: '',
+    isSaving: false,
+    historyUndoStack: [],
+    historyRedoStack: [],
+    pendingHistorySnapshot: null,
+    historyCommitTimer: null,
+    isRestoringHistory: false,
+  };
+}
+
+function clonePhotoEditorHistoryData(value) {
+  return JSON.parse(JSON.stringify(value || null));
+}
+
+function capturePhotoEditorHistorySnapshot() {
+  if (!photoEditorState) {
+    return null;
+  }
+
+  return {
+    values: clonePhotoEditValues(photoEditorState.values),
+    crop: normalizePhotoEditorCropState(photoEditorState.crop),
+    blur: normalizePhotoEditorBlurState(photoEditorState.blur),
+    curve: normalizePhotoEditorCurveState(photoEditorState.curve),
+    autoEnhance: normalizePhotoEditorAutoEnhanceState(
+      photoEditorState.autoEnhance
+    ),
+    exportSettings: normalizePhotoEditorExportSettings(
+      photoEditorState.exportSettings
+    ),
+    masks: clonePhotoEditorHistoryData(photoEditorState.masks || []),
+    maskShape: photoEditorState.maskShape || 'rect',
+    maskStrengths: {
+      ...PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS,
+      ...(photoEditorState.maskStrengths || {}),
+    },
+    blurStrength: clampNumber(
+      photoEditorState.blurStrength,
+      0,
+      100,
+      PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS.blur
+    ),
+    fillColor: photoEditorState.fillColor || '#111827',
+  };
+}
+
+function arePhotoEditorHistorySnapshotsEqual(left, right) {
+  return JSON.stringify(left || null) === JSON.stringify(right || null);
+}
+
+function syncPhotoEditorHistoryControls() {
+  if (photoEditorUndoButton) {
+    photoEditorUndoButton.disabled = !(
+      photoEditorState?.historyUndoStack?.length > 0 ||
+      photoEditorState?.pendingHistorySnapshot
+    );
+  }
+
+  if (photoEditorRedoButton) {
+    photoEditorRedoButton.disabled = !(
+      photoEditorState?.historyRedoStack?.length > 0
+    );
+  }
+}
+
+function beginPhotoEditorHistoryMutation() {
+  if (!photoEditorState || photoEditorState.isRestoringHistory) {
+    return;
+  }
+
+  if (!photoEditorState.pendingHistorySnapshot) {
+    photoEditorState.pendingHistorySnapshot = capturePhotoEditorHistorySnapshot();
+  }
+}
+
+function clearPhotoEditorHistoryCommitTimer() {
+  if (photoEditorState?.historyCommitTimer) {
+    clearTimeout(photoEditorState.historyCommitTimer);
+    photoEditorState.historyCommitTimer = null;
+  }
+}
+
+function commitPhotoEditorHistoryMutation() {
+  if (!photoEditorState || photoEditorState.isRestoringHistory) {
+    return;
+  }
+
+  clearPhotoEditorHistoryCommitTimer();
+
+  const previousSnapshot = photoEditorState.pendingHistorySnapshot;
+
+  if (!previousSnapshot) {
+    syncPhotoEditorHistoryControls();
+    return;
+  }
+
+  photoEditorState.pendingHistorySnapshot = null;
+  const currentSnapshot = capturePhotoEditorHistorySnapshot();
+
+  if (!arePhotoEditorHistorySnapshotsEqual(previousSnapshot, currentSnapshot)) {
+    photoEditorState.historyUndoStack.push(previousSnapshot);
+    if (photoEditorState.historyUndoStack.length > PHOTO_EDITOR_HISTORY_LIMIT) {
+      photoEditorState.historyUndoStack.shift();
+    }
+    photoEditorState.historyRedoStack = [];
+  }
+
+  syncPhotoEditorHistoryControls();
+}
+
+function schedulePhotoEditorHistoryCommit(delayMs = PHOTO_EDITOR_HISTORY_COMMIT_DELAY_MS) {
+  if (!photoEditorState || !photoEditorState.pendingHistorySnapshot) {
+    return;
+  }
+
+  clearPhotoEditorHistoryCommitTimer();
+  photoEditorState.historyCommitTimer = setTimeout(() => {
+    if (photoEditorState) {
+      photoEditorState.historyCommitTimer = null;
+    }
+    commitPhotoEditorHistoryMutation();
+  }, delayMs);
+  syncPhotoEditorHistoryControls();
+}
+
+function applyPhotoEditorHistorySnapshot(snapshot) {
+  if (!photoEditorState || !snapshot) {
+    return;
+  }
+
+  photoEditorState.isRestoringHistory = true;
+  photoEditorState.values = clonePhotoEditValues(snapshot.values);
+  photoEditorState.crop = normalizePhotoEditorCropState(snapshot.crop);
+  photoEditorState.blur = normalizePhotoEditorBlurState(snapshot.blur);
+  photoEditorState.curve = normalizePhotoEditorCurveState(snapshot.curve);
+  photoEditorState.autoEnhance = normalizePhotoEditorAutoEnhanceState(
+    snapshot.autoEnhance
+  );
+  photoEditorState.exportSettings = normalizePhotoEditorExportSettings(
+    snapshot.exportSettings
+  );
+  photoEditorState.masks = clonePhotoEditorHistoryData(snapshot.masks || []);
+  photoEditorState.maskShape = snapshot.maskShape || 'rect';
+  photoEditorState.maskStrengths = {
+    ...PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS,
+    ...(snapshot.maskStrengths || {}),
+  };
+  photoEditorState.blurStrength = clampNumber(
+    snapshot.blurStrength,
+    0,
+    100,
+    PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS.blur
+  );
+  photoEditorState.fillColor = snapshot.fillColor || '#111827';
+  photoEditorState.maskTool = 'none';
+  photoEditorState.dragMode = null;
+  photoEditorState.dragStart = null;
+  photoEditorState.dragInitialCrop = null;
+  photoEditorState.dragInitialSourceRect = null;
+  photoEditorState.dragInitialBlur = null;
+  photoEditorState.dragInitialMask = null;
+  photoEditorState.dragCurvePointIndex = null;
+  photoEditorState.draftMask = null;
+  photoEditorState.lastClipInfo = null;
+  photoEditorCanvas?.classList.remove('is-panning', 'is-mask-draft-active');
+  clearPhotoEditorAdjustmentLivePreview();
+  syncPhotoEditorUi();
+  schedulePhotoEditorRender();
+  photoEditorState.isRestoringHistory = false;
+}
+
+function undoPhotoEditorEdit() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  commitPhotoEditorHistoryMutation();
+  const previousSnapshot = photoEditorState.historyUndoStack.pop();
+
+  if (!previousSnapshot) {
+    syncPhotoEditorHistoryControls();
+    return;
+  }
+
+  photoEditorState.historyRedoStack.push(capturePhotoEditorHistorySnapshot());
+  applyPhotoEditorHistorySnapshot(previousSnapshot);
+  syncPhotoEditorHistoryControls();
+}
+
+function redoPhotoEditorEdit() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  commitPhotoEditorHistoryMutation();
+  const nextSnapshot = photoEditorState.historyRedoStack.pop();
+
+  if (!nextSnapshot) {
+    syncPhotoEditorHistoryControls();
+    return;
+  }
+
+  photoEditorState.historyUndoStack.push(capturePhotoEditorHistorySnapshot());
+  applyPhotoEditorHistorySnapshot(nextSnapshot);
+  syncPhotoEditorHistoryControls();
+}
+
+function clampNumber(value, min, max, fallback = 0) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return fallback;
+  }
+
+  return Math.max(min, Math.min(max, numericValue));
+}
+
+function clampColorChannel(value) {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+function smoothstep(edge0, edge1, value) {
+  if (edge0 === edge1) {
+    return value < edge0 ? 0 : 1;
+  }
+
+  const t = clampNumber((value - edge0) / (edge1 - edge0), 0, 1, 0);
+  return t * t * (3 - 2 * t);
+}
+
+function getPhotoEditorAccordionToggle(key) {
+  return photoEditorAccordionToggles.find(
+    (toggle) => toggle.dataset.photoEditorAccordionToggle === key
+  );
+}
+
+function isPhotoEditorAccordionOpen(key) {
+  const toggle = getPhotoEditorAccordionToggle(key);
+  return toggle?.getAttribute('aria-expanded') === 'true';
+}
+
+function setPhotoEditorAccordionOpen(key, isOpen) {
+  const toggle = getPhotoEditorAccordionToggle(key);
+  const panelId = toggle?.getAttribute('aria-controls');
+  const panel = panelId ? document.getElementById(panelId) : null;
+
+  if (!toggle || !panel) {
+    return;
+  }
+
+  toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  panel.hidden = !isOpen;
+}
+
+function initializePhotoEditorAccordions() {
+  for (const toggle of photoEditorAccordionToggles) {
+    const key = toggle.dataset.photoEditorAccordionToggle;
+
+    if (!key) {
+      continue;
+    }
+
+    setPhotoEditorAccordionOpen(key, false);
+  }
+}
+
+function setPhotoEditorStatus(message = '') {
+  if (photoEditorStatus) {
+    photoEditorStatus.textContent = message;
+  }
+}
+
+function setPhotoEditorSaving(isSaving) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  photoEditorState.isSaving = Boolean(isSaving);
+
+  if (photoEditorSaveButton) {
+    photoEditorSaveButton.disabled = photoEditorState.isSaving;
+    photoEditorSaveButton.textContent = photoEditorState.isSaving
+      ? '保存中...'
+      : '別名で保存';
+  }
+}
+
+function getPhotoEditorSliderMeta(key) {
+  return PHOTO_EDIT_SLIDERS.find((slider) => slider.key === key) || null;
+}
+
+function getPhotoEditorAdjustmentInput(key) {
+  return photoEditorAdjustmentList?.querySelector(
+    `[data-photo-editor-slider="${key}"]`
+  );
+}
+
+function getPhotoEditorAdjustmentValueElement(key) {
+  return photoEditorAdjustmentList?.querySelector(
+    `[data-photo-editor-value="${key}"]`
+  );
+}
+
+function syncPhotoEditorAdjustmentControls(targetKey = null) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const sliders = targetKey
+    ? PHOTO_EDIT_SLIDERS.filter((slider) => slider.key === targetKey)
+    : PHOTO_EDIT_SLIDERS;
+
+  for (const slider of sliders) {
+    const value = photoEditorState.values[slider.key];
+    const input = getPhotoEditorAdjustmentInput(slider.key);
+    const valueElement = getPhotoEditorAdjustmentValueElement(slider.key);
+
+    if (input) {
+      input.value = String(value);
+    }
+
+    if (valueElement) {
+      valueElement.textContent = String(value);
+    }
+  }
+}
+
+function syncPhotoEditorAutoEnhanceControls() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  photoEditorState.autoEnhance = normalizePhotoEditorAutoEnhanceState(
+    photoEditorState.autoEnhance
+  );
+  const strength = photoEditorState.autoEnhance.strength;
+
+  if (photoEditorAutoStrengthInput) {
+    photoEditorAutoStrengthInput.value = String(strength);
+  }
+
+  if (photoEditorAutoStrengthValue) {
+    photoEditorAutoStrengthValue.textContent = String(strength);
+  }
+}
+
+function syncPhotoEditorCropControls() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  photoEditorState.crop = normalizePhotoEditorCropState(photoEditorState.crop);
+  const { crop } = photoEditorState;
+
+  if (photoEditorCropZoomInput) {
+    photoEditorCropZoomInput.value = String(crop.zoom);
+  }
+
+  if (photoEditorCropZoomValue) {
+    photoEditorCropZoomValue.textContent = String(crop.zoom);
+  }
+
+  if (photoEditorCropXInput) {
+    photoEditorCropXInput.value = String(crop.offsetX);
+  }
+
+  if (photoEditorCropXValue) {
+    photoEditorCropXValue.textContent = String(crop.offsetX);
+  }
+
+  if (photoEditorCropYInput) {
+    photoEditorCropYInput.value = String(crop.offsetY);
+  }
+
+  if (photoEditorCropYValue) {
+    photoEditorCropYValue.textContent = String(crop.offsetY);
+  }
+
+  if (photoEditorCropTiltInput) {
+    photoEditorCropTiltInput.value = String(crop.tilt);
+  }
+
+  if (photoEditorCropTiltValue) {
+    photoEditorCropTiltValue.textContent = `${crop.tilt}°`;
+  }
+
+  if (photoEditorCropFlipXButton) {
+    photoEditorCropFlipXButton.setAttribute(
+      'aria-pressed',
+      crop.flipX ? 'true' : 'false'
+    );
+  }
+
+  if (photoEditorCropFlipYButton) {
+    photoEditorCropFlipYButton.setAttribute(
+      'aria-pressed',
+      crop.flipY ? 'true' : 'false'
+    );
+  }
+
+  for (const button of photoEditorCropPresetList?.querySelectorAll(
+    '[data-photo-editor-crop]'
+  ) || []) {
+    const isActive = button.dataset.photoEditorCrop === crop.preset;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  }
+}
+
+function syncPhotoEditorBlurControls() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const blur = normalizePhotoEditorBlurState(photoEditorState.blur);
+  photoEditorState.blur = blur;
+
+  for (const button of photoEditorBlurModeButtons) {
+    const isActive = button.dataset.photoEditorBlurMode === blur.mode;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  }
+
+  if (photoEditorBlurAmountInput) {
+    photoEditorBlurAmountInput.value = String(blur.amount);
+  }
+
+  if (photoEditorBlurAmountValue) {
+    photoEditorBlurAmountValue.textContent = String(blur.amount);
+  }
+
+  if (photoEditorBlurConfirmButton) {
+    photoEditorBlurConfirmButton.hidden = blur.mode !== 'radial';
+  }
+
+  if (photoEditorBlurConfirmLabel) {
+    photoEditorBlurConfirmLabel.textContent = blur.isConfirmed
+      ? '範囲を編集'
+      : '確定';
+  }
+
+  const blurConfirmIcon = photoEditorBlurConfirmButton?.querySelector(
+    '.material-symbols-outlined'
+  );
+
+  if (blurConfirmIcon) {
+    blurConfirmIcon.textContent = blur.isConfirmed ? 'edit' : 'check';
+  }
+
+  photoEditorCanvas?.classList.toggle(
+    'is-blur-tool-active',
+    blur.mode === 'radial' &&
+      !blur.isConfirmed &&
+      isPhotoEditorAccordionOpen('blur') &&
+      photoEditorState.maskTool === 'none' &&
+      !photoEditorState.draftMask
+  );
+}
+
+function getPhotoEditorActiveCurvePoints() {
+  const curve = normalizePhotoEditorCurveState(photoEditorState?.curve);
+  return curve.points[curve.mode][curve.channel];
+}
+
+function safelySetPointerCapture(element, pointerId) {
+  if (!element || pointerId === undefined || pointerId === null) {
+    return;
+  }
+
+  try {
+    element.setPointerCapture?.(pointerId);
+  } catch {
+    // Synthetic input and some pointer devices can report no active pointer.
+  }
+}
+
+function getPhotoEditorCurveCanvasMetrics() {
+  const bounds = photoEditorCurveCanvas?.getBoundingClientRect();
+  const cssWidth = Math.max(1, Math.round(bounds?.width || 280));
+  const cssHeight = Math.max(1, Math.round(bounds?.height || 160));
+  const deviceScale = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+
+  return {
+    cssWidth,
+    cssHeight,
+    width: Math.round(cssWidth * deviceScale),
+    height: Math.round(cssHeight * deviceScale),
+    scale: deviceScale,
+    padding: Math.round(14 * deviceScale),
+  };
+}
+
+function createPhotoEditorHistogramBins() {
+  return Array.from({ length: PHOTO_EDITOR_CURVE_HISTOGRAM_BINS }, () => 0);
+}
+
+function getPhotoEditorCurveHistogramKey(sourceRect, crop, imageSize) {
+  return JSON.stringify({
+    imageWidth: imageSize.width,
+    imageHeight: imageSize.height,
+    sourceRect: {
+      x: Math.round(sourceRect.x),
+      y: Math.round(sourceRect.y),
+      width: Math.round(sourceRect.width),
+      height: Math.round(sourceRect.height),
+    },
+    crop: {
+      preset: crop.preset,
+      zoom: Math.round(crop.zoom * 10) / 10,
+      offsetX: Math.round(crop.offsetX * 10) / 10,
+      offsetY: Math.round(crop.offsetY * 10) / 10,
+      rotation: crop.rotation,
+      flipX: crop.flipX,
+      flipY: crop.flipY,
+      tilt: Math.round(crop.tilt * 10) / 10,
+    },
+  });
+}
+
+function normalizePhotoEditorHistogramBins(histogram) {
+  const maxValue = Math.max(1, ...histogram);
+  return histogram.map((value) => value / maxValue);
+}
+
+function getPhotoEditorCurveHistogram() {
+  if (!photoEditorState?.sourceImage) {
+    return null;
+  }
+
+  const crop = normalizePhotoEditorCropState(photoEditorState.crop);
+  const sourceRect = getPhotoEditorSourceRect(photoEditorState.sourceImage);
+  const imageSize = getPhotoEditorImageSize(photoEditorState.sourceImage);
+  const histogramKey = getPhotoEditorCurveHistogramKey(sourceRect, crop, imageSize);
+
+  if (
+    photoEditorState.curveHistogram &&
+    photoEditorState.curveHistogramKey === histogramKey
+  ) {
+    return photoEditorState.curveHistogram;
+  }
+
+  const sampleSize = getPhotoEditorOutputSize(sourceRect, 160, crop);
+  const sampleCanvas = document.createElement('canvas');
+  sampleCanvas.width = sampleSize.width;
+  sampleCanvas.height = sampleSize.height;
+  const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+
+  if (!sampleCtx) {
+    return null;
+  }
+
+  sampleCtx.imageSmoothingEnabled = true;
+  sampleCtx.imageSmoothingQuality = 'high';
+  drawPhotoEditorCroppedSourceToCanvas(
+    sampleCtx,
+    photoEditorState.sourceImage,
+    sourceRect,
+    sampleSize,
+    crop
+  );
+
+  let imageData;
+
+  try {
+    imageData = sampleCtx.getImageData(0, 0, sampleSize.width, sampleSize.height);
+  } catch {
+    const previewCtx = photoEditorCanvas?.getContext('2d', {
+      willReadFrequently: true,
+    });
+
+    if (!previewCtx || !photoEditorCanvas.width || !photoEditorCanvas.height) {
+      return null;
+    }
+
+    try {
+      imageData = previewCtx.getImageData(
+        0,
+        0,
+        photoEditorCanvas.width,
+        photoEditorCanvas.height
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  const bins = {
+    rgb: {
+      master: createPhotoEditorHistogramBins(),
+      r: createPhotoEditorHistogramBins(),
+      g: createPhotoEditorHistogramBins(),
+      b: createPhotoEditorHistogramBins(),
+    },
+    hsv: {
+      master: createPhotoEditorHistogramBins(),
+      h: createPhotoEditorHistogramBins(),
+      s: createPhotoEditorHistogramBins(),
+      v: createPhotoEditorHistogramBins(),
+    },
+  };
+  const data = imageData.data;
+  const getBinIndex = (value) =>
+    clampNumber(
+      Math.floor(clampNumber(value, 0, 1, 0) * (PHOTO_EDITOR_CURVE_HISTOGRAM_BINS - 1)),
+      0,
+      PHOTO_EDITOR_CURVE_HISTOGRAM_BINS - 1,
+      0
+    );
+
+  for (let index = 0; index < data.length; index += 4) {
+    const red = data[index];
+    const green = data[index + 1];
+    const blue = data[index + 2];
+    const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+    const hsv = convertRgbToHsv(red, green, blue);
+
+    bins.rgb.master[getBinIndex(luminance)] += 1;
+    bins.rgb.r[getBinIndex(red / 255)] += 1;
+    bins.rgb.g[getBinIndex(green / 255)] += 1;
+    bins.rgb.b[getBinIndex(blue / 255)] += 1;
+    bins.hsv.master[getBinIndex(hsv.v)] += 1;
+    bins.hsv.h[getBinIndex(hsv.h)] += 1;
+    bins.hsv.s[getBinIndex(hsv.s)] += 1;
+    bins.hsv.v[getBinIndex(hsv.v)] += 1;
+  }
+
+  const histogram = {
+    rgb: {
+      master: normalizePhotoEditorHistogramBins(bins.rgb.master),
+      r: normalizePhotoEditorHistogramBins(bins.rgb.r),
+      g: normalizePhotoEditorHistogramBins(bins.rgb.g),
+      b: normalizePhotoEditorHistogramBins(bins.rgb.b),
+    },
+    hsv: {
+      master: normalizePhotoEditorHistogramBins(bins.hsv.master),
+      h: normalizePhotoEditorHistogramBins(bins.hsv.h),
+      s: normalizePhotoEditorHistogramBins(bins.hsv.s),
+      v: normalizePhotoEditorHistogramBins(bins.hsv.v),
+    },
+  };
+
+  photoEditorState.curveHistogram = histogram;
+  photoEditorState.curveHistogramKey = histogramKey;
+  return histogram;
+}
+
+function getPhotoEditorCurveHistogramColor(curve) {
+  if (curve.mode === 'rgb') {
+    return {
+      master: 'rgba(148, 163, 184, 0.3)',
+      r: 'rgba(248, 113, 113, 0.34)',
+      g: 'rgba(74, 222, 128, 0.32)',
+      b: 'rgba(96, 165, 250, 0.34)',
+    }[curve.channel] || 'rgba(148, 163, 184, 0.3)';
+  }
+
+  return {
+    master: 'rgba(148, 163, 184, 0.3)',
+    h: 'rgba(244, 114, 182, 0.32)',
+    s: 'rgba(251, 191, 36, 0.3)',
+    v: 'rgba(125, 211, 252, 0.32)',
+  }[curve.channel] || 'rgba(148, 163, 184, 0.3)';
+}
+
+function drawPhotoEditorCurveHistogram(ctx, curve, graphRect) {
+  const histogram = getPhotoEditorCurveHistogram();
+  const channelHistogram = histogram?.[curve.mode]?.[curve.channel];
+
+  if (!Array.isArray(channelHistogram) || channelHistogram.length === 0) {
+    return;
+  }
+
+  const { left, top, width, height } = graphRect;
+  const barWidth = width / channelHistogram.length;
+
+  ctx.save();
+  ctx.fillStyle = getPhotoEditorCurveHistogramColor(curve);
+  channelHistogram.forEach((value, index) => {
+    const barHeight = Math.max(1, height * Math.pow(value, 0.72));
+    ctx.fillRect(
+      left + index * barWidth,
+      top + height - barHeight,
+      Math.max(1, barWidth + 0.5),
+      barHeight
+    );
+  });
+  ctx.restore();
+}
+
+function drawPhotoEditorCurveCanvas() {
+  if (!photoEditorCurveCanvas || !photoEditorState) {
+    return;
+  }
+
+  const ctx = photoEditorCurveCanvas.getContext('2d');
+
+  if (!ctx) {
+    return;
+  }
+
+  const metrics = getPhotoEditorCurveCanvasMetrics();
+  const { width, height, padding } = metrics;
+
+  if (
+    photoEditorCurveCanvas.width !== width ||
+    photoEditorCurveCanvas.height !== height
+  ) {
+    photoEditorCurveCanvas.width = width;
+    photoEditorCurveCanvas.height = height;
+  }
+
+  const curve = normalizePhotoEditorCurveState(photoEditorState.curve);
+  const points = curve.points[curve.mode][curve.channel];
+  const left = padding;
+  const top = padding;
+  const graphWidth = Math.max(1, width - padding * 2);
+  const graphHeight = Math.max(1, height - padding * 2);
+  const maxPointIndex = Math.max(1, points.length - 1);
+  const pointToCanvas = (point, index) => ({
+    x: left + graphWidth * (index / maxPointIndex),
+    y: top + graphHeight * (1 - point),
+  });
+  const canvasPoints = points.map(pointToCanvas);
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = getComputedStyle(photoEditorCurveCanvas).getPropertyValue(
+    '--surface-card'
+  ) || '#111827';
+  ctx.fillRect(0, 0, width, height);
+
+  drawPhotoEditorCurveHistogram(ctx, curve, {
+    left,
+    top,
+    width: graphWidth,
+    height: graphHeight,
+  });
+
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+  ctx.lineWidth = Math.max(1, Math.round(metrics.scale));
+
+  for (let index = 0; index <= 4; index += 1) {
+    const x = left + graphWidth * (index / 4);
+    const y = top + graphHeight * (index / 4);
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.lineTo(x, top + graphHeight);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(left, y);
+    ctx.lineTo(left + graphWidth, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = 'rgba(79, 140, 255, 0.95)';
+  ctx.lineWidth = Math.max(2, Math.round(2 * metrics.scale));
+  ctx.beginPath();
+  canvasPoints.forEach((point, index) => {
+    if (index === 0) {
+      ctx.moveTo(point.x, point.y);
+    } else {
+      ctx.lineTo(point.x, point.y);
+    }
+  });
+  ctx.stroke();
+
+  for (const point of canvasPoints) {
+    ctx.fillStyle = 'rgba(79, 140, 255, 0.95)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.lineWidth = Math.max(2, Math.round(metrics.scale));
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, Math.max(5, 5 * metrics.scale), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
+function getPhotoEditorCurveCanvasPoint(event) {
+  if (!photoEditorCurveCanvas) {
+    return null;
+  }
+
+  const bounds = photoEditorCurveCanvas.getBoundingClientRect();
+
+  if (!bounds.width || !bounds.height) {
+    return null;
+  }
+
+  return {
+    x: clampNumber((event.clientX - bounds.left) / bounds.width, 0, 1, 0),
+    y: clampNumber((event.clientY - bounds.top) / bounds.height, 0, 1, 0),
+  };
+}
+
+function updatePhotoEditorCurvePoint(pointIndex, pointerPoint) {
+  const maxPointIndex = PHOTO_EDITOR_CURVE_DEFAULT_POINTS.length - 1;
+
+  if (!photoEditorState || pointIndex < 0 || pointIndex > maxPointIndex) {
+    return;
+  }
+
+  const curve = normalizePhotoEditorCurveState(photoEditorState.curve);
+  const points = clonePhotoEditorCurvePoints(
+    curve.points[curve.mode][curve.channel]
+  );
+  const nextValue = clampNumber(1 - pointerPoint.y, 0, 1, points[pointIndex]);
+
+  if (Math.abs(points[pointIndex] - nextValue) < 0.002) {
+    return;
+  }
+
+  points[pointIndex] = nextValue;
+  curve.points[curve.mode][curve.channel] = points;
+  photoEditorState.curve = curve;
+  drawPhotoEditorCurveCanvas();
+  schedulePhotoEditorRender({
+    debounceMs: PHOTO_EDITOR_CURVE_PREVIEW_DEBOUNCE_MS,
+    interactive: true,
+  });
+}
+
+function beginPhotoEditorCurveDrag(event) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const point = getPhotoEditorCurveCanvasPoint(event);
+
+  if (!point) {
+    return;
+  }
+
+  event.preventDefault();
+  safelySetPointerCapture(photoEditorCurveCanvas, event.pointerId);
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.dragMode = 'curve';
+  photoEditorState.dragCurvePointIndex = clampNumber(
+    Math.round(point.x * (PHOTO_EDITOR_CURVE_DEFAULT_POINTS.length - 1)),
+    0,
+    PHOTO_EDITOR_CURVE_DEFAULT_POINTS.length - 1,
+    2
+  );
+  updatePhotoEditorCurvePoint(photoEditorState.dragCurvePointIndex, point);
+}
+
+function updatePhotoEditorCurveDrag(event) {
+  if (
+    !photoEditorState ||
+    photoEditorState.dragMode !== 'curve' ||
+    photoEditorState.dragCurvePointIndex === null
+  ) {
+    return;
+  }
+
+  const point = getPhotoEditorCurveCanvasPoint(event);
+
+  if (!point) {
+    return;
+  }
+
+  event.preventDefault();
+  updatePhotoEditorCurvePoint(photoEditorState.dragCurvePointIndex, point);
+}
+
+function finishPhotoEditorCurveDrag() {
+  if (!photoEditorState || photoEditorState.dragMode !== 'curve') {
+    return;
+  }
+
+  photoEditorState.dragMode = null;
+  photoEditorState.dragCurvePointIndex = null;
+  syncPhotoEditorCurveControls();
+  finishPhotoEditorInteractivePreview();
+  commitPhotoEditorHistoryMutation();
+}
+
+function syncPhotoEditorCurveControls() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const curve = normalizePhotoEditorCurveState(photoEditorState.curve);
+  photoEditorState.curve = curve;
+
+  for (const button of photoEditorCurveModeButtons) {
+    const isActive = button.dataset.photoEditorCurveMode === curve.mode;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  }
+
+  const channelButtons = Array.from(
+    photoEditorCurveChannelList?.querySelectorAll(
+      '[data-photo-editor-curve-channel]'
+    ) || []
+  );
+  const channels = PHOTO_EDITOR_CURVE_CHANNELS[curve.mode];
+
+  channelButtons.forEach((button, index) => {
+    const channel = channels[index];
+
+    if (!channel) {
+      button.hidden = true;
+      return;
+    }
+
+    const isActive = channel.key === curve.channel;
+    button.hidden = false;
+    button.dataset.photoEditorCurveChannel = channel.key;
+    button.textContent = channel.label;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+
+  drawPhotoEditorCurveCanvas();
+}
+
+function syncPhotoEditorMaskToolUi() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const pendingMask = photoEditorState.draftMask;
+  const activeMaskType = pendingMask?.type || photoEditorState.maskTool;
+  const isMaskDragging = String(photoEditorState.dragMode || '').startsWith('mask');
+  const hasPendingMask =
+    Boolean(pendingMask) && !isMaskDragging;
+
+  for (const button of photoEditorMaskToolButtons) {
+    const isActive =
+      button.dataset.photoEditorMaskTool === activeMaskType;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  }
+
+  photoEditorCanvas?.classList.toggle(
+    'is-mask-tool-active',
+    photoEditorState.maskTool !== 'none'
+  );
+  photoEditorCanvas?.classList.toggle(
+    'is-blur-tool-active',
+    photoEditorState.blur?.mode === 'radial' &&
+      !photoEditorState.blur?.isConfirmed &&
+      isPhotoEditorAccordionOpen('blur') &&
+      photoEditorState.maskTool === 'none' &&
+      !pendingMask
+  );
+  photoEditorCanvas?.classList.toggle(
+    'is-mask-draft-active',
+    Boolean(pendingMask)
+  );
+
+  if (photoEditorMaskOptions) {
+    photoEditorMaskOptions.hidden =
+      photoEditorState.maskTool === 'none' && !pendingMask;
+  }
+
+  for (const button of photoEditorMaskShapeButtons) {
+    const isActive =
+      button.dataset.photoEditorMaskShape === photoEditorState.maskShape;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  }
+
+  const hasMaskStrength = ['blur', 'mosaic', 'fill'].includes(activeMaskType);
+
+  if (photoEditorMaskBlurStrengthRow) {
+    photoEditorMaskBlurStrengthRow.hidden = !hasMaskStrength;
+  }
+
+  if (photoEditorMaskStrengthLabel) {
+    photoEditorMaskStrengthLabel.textContent =
+      PHOTO_EDITOR_MASK_STRENGTH_LABELS[activeMaskType] || '濃さ';
+  }
+
+  if (photoEditorMaskBlurStrengthInput) {
+    photoEditorMaskBlurStrengthInput.value = String(photoEditorState.blurStrength);
+  }
+
+  if (photoEditorMaskBlurStrengthValue) {
+    photoEditorMaskBlurStrengthValue.textContent = String(
+      photoEditorState.blurStrength
+    );
+  }
+
+  if (photoEditorFillColorRow) {
+    photoEditorFillColorRow.hidden = activeMaskType !== 'fill';
+  }
+
+  if (photoEditorMaskConfirmButton) {
+    photoEditorMaskConfirmButton.disabled = !hasPendingMask;
+  }
+
+  const hasMasksOrPending = photoEditorState.masks.length > 0 || hasPendingMask;
+
+  if (photoEditorMaskUndoButton) {
+    photoEditorMaskUndoButton.disabled = !hasMasksOrPending;
+  }
+
+  if (photoEditorMaskClearButton) {
+    photoEditorMaskClearButton.disabled = !hasMasksOrPending;
+  }
+}
+
+function syncPhotoEditorExportControls() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const settings = getPhotoEditorEffectiveExportSettings(
+    photoEditorState.exportSettings
+  );
+  photoEditorState.exportSettings = settings;
+  const formatMeta = PHOTO_EDITOR_EXPORT_FORMATS[settings.format];
+
+  if (photoEditorExportFormatSelect) {
+    photoEditorExportFormatSelect.value = settings.format;
+  }
+
+  if (photoEditorExportMaxEdgeSelect) {
+    photoEditorExportMaxEdgeSelect.value = String(settings.maxEdge);
+  }
+
+  if (photoEditorExportQualityInput) {
+    photoEditorExportQualityInput.value = String(settings.quality);
+    photoEditorExportQualityInput.disabled = !formatMeta.supportsQuality;
+  }
+
+  if (photoEditorExportQualityValue) {
+    photoEditorExportQualityValue.textContent = formatMeta.supportsQuality
+      ? String(settings.quality)
+      : '-';
+  }
+
+  if (photoEditorExportQualityRow) {
+    photoEditorExportQualityRow.hidden = !formatMeta.supportsQuality;
+  }
+}
+
+function syncPhotoEditorCompareControl() {
+  const isComparing = Boolean(photoEditorState?.showOriginalPreview);
+
+  if (!photoEditorCompareButton) {
+    return;
+  }
+
+  photoEditorCompareButton.classList.toggle('is-active', isComparing);
+  photoEditorCompareButton.setAttribute('aria-pressed', isComparing ? 'true' : 'false');
+  photoEditorCompareButton.title = isComparing
+    ? '編集後の表示に戻す'
+    : '編集前と比較';
+  const label = photoEditorCompareButton.querySelector('span:last-child');
+
+  if (label) {
+    label.textContent = isComparing ? '編集中' : '比較';
+  }
+}
+
+function syncPhotoEditorOverlayControls() {
+  if (photoEditorRuleGridButton) {
+    const isGridVisible = Boolean(photoEditorState?.showRuleOfThirdsGrid);
+    photoEditorRuleGridButton.classList.toggle('is-active', isGridVisible);
+    photoEditorRuleGridButton.setAttribute(
+      'aria-pressed',
+      isGridVisible ? 'true' : 'false'
+    );
+  }
+
+  if (photoEditorRulerButton) {
+    const isRulerVisible = Boolean(photoEditorState?.showRulers);
+    photoEditorRulerButton.classList.toggle('is-active', isRulerVisible);
+    photoEditorRulerButton.setAttribute(
+      'aria-pressed',
+      isRulerVisible ? 'true' : 'false'
+    );
+  }
+}
+
+function syncPhotoEditorUi() {
+  syncPhotoEditorAdjustmentControls();
+  syncPhotoEditorAutoEnhanceControls();
+  syncPhotoEditorCropControls();
+  syncPhotoEditorExportControls();
+  syncPhotoEditorBlurControls();
+  syncPhotoEditorCurveControls();
+  syncPhotoEditorMaskToolUi();
+  syncPhotoEditorCompareControl();
+  syncPhotoEditorOverlayControls();
+  syncPhotoEditorHistoryControls();
+
+  if (photoEditorFillColorInput && photoEditorState) {
+    photoEditorFillColorInput.value = photoEditorState.fillColor;
+  }
+
+  if (photoEditorSaveButton && photoEditorState) {
+    photoEditorSaveButton.disabled = photoEditorState.isSaving;
+    photoEditorSaveButton.textContent = photoEditorState.isSaving
+      ? '保存中...'
+      : '別名で保存';
+  }
+}
+
+function getPhotoEditorCropPreset(key) {
+  return (
+    PHOTO_EDITOR_CROP_PRESETS.find((preset) => preset.key === key) ||
+    PHOTO_EDITOR_CROP_PRESETS[0]
+  );
+}
+
+function isPhotoEditorTransparentPaddingCrop(crop = photoEditorState?.crop) {
+  return Boolean(getPhotoEditorCropPreset(crop?.preset).transparentPadding);
+}
+
+function getPhotoEditorCropRatio(image) {
+  const preset = getPhotoEditorCropPreset(photoEditorState?.crop?.preset);
+
+  if (preset.transparentPadding) {
+    const width = Number(image?.naturalWidth || image?.width);
+    const height = Number(image?.naturalHeight || image?.height);
+    return width > 0 && height > 0 ? width / height : 1;
+  }
+
+  if (Number.isFinite(preset.ratio) && preset.ratio > 0) {
+    return preset.ratio;
+  }
+
+  const width = Number(image?.naturalWidth || image?.width);
+  const height = Number(image?.naturalHeight || image?.height);
+
+  return width > 0 && height > 0 ? width / height : 1;
+}
+
+function getPhotoEditorSourceRect(image) {
+  const imageWidth = Number(image?.naturalWidth || image?.width) || 0;
+  const imageHeight = Number(image?.naturalHeight || image?.height) || 0;
+
+  if (imageWidth <= 0 || imageHeight <= 0) {
+    return {
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+    };
+  }
+
+  const crop = photoEditorState?.crop || getDefaultPhotoEditorCropState();
+  const targetRatio = getPhotoEditorCropRatio(image);
+  const imageRatio = imageWidth / imageHeight;
+  let baseWidth = imageWidth;
+  let baseHeight = imageHeight;
+
+  if (imageRatio > targetRatio) {
+    baseWidth = imageHeight * targetRatio;
+  } else {
+    baseHeight = imageWidth / targetRatio;
+  }
+
+  const zoom = getPhotoEditorCropZoomScale(crop);
+  const cropWidth = Math.max(1, baseWidth / zoom);
+  const cropHeight = Math.max(1, baseHeight / zoom);
+  const maxOffsetX = Math.max(0, (imageWidth - cropWidth) / 2);
+  const maxOffsetY = Math.max(0, (imageHeight - cropHeight) / 2);
+  const offsetX = maxOffsetX * clampNumber(crop.offsetX, -100, 100, 0) / 100;
+  const offsetY = maxOffsetY * clampNumber(crop.offsetY, -100, 100, 0) / 100;
+  const centerX = imageWidth / 2 + offsetX;
+  const centerY = imageHeight / 2 + offsetY;
+
+  return {
+    x: clampNumber(centerX - cropWidth / 2, 0, imageWidth - cropWidth, 0),
+    y: clampNumber(centerY - cropHeight / 2, 0, imageHeight - cropHeight, 0),
+    width: cropWidth,
+    height: cropHeight,
+  };
+}
+
+function isPhotoEditorCropRotationSideways(crop = {}) {
+  return normalizePhotoEditorCropRotation(crop?.rotation) % 180 !== 0;
+}
+
+function getPhotoEditorCropRotationDegrees(crop = {}) {
+  return (
+    normalizePhotoEditorCropRotation(crop?.rotation) +
+    clampNumber(crop?.tilt, -45, 45, 0)
+  );
+}
+
+function getPhotoEditorOutputSize(sourceRect, maxEdge = null, crop = null) {
+  const activeCrop = crop || photoEditorState?.crop;
+  const isSideways = isPhotoEditorCropRotationSideways(
+    activeCrop
+  );
+  const sourceWidth = Math.max(1, Math.round(sourceRect.width));
+  const sourceHeight = Math.max(1, Math.round(sourceRect.height));
+  const baseFullWidth = isSideways ? sourceHeight : sourceWidth;
+  const baseFullHeight = isSideways ? sourceWidth : sourceHeight;
+  const shouldUseTransparentPadding =
+    isPhotoEditorTransparentPaddingCrop(activeCrop);
+  const transparentFullEdge = Math.max(baseFullWidth, baseFullHeight);
+  const fullWidth = shouldUseTransparentPadding
+    ? transparentFullEdge
+    : baseFullWidth;
+  const fullHeight = shouldUseTransparentPadding
+    ? transparentFullEdge
+    : baseFullHeight;
+  const numericMaxEdge = Number(maxEdge);
+
+  if (!Number.isFinite(numericMaxEdge) || numericMaxEdge <= 0) {
+    return {
+      width: fullWidth,
+      height: fullHeight,
+      fullWidth,
+      fullHeight,
+      scale: 1,
+    };
+  }
+
+  const scale = Math.min(1, numericMaxEdge / Math.max(fullWidth, fullHeight));
+
+  return {
+    width: Math.max(1, Math.round(fullWidth * scale)),
+    height: Math.max(1, Math.round(fullHeight * scale)),
+    fullWidth,
+    fullHeight,
+    scale,
+  };
+}
+
+function getPhotoEditorCropRenderGeometry(sourceRect, width, height, crop = {}) {
+  const shouldUseTransparentPadding = isPhotoEditorTransparentPaddingCrop(crop);
+  const isSideways = isPhotoEditorCropRotationSideways(crop);
+  const baseWidth = isSideways ? sourceRect.height : sourceRect.width;
+  const baseHeight = isSideways ? sourceRect.width : sourceRect.height;
+  const outputScale = Math.min(
+    width / Math.max(1, baseWidth),
+    height / Math.max(1, baseHeight)
+  );
+  const drawWidth = Math.max(1, sourceRect.width * outputScale);
+  const drawHeight = Math.max(1, sourceRect.height * outputScale);
+  const rotationRadians = getPhotoEditorCropRotationDegrees(crop) * Math.PI / 180;
+  const absCos = Math.abs(Math.cos(rotationRadians));
+  const absSin = Math.abs(Math.sin(rotationRadians));
+  const coverScale = shouldUseTransparentPadding
+    ? 1
+    : Math.max(
+        1,
+        (width * absCos + height * absSin) / drawWidth,
+        (width * absSin + height * absCos) / drawHeight
+      );
+
+  return {
+    drawWidth,
+    drawHeight,
+    rotationRadians,
+    coverScale,
+    flipX: Boolean(crop?.flipX),
+    flipY: Boolean(crop?.flipY),
+  };
+}
+
+function drawPhotoEditorCroppedSourceToCanvas(
+  ctx,
+  image,
+  sourceRect,
+  outputSize,
+  crop = {}
+) {
+  const geometry = getPhotoEditorCropRenderGeometry(
+    sourceRect,
+    outputSize.width,
+    outputSize.height,
+    crop
+  );
+  const drawWidth = geometry.drawWidth * geometry.coverScale;
+  const drawHeight = geometry.drawHeight * geometry.coverScale;
+
+  ctx.save();
+  ctx.translate(outputSize.width / 2, outputSize.height / 2);
+  ctx.rotate(geometry.rotationRadians);
+  ctx.scale(geometry.flipX ? -1 : 1, geometry.flipY ? -1 : 1);
+  ctx.drawImage(
+    image,
+    sourceRect.x,
+    sourceRect.y,
+    sourceRect.width,
+    sourceRect.height,
+    -drawWidth / 2,
+    -drawHeight / 2,
+    drawWidth,
+    drawHeight
+  );
+  ctx.restore();
+}
+
+function syncPhotoEditorPreviewCanvasDisplaySize(outputSize) {
+  if (!photoEditorCanvas || !photoEditorCanvasWrap || !outputSize) {
+    return;
+  }
+
+  const fullWidth = Math.max(1, Number(outputSize.fullWidth) || outputSize.width || 1);
+  const fullHeight = Math.max(1, Number(outputSize.fullHeight) || outputSize.height || 1);
+  const bounds = photoEditorCanvasWrap.getBoundingClientRect();
+  photoEditorCanvas.style.aspectRatio = `${fullWidth} / ${fullHeight}`;
+
+  if (!bounds.width || !bounds.height) {
+    photoEditorCanvas.style.width = '';
+    photoEditorCanvas.style.height = '';
+    return;
+  }
+
+  const wrapStyle = getComputedStyle(photoEditorCanvasWrap);
+  const paddingX =
+    (parseFloat(wrapStyle.paddingLeft) || 0) +
+    (parseFloat(wrapStyle.paddingRight) || 0);
+  const paddingY =
+    (parseFloat(wrapStyle.paddingTop) || 0) +
+    (parseFloat(wrapStyle.paddingBottom) || 0);
+  const availableWidth = Math.max(1, bounds.width - paddingX);
+  const availableHeight = Math.max(1, bounds.height - paddingY);
+  const displayScale = Math.min(
+    availableWidth / fullWidth,
+    availableHeight / fullHeight
+  );
+
+  photoEditorCanvas.style.width = `${Math.max(1, Math.round(fullWidth * displayScale))}px`;
+  photoEditorCanvas.style.height = `${Math.max(1, Math.round(fullHeight * displayScale))}px`;
+}
+
+function getPhotoEditorPreviewWorkCanvas() {
+  if (!photoEditorPreviewWorkCanvas) {
+    photoEditorPreviewWorkCanvas = document.createElement('canvas');
+  }
+
+  return photoEditorPreviewWorkCanvas;
+}
+
+function getPhotoEditorPreviewOverlayCanvas() {
+  if (!photoEditorPreviewOverlayCanvas) {
+    photoEditorPreviewOverlayCanvas = document.createElement('canvas');
+  }
+
+  return photoEditorPreviewOverlayCanvas;
+}
+
+function copyPhotoEditorCanvasFrame(sourceCanvas, targetCanvas, outputSize) {
+  if (!sourceCanvas || !targetCanvas || !outputSize) {
+    return null;
+  }
+
+  if (targetCanvas.width !== outputSize.width) {
+    targetCanvas.width = outputSize.width;
+  }
+
+  if (targetCanvas.height !== outputSize.height) {
+    targetCanvas.height = outputSize.height;
+  }
+
+  const ctx = targetCanvas.getContext('2d', { willReadFrequently: true });
+
+  if (!ctx) {
+    return null;
+  }
+
+  ctx.clearRect(0, 0, outputSize.width, outputSize.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(sourceCanvas, 0, 0, outputSize.width, outputSize.height);
+  return ctx;
+}
+
+function commitPhotoEditorPreviewFrame(sourceCanvas, outputSize) {
+  if (!photoEditorCanvas || !sourceCanvas || !outputSize) {
+    return null;
+  }
+
+  return copyPhotoEditorCanvasFrame(sourceCanvas, photoEditorCanvas, outputSize);
+}
+
+function storePhotoEditorPreviewOverlayBase(sourceCanvas, outputSize, sourceRect) {
+  const overlayCanvas = getPhotoEditorPreviewOverlayCanvas();
+  const ctx = copyPhotoEditorCanvasFrame(sourceCanvas, overlayCanvas, outputSize);
+
+  if (!ctx) {
+    photoEditorPreviewOverlayMeta = null;
+    return;
+  }
+
+  photoEditorPreviewOverlayMeta = {
+    outputSize: { ...outputSize },
+    sourceRect: { ...sourceRect },
+  };
+}
+
+function drawPhotoEditorRuleOfThirdsGrid(ctx, width, height) {
+  if (!ctx || width <= 0 || height <= 0) {
+    return;
+  }
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.68)';
+  ctx.lineWidth = Math.max(1, Math.min(width, height) / 360);
+  ctx.setLineDash([Math.max(5, width / 96), Math.max(5, width / 96)]);
+  ctx.shadowColor = 'rgba(15, 23, 42, 0.55)';
+  ctx.shadowBlur = Math.max(2, ctx.lineWidth * 2);
+
+  for (const ratio of [1 / 3, 2 / 3]) {
+    const x = width * ratio;
+    const y = height * ratio;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawPhotoEditorRulers(ctx, width, height) {
+  if (!ctx || width <= 0 || height <= 0) {
+    return;
+  }
+
+  const edge = Math.max(18, Math.min(width, height) * 0.035);
+  const majorStep = Math.max(40, Math.min(width, height) / 6);
+  const minorStep = majorStep / 4;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.42)';
+  ctx.fillRect(0, 0, width, edge);
+  ctx.fillRect(0, 0, edge, height);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.74)';
+  ctx.lineWidth = Math.max(1, Math.min(width, height) / 420);
+  ctx.shadowColor = 'rgba(15, 23, 42, 0.5)';
+  ctx.shadowBlur = 2;
+
+  for (let x = 0; x <= width; x += minorStep) {
+    const isMajor = Math.abs((x / majorStep) - Math.round(x / majorStep)) < 0.01;
+    const length = isMajor ? edge * 0.82 : edge * 0.48;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, length);
+    ctx.stroke();
+  }
+
+  for (let y = 0; y <= height; y += minorStep) {
+    const isMajor = Math.abs((y / majorStep) - Math.round(y / majorStep)) < 0.01;
+    const length = isMajor ? edge * 0.82 : edge * 0.48;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(length, y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawPhotoEditorPreviewOverlays(ctx, outputSize, sourceRect) {
+  if (!ctx || !photoEditorState || photoEditorState.showOriginalPreview) {
+    return;
+  }
+
+  if (photoEditorState.showRuleOfThirdsGrid) {
+    drawPhotoEditorRuleOfThirdsGrid(ctx, outputSize.width, outputSize.height);
+  }
+
+  if (photoEditorState.showRulers) {
+    drawPhotoEditorRulers(ctx, outputSize.width, outputSize.height);
+  }
+
+  drawPhotoEditorDraftMask(
+    ctx,
+    outputSize.width,
+    outputSize.height,
+    sourceRect,
+    photoEditorState.sourceImage
+  );
+  drawPhotoEditorRadialBlurControl(
+    ctx,
+    outputSize.width,
+    outputSize.height
+  );
+}
+
+function paintPhotoEditorPreviewOverlayOnly() {
+  if (
+    !photoEditorState ||
+    !photoEditorPreviewOverlayCanvas ||
+    !photoEditorPreviewOverlayMeta ||
+    photoEditorState.showOriginalPreview
+  ) {
+    return false;
+  }
+
+  const { outputSize, sourceRect } = photoEditorPreviewOverlayMeta;
+  const ctx = commitPhotoEditorPreviewFrame(photoEditorPreviewOverlayCanvas, outputSize);
+
+  if (!ctx) {
+    return false;
+  }
+
+  drawPhotoEditorPreviewOverlays(ctx, outputSize, sourceRect);
+  return true;
+}
+
+function getDeterministicNoise(x, y) {
+  let seed = ((x + 1) * 374761393 + (y + 1) * 668265263) >>> 0;
+  seed = (seed ^ (seed >>> 13)) >>> 0;
+  seed = Math.imul(seed, 1274126177) >>> 0;
+  return (seed / 4294967295) * 2 - 1;
+}
+
+function getPhotoEditorCurveValue(points, inputValue) {
+  const input = clampNumber(inputValue, 0, 1, 0);
+  const curvePoints = clonePhotoEditorCurvePoints(points);
+  const maxPointIndex = curvePoints.length - 1;
+  const scaledInput = input * maxPointIndex;
+  const leftIndex = Math.min(maxPointIndex - 1, Math.floor(scaledInput));
+  const ratio = scaledInput - leftIndex;
+
+  return curvePoints[leftIndex] * (1 - ratio) + curvePoints[leftIndex + 1] * ratio;
+}
+
+function buildPhotoEditorCurveLookup(points, { outputScale = 255 } = {}) {
+  const lookup = new Float32Array(256);
+
+  for (let index = 0; index < lookup.length; index += 1) {
+    lookup[index] = getPhotoEditorCurveValue(points, index / 255) * outputScale;
+  }
+
+  return lookup;
+}
+
+function getPhotoEditorCurveLookupIndex(value, scale = 255) {
+  return Math.max(0, Math.min(255, Math.round(value * 255 / scale)));
+}
+
+function isPhotoEditorCurvePointsIdentity(points) {
+  const curvePoints = clonePhotoEditorCurvePoints(points);
+  return curvePoints.every(
+    (point, index) =>
+      Math.abs(point - PHOTO_EDITOR_CURVE_DEFAULT_POINTS[index]) < 0.001
+  );
+}
+
+function isPhotoEditorCurveStateIdentity(curveState) {
+  const curve = normalizePhotoEditorCurveState(curveState);
+
+  return PHOTO_EDITOR_CURVE_MODES.every((mode) =>
+    PHOTO_EDITOR_CURVE_CHANNELS[mode].every((channel) =>
+      isPhotoEditorCurvePointsIdentity(curve.points[mode][channel.key])
+    )
+  );
+}
+
+function createPhotoEditorCurveLookups(curveState) {
+  const curve = normalizePhotoEditorCurveState(curveState);
+  const rgbIdentity = {};
+  const hsvIdentity = {};
+
+  for (const channel of PHOTO_EDITOR_CURVE_CHANNELS.rgb) {
+    rgbIdentity[channel.key] = isPhotoEditorCurvePointsIdentity(
+      curve.points.rgb[channel.key]
+    );
+  }
+
+  for (const channel of PHOTO_EDITOR_CURVE_CHANNELS.hsv) {
+    hsvIdentity[channel.key] = isPhotoEditorCurvePointsIdentity(
+      curve.points.hsv[channel.key]
+    );
+  }
+
+  return {
+    curve,
+    hasRgbCurve: Object.values(rgbIdentity).some((isIdentity) => !isIdentity),
+    hasHsvCurve: Object.values(hsvIdentity).some((isIdentity) => !isIdentity),
+    rgbIdentity,
+    hsvIdentity,
+    rgb: {
+      master: buildPhotoEditorCurveLookup(curve.points.rgb.master),
+      r: buildPhotoEditorCurveLookup(curve.points.rgb.r),
+      g: buildPhotoEditorCurveLookup(curve.points.rgb.g),
+      b: buildPhotoEditorCurveLookup(curve.points.rgb.b),
+    },
+    hsv: {
+      master: buildPhotoEditorCurveLookup(curve.points.hsv.master, {
+        outputScale: 1,
+      }),
+      h: buildPhotoEditorCurveLookup(curve.points.hsv.h, { outputScale: 1 }),
+      s: buildPhotoEditorCurveLookup(curve.points.hsv.s, { outputScale: 1 }),
+      v: buildPhotoEditorCurveLookup(curve.points.hsv.v, { outputScale: 1 }),
+    },
+  };
+}
+
+function convertRgbToHsv(red, green, blue) {
+  const r = clampNumber(red, 0, 255, 0) / 255;
+  const g = clampNumber(green, 0, 255, 0) / 255;
+  const b = clampNumber(blue, 0, 255, 0) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  let hue = 0;
+
+  if (delta > 0) {
+    if (max === r) {
+      hue = ((g - b) / delta) % 6;
+    } else if (max === g) {
+      hue = (b - r) / delta + 2;
+    } else {
+      hue = (r - g) / delta + 4;
+    }
+
+    hue /= 6;
+
+    if (hue < 0) {
+      hue += 1;
+    }
+  }
+
+  return {
+    h: hue,
+    s: max === 0 ? 0 : delta / max,
+    v: max,
+  };
+}
+
+function convertHsvToRgb(hue, saturation, value) {
+  const h = ((clampNumber(hue, 0, 1, 0) * 6) % 6 + 6) % 6;
+  const s = clampNumber(saturation, 0, 1, 0);
+  const v = clampNumber(value, 0, 1, 0);
+  const chroma = v * s;
+  const x = chroma * (1 - Math.abs((h % 2) - 1));
+  const match = v - chroma;
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+
+  if (h < 1) {
+    red = chroma;
+    green = x;
+  } else if (h < 2) {
+    red = x;
+    green = chroma;
+  } else if (h < 3) {
+    green = chroma;
+    blue = x;
+  } else if (h < 4) {
+    green = x;
+    blue = chroma;
+  } else if (h < 5) {
+    red = x;
+    blue = chroma;
+  } else {
+    red = chroma;
+    blue = x;
+  }
+
+  return {
+    red: (red + match) * 255,
+    green: (green + match) * 255,
+    blue: (blue + match) * 255,
+  };
+}
+
+function applyPhotoEditorCurveStateToColor(
+  red,
+  green,
+  blue,
+  curveLookups
+) {
+  let nextRed = red;
+  let nextGreen = green;
+  let nextBlue = blue;
+
+  if (curveLookups.hasRgbCurve) {
+    if (!curveLookups.rgbIdentity.master) {
+      nextRed = curveLookups.rgb.master[getPhotoEditorCurveLookupIndex(nextRed)];
+      nextGreen = curveLookups.rgb.master[getPhotoEditorCurveLookupIndex(nextGreen)];
+      nextBlue = curveLookups.rgb.master[getPhotoEditorCurveLookupIndex(nextBlue)];
+    }
+
+    if (!curveLookups.rgbIdentity.r) {
+      nextRed = curveLookups.rgb.r[getPhotoEditorCurveLookupIndex(nextRed)];
+    }
+
+    if (!curveLookups.rgbIdentity.g) {
+      nextGreen = curveLookups.rgb.g[getPhotoEditorCurveLookupIndex(nextGreen)];
+    }
+
+    if (!curveLookups.rgbIdentity.b) {
+      nextBlue = curveLookups.rgb.b[getPhotoEditorCurveLookupIndex(nextBlue)];
+    }
+  }
+
+  if (curveLookups.hasHsvCurve) {
+    const hsv = convertRgbToHsv(nextRed, nextGreen, nextBlue);
+    let hue = hsv.h;
+    let saturation = hsv.s;
+    let value = hsv.v;
+
+    if (!curveLookups.hsvIdentity.master) {
+      value = curveLookups.hsv.master[getPhotoEditorCurveLookupIndex(value, 1)];
+    }
+
+    if (!curveLookups.hsvIdentity.h) {
+      hue = curveLookups.hsv.h[getPhotoEditorCurveLookupIndex(hue, 1)];
+    }
+
+    if (!curveLookups.hsvIdentity.s) {
+      saturation = curveLookups.hsv.s[
+        getPhotoEditorCurveLookupIndex(saturation, 1)
+      ];
+    }
+
+    if (!curveLookups.hsvIdentity.v) {
+      value = curveLookups.hsv.v[getPhotoEditorCurveLookupIndex(value, 1)];
+    }
+
+    const mappedHsv = { h: hue, s: saturation, v: value };
+    const mappedRgb = convertHsvToRgb(mappedHsv.h, mappedHsv.s, mappedHsv.v);
+
+    nextRed = mappedRgb.red;
+    nextGreen = mappedRgb.green;
+    nextBlue = mappedRgb.blue;
+  }
+
+  return {
+    red: nextRed,
+    green: nextGreen,
+    blue: nextBlue,
+  };
+}
+
+function getPhotoEditorAdjustmentRenderParams(values, curveState = null) {
+  const brightness = clampNumber(values.brightness, -100, 100, 0);
+  const exposureFactor = Math.pow(
+    2,
+    clampNumber(values.exposure, -100, 100, 0) / 85
+  );
+  const contrast = clampNumber(values.contrast, -60, 60, 0) * 1.1;
+  const contrastFactor =
+    (259 * (contrast + 255)) / (255 * (259 - contrast));
+  const highlights = clampNumber(values.highlights, -60, 60, 0) * 0.95;
+  const whites = clampNumber(values.whites, -100, 100, 0) * 1.45;
+  const shadows = clampNumber(values.shadows, -100, 100, 0) * 1.08;
+  const blacks = clampNumber(values.blacks, -100, 100, 0) * 1.16;
+  const gamma = clampNumber(values.gamma, -100, 100, 0);
+  const gammaExponent = Math.pow(2, -gamma / 140);
+  const temperature = clampNumber(values.temperature, -100, 100, 0) * 1.05;
+  const tint = clampNumber(values.tint, -100, 100, 0) * 0.86;
+  const saturationFactor = Math.max(
+    0,
+    1 + clampNumber(values.saturation, -100, 100, 0) / 100
+  );
+  const vibrance = clampNumber(values.vibrance, -100, 100, 0) / 100;
+  const fade = clampNumber(values.fade, 0, 100, 0) / 100;
+  const grain = clampNumber(values.grain, 0, 100, 0) * 0.42;
+  const curveLookups = createPhotoEditorCurveLookups(curveState);
+  const hasCurve = curveLookups.hasRgbCurve || curveLookups.hasHsvCurve;
+
+  return {
+    brightness,
+    exposureFactor,
+    contrastFactor,
+    highlights,
+    whites,
+    shadows,
+    blacks,
+    gamma,
+    gammaExponent,
+    temperature,
+    tint,
+    saturationFactor,
+    vibrance,
+    fade,
+    grain,
+    curveLookups,
+    hasCurve,
+    hasPixelWork:
+      brightness !== 0 ||
+      exposureFactor !== 1 ||
+      contrast !== 0 ||
+      highlights !== 0 ||
+      whites !== 0 ||
+      shadows !== 0 ||
+      blacks !== 0 ||
+      gamma !== 0 ||
+      temperature !== 0 ||
+      tint !== 0 ||
+      saturationFactor !== 1 ||
+      vibrance !== 0 ||
+      fade !== 0 ||
+      grain !== 0 ||
+      hasCurve,
+  };
+}
+
+function applyPhotoEditorAdjustmentsToCanvas(
+  ctx,
+  width,
+  height,
+  values,
+  curveState = photoEditorState?.curve
+) {
+  const renderParams = getPhotoEditorAdjustmentRenderParams(values, curveState);
+
+  if (renderParams.hasPixelWork) {
+    let imageData;
+
+    try {
+      imageData = ctx.getImageData(0, 0, width, height);
+    } catch {
+      return;
+    }
+
+    applyPhotoEditorPixelAdjustmentsToImageData(
+      imageData,
+      width,
+      renderParams
+    );
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  applyPhotoEditorDenoiseToCanvas(ctx, width, height, values.denoise);
+  applyPhotoEditorClarityToCanvas(ctx, width, height, values.clarity);
+  applyPhotoEditorTextureToCanvas(ctx, width, height, values.texture);
+  applyPhotoEditorSharpnessToCanvas(ctx, width, height, values.sharpness);
+  applyPhotoEditorVignette(ctx, width, height, values.vignette);
+}
+
+function applyPhotoEditorPixelAdjustmentsToImageData(imageData, width, params) {
+  const data = imageData.data;
+  const {
+    brightness,
+    exposureFactor,
+    contrastFactor,
+    highlights,
+    whites,
+    shadows,
+    blacks,
+    gamma,
+    gammaExponent,
+    temperature,
+    tint,
+    saturationFactor,
+    vibrance,
+    fade,
+    grain,
+    curveLookups,
+    hasCurve,
+  } = params;
+  let x = 0;
+  let y = 0;
+
+  for (let index = 0; index < data.length; index += 4) {
+    let red = data[index];
+    let green = data[index + 1];
+    let blue = data[index + 2];
+    const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+    const highlightWeight = smoothstep(0.44, 0.9, luminance);
+    const shadowWeight = 1 - smoothstep(0, 0.48, luminance);
+    const whiteWeight = Math.pow(smoothstep(0.66, 0.98, luminance), 0.92);
+    const blackWeight = Math.pow(1 - smoothstep(0, 0.34, luminance), 1.12);
+    const highlightLift = highlights * highlightWeight * (1 - whiteWeight * 0.72);
+
+    red += brightness + highlightLift + shadows * shadowWeight;
+    green += brightness + highlightLift + shadows * shadowWeight;
+    blue += brightness + highlightLift + shadows * shadowWeight;
+
+    if (whites !== 0) {
+      const whiteAmount = whites / 100;
+      const whitePush = Math.min(1, Math.abs(whiteAmount) * whiteWeight);
+      const whitePointLift = whites * whiteWeight * 0.22;
+
+      red += whitePointLift;
+      green += whitePointLift;
+      blue += whitePointLift;
+
+      if (whiteAmount > 0) {
+        red += (255 - red) * whitePush * 0.78;
+        green += (255 - green) * whitePush * 0.78;
+        blue += (255 - blue) * whitePush * 0.78;
+      } else {
+        red -= red * whitePush * 0.72;
+        green -= green * whitePush * 0.72;
+        blue -= blue * whitePush * 0.72;
+      }
+    }
+
+    red += blacks * blackWeight;
+    green += blacks * blackWeight;
+    blue += blacks * blackWeight;
+
+    red *= exposureFactor;
+    green *= exposureFactor;
+    blue *= exposureFactor;
+
+    red += temperature * 0.55;
+    green += temperature * 0.08;
+    blue -= temperature * 0.55;
+
+    red += tint * 0.28;
+    green -= tint * 0.46;
+    blue += tint * 0.28;
+
+    red = (red - 128) * contrastFactor + 128;
+    green = (green - 128) * contrastFactor + 128;
+    blue = (blue - 128) * contrastFactor + 128;
+
+    if (gamma !== 0) {
+      red = Math.pow(clampNumber(red, 0, 255, 0) / 255, gammaExponent) * 255;
+      green = Math.pow(clampNumber(green, 0, 255, 0) / 255, gammaExponent) * 255;
+      blue = Math.pow(clampNumber(blue, 0, 255, 0) / 255, gammaExponent) * 255;
+    }
+
+    if (fade > 0) {
+      const fadeCompression = fade * 0.36;
+      const fadeLift = 42 * fade;
+      red = red * (1 - fadeCompression) + fadeLift;
+      green = green * (1 - fadeCompression) + fadeLift;
+      blue = blue * (1 - fadeCompression) + fadeLift;
+    }
+
+    const gray = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    red = gray + (red - gray) * saturationFactor;
+    green = gray + (green - gray) * saturationFactor;
+    blue = gray + (blue - gray) * saturationFactor;
+
+    if (vibrance !== 0) {
+      const vibranceGray = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+      const maxChannel = Math.max(red, green, blue);
+      const minChannel = Math.min(red, green, blue);
+      const pixelSaturation =
+        maxChannel <= 0 ? 0 : clampNumber((maxChannel - minChannel) / maxChannel, 0, 1, 0);
+      const vibranceWeight = vibrance > 0
+        ? Math.pow(1 - pixelSaturation, 1.25)
+        : 0.55 + pixelSaturation * 0.45;
+      const vibranceFactor = Math.max(0, 1 + vibrance * vibranceWeight * 0.9);
+
+      red = vibranceGray + (red - vibranceGray) * vibranceFactor;
+      green = vibranceGray + (green - vibranceGray) * vibranceFactor;
+      blue = vibranceGray + (blue - vibranceGray) * vibranceFactor;
+    }
+
+    if (grain > 0) {
+      const noise = getDeterministicNoise(x, y) * grain;
+      red += noise;
+      green += noise;
+      blue += noise;
+    }
+
+    if (hasCurve) {
+      const mappedColor = applyPhotoEditorCurveStateToColor(
+        red,
+        green,
+        blue,
+        curveLookups
+      );
+
+      red = mappedColor.red;
+      green = mappedColor.green;
+      blue = mappedColor.blue;
+    }
+
+    data[index] = clampColorChannel(red);
+    data[index + 1] = clampColorChannel(green);
+    data[index + 2] = clampColorChannel(blue);
+
+    x += 1;
+    if (x >= width) {
+      x = 0;
+      y += 1;
+    }
+  }
+}
+
+function applyPhotoEditorDenoiseToCanvas(ctx, width, height, value) {
+  const denoise = clampNumber(value, 0, 100, 0);
+
+  if (denoise <= 0) {
+    return;
+  }
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = width;
+  tempCanvas.height = height;
+  const tempCtx = tempCanvas.getContext('2d');
+
+  if (!tempCtx) {
+    return;
+  }
+
+  tempCtx.filter = 'blur(1.4px)';
+  tempCtx.drawImage(ctx.canvas, 0, 0);
+  tempCtx.filter = 'none';
+
+  ctx.save();
+  ctx.globalAlpha = Math.min(0.55, denoise / 170);
+  ctx.drawImage(tempCanvas, 0, 0);
+  ctx.restore();
+}
+
+function applyPhotoEditorClarityToCanvas(ctx, width, height, value) {
+  const clarity = clampNumber(value, -100, 100, 0);
+
+  if (clarity === 0) {
+    return;
+  }
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = width;
+  tempCanvas.height = height;
+  const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+
+  if (!tempCtx) {
+    return;
+  }
+
+  tempCtx.filter = 'blur(2px)';
+  tempCtx.drawImage(ctx.canvas, 0, 0);
+  tempCtx.filter = 'none';
+
+  if (clarity < 0) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.82, Math.abs(clarity) / 100);
+    ctx.drawImage(tempCanvas, 0, 0);
+    ctx.restore();
+    return;
+  }
+
+  let sourceData;
+  let blurredData;
+
+  try {
+    sourceData = ctx.getImageData(0, 0, width, height);
+    blurredData = tempCtx.getImageData(0, 0, width, height);
+  } catch {
+    return;
+  }
+
+  const source = sourceData.data;
+  const blurred = blurredData.data;
+  const amount = (clarity / 100) * 1.65;
+
+  for (let index = 0; index < source.length; index += 4) {
+    source[index] = clampColorChannel(
+      source[index] + (source[index] - blurred[index]) * amount
+    );
+    source[index + 1] = clampColorChannel(
+      source[index + 1] + (source[index + 1] - blurred[index + 1]) * amount
+    );
+    source[index + 2] = clampColorChannel(
+      source[index + 2] + (source[index + 2] - blurred[index + 2]) * amount
+    );
+  }
+
+  ctx.putImageData(sourceData, 0, 0);
+}
+
+function applyPhotoEditorTextureToCanvas(ctx, width, height, value) {
+  const texture = clampNumber(value, -100, 100, 0);
+
+  if (texture === 0) {
+    return;
+  }
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = width;
+  tempCanvas.height = height;
+  const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+
+  if (!tempCtx) {
+    return;
+  }
+
+  tempCtx.filter = 'blur(0.85px)';
+  tempCtx.drawImage(ctx.canvas, 0, 0);
+  tempCtx.filter = 'none';
+
+  if (texture < 0) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.64, Math.abs(texture) / 145);
+    ctx.drawImage(tempCanvas, 0, 0);
+    ctx.restore();
+    return;
+  }
+
+  let sourceData;
+  let blurredData;
+
+  try {
+    sourceData = ctx.getImageData(0, 0, width, height);
+    blurredData = tempCtx.getImageData(0, 0, width, height);
+  } catch {
+    return;
+  }
+
+  const source = sourceData.data;
+  const blurred = blurredData.data;
+  const amount = (texture / 100) * 1.05;
+
+  for (let index = 0; index < source.length; index += 4) {
+    const detailRed = source[index] - blurred[index];
+    const detailGreen = source[index + 1] - blurred[index + 1];
+    const detailBlue = source[index + 2] - blurred[index + 2];
+    const detailLuma = 0.2126 * detailRed + 0.7152 * detailGreen + 0.0722 * detailBlue;
+
+    source[index] = clampColorChannel(source[index] + detailLuma * amount);
+    source[index + 1] = clampColorChannel(source[index + 1] + detailLuma * amount);
+    source[index + 2] = clampColorChannel(source[index + 2] + detailLuma * amount);
+  }
+
+  ctx.putImageData(sourceData, 0, 0);
+}
+
+function applyPhotoEditorSharpnessToCanvas(ctx, width, height, value) {
+  const sharpness = clampNumber(value, 0, 100, 0);
+
+  if (sharpness <= 0) {
+    return;
+  }
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = width;
+  tempCanvas.height = height;
+  const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+
+  if (!tempCtx) {
+    return;
+  }
+
+  tempCtx.filter = 'blur(1.2px)';
+  tempCtx.drawImage(ctx.canvas, 0, 0);
+  tempCtx.filter = 'none';
+
+  let sourceData;
+  let blurredData;
+
+  try {
+    sourceData = ctx.getImageData(0, 0, width, height);
+    blurredData = tempCtx.getImageData(0, 0, width, height);
+  } catch {
+    return;
+  }
+
+  const source = sourceData.data;
+  const blurred = blurredData.data;
+  const amount = (sharpness / 100) * 1.15;
+
+  for (let index = 0; index < source.length; index += 4) {
+    source[index] = clampColorChannel(
+      source[index] + (source[index] - blurred[index]) * amount
+    );
+    source[index + 1] = clampColorChannel(
+      source[index + 1] + (source[index + 1] - blurred[index + 1]) * amount
+    );
+    source[index + 2] = clampColorChannel(
+      source[index + 2] + (source[index + 2] - blurred[index + 2]) * amount
+    );
+  }
+
+  ctx.putImageData(sourceData, 0, 0);
+}
+
+function applyPhotoEditorVignette(ctx, width, height, value) {
+  const vignette = clampNumber(value, -100, 100, 0);
+
+  if (vignette === 0) {
+    return;
+  }
+
+  const isWhiteVignette = vignette > 0;
+  const strength = Math.abs(vignette) / 100;
+  const edgeColor = isWhiteVignette ? '255, 255, 255' : '0, 0, 0';
+  const radius = Math.hypot(width, height) * 0.54;
+  const gradient = ctx.createRadialGradient(
+    width / 2,
+    height / 2,
+    Math.min(width, height) * 0.28,
+    width / 2,
+    height / 2,
+    radius
+  );
+  gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  gradient.addColorStop(1, `rgba(${edgeColor}, ${0.56 * strength})`);
+
+  ctx.save();
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, width, height);
+  ctx.restore();
+}
+
+function getPhotoEditorBlurGeometry(width, height, blurState = null) {
+  const blur = normalizePhotoEditorBlurState(blurState);
+  const minEdge = Math.max(1, Math.min(width, height));
+  const centerX = clampNumber(blur.centerX, 0, 1, 0.5) * width;
+  const centerY = clampNumber(blur.centerY, 0, 1, 0.5) * height;
+  const radius = clampNumber(
+    blur.radius,
+    PHOTO_EDITOR_RADIAL_BLUR_MIN_RADIUS,
+    PHOTO_EDITOR_RADIAL_BLUR_MAX_RADIUS - PHOTO_EDITOR_RADIAL_BLUR_MIN_FEATHER,
+    0.34
+  ) * minEdge;
+  const outerRadius = clampNumber(
+    blur.outerRadius,
+    blur.radius + PHOTO_EDITOR_RADIAL_BLUR_MIN_FEATHER,
+    PHOTO_EDITOR_RADIAL_BLUR_MAX_RADIUS,
+    Math.max(blur.radius + 0.18, 0.52)
+  ) * minEdge;
+
+  return {
+    centerX,
+    centerY,
+    radius,
+    outerRadius: Math.max(radius + minEdge * PHOTO_EDITOR_RADIAL_BLUR_MIN_FEATHER, outerRadius),
+    minEdge,
+  };
+}
+
+function drawPhotoEditorBlurPaddingSource(targetCtx, sourceCanvas, padding, width, height) {
+  targetCtx.drawImage(sourceCanvas, padding, padding);
+  targetCtx.drawImage(sourceCanvas, 0, 0, width, 1, padding, 0, width, padding);
+  targetCtx.drawImage(
+    sourceCanvas,
+    0,
+    height - 1,
+    width,
+    1,
+    padding,
+    padding + height,
+    width,
+    padding
+  );
+  targetCtx.drawImage(sourceCanvas, 0, 0, 1, height, 0, padding, padding, height);
+  targetCtx.drawImage(
+    sourceCanvas,
+    width - 1,
+    0,
+    1,
+    height,
+    padding + width,
+    padding,
+    padding,
+    height
+  );
+  targetCtx.drawImage(sourceCanvas, 0, 0, 1, 1, 0, 0, padding, padding);
+  targetCtx.drawImage(
+    sourceCanvas,
+    width - 1,
+    0,
+    1,
+    1,
+    padding + width,
+    0,
+    padding,
+    padding
+  );
+  targetCtx.drawImage(
+    sourceCanvas,
+    0,
+    height - 1,
+    1,
+    1,
+    0,
+    padding + height,
+    padding,
+    padding
+  );
+  targetCtx.drawImage(
+    sourceCanvas,
+    width - 1,
+    height - 1,
+    1,
+    1,
+    padding + width,
+    padding + height,
+    padding,
+    padding
+  );
+}
+
+function createPhotoEditorBlurredCanvas(
+  ctx,
+  width,
+  height,
+  amount,
+  { isInteractivePreview = false } = {}
+) {
+  const blurAmount = clampNumber(amount, 0, 100, 0);
+
+  if (blurAmount <= 0) {
+    return null;
+  }
+
+  const blurRadius = Math.max(
+    1,
+    Math.min(
+      isInteractivePreview ? 24 : 42,
+      Math.round(blurAmount * (isInteractivePreview ? 0.3 : 0.42))
+    )
+  );
+  const padding = Math.ceil(blurRadius * 2);
+  const paddedWidth = width + padding * 2;
+  const paddedHeight = height + padding * 2;
+  const paddedCanvas = document.createElement('canvas');
+  paddedCanvas.width = paddedWidth;
+  paddedCanvas.height = paddedHeight;
+  const paddedCtx = paddedCanvas.getContext('2d');
+
+  if (!paddedCtx) {
+    return null;
+  }
+
+  drawPhotoEditorBlurPaddingSource(paddedCtx, ctx.canvas, padding, width, height);
+
+  const paddedBlurCanvas = document.createElement('canvas');
+  paddedBlurCanvas.width = paddedWidth;
+  paddedBlurCanvas.height = paddedHeight;
+  const paddedBlurCtx = paddedBlurCanvas.getContext('2d');
+
+  if (!paddedBlurCtx) {
+    return null;
+  }
+
+  paddedBlurCtx.filter = `blur(${blurRadius}px)`;
+  paddedBlurCtx.drawImage(paddedCanvas, 0, 0);
+  paddedBlurCtx.filter = 'none';
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = width;
+  tempCanvas.height = height;
+  const tempCtx = tempCanvas.getContext('2d');
+
+  if (!tempCtx) {
+    return null;
+  }
+
+  tempCtx.drawImage(
+    paddedBlurCanvas,
+    padding,
+    padding,
+    width,
+    height,
+    0,
+    0,
+    width,
+    height
+  );
+
+  return {
+    canvas: tempCanvas,
+    ctx: tempCtx,
+    radius: blurRadius,
+  };
+}
+
+function applyPhotoEditorBlurEffectToCanvas(
+  ctx,
+  width,
+  height,
+  blurState = null,
+  { isInteractivePreview = false } = {}
+) {
+  const blur = normalizePhotoEditorBlurState(blurState);
+  const blurred = createPhotoEditorBlurredCanvas(
+    ctx,
+    width,
+    height,
+    blur.amount,
+    { isInteractivePreview }
+  );
+
+  if (!blurred) {
+    return;
+  }
+
+  if (blur.mode === 'full') {
+    ctx.drawImage(blurred.canvas, 0, 0);
+    return;
+  }
+
+  const { centerX, centerY, radius, outerRadius } = getPhotoEditorBlurGeometry(
+    width,
+    height,
+    blur
+  );
+  const maskCanvas = document.createElement('canvas');
+  maskCanvas.width = width;
+  maskCanvas.height = height;
+  const maskCtx = maskCanvas.getContext('2d');
+
+  if (!maskCtx) {
+    return;
+  }
+
+  const gradient = maskCtx.createRadialGradient(
+    centerX,
+    centerY,
+    radius,
+    centerX,
+    centerY,
+    outerRadius
+  );
+  gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  gradient.addColorStop(1, 'rgba(0, 0, 0, 1)');
+
+  maskCtx.fillStyle = gradient;
+  maskCtx.fillRect(0, 0, width, height);
+  blurred.ctx.globalCompositeOperation = 'destination-in';
+  blurred.ctx.drawImage(maskCanvas, 0, 0);
+  blurred.ctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(blurred.canvas, 0, 0);
+}
+
+function drawPhotoEditorRadialBlurControl(ctx, width, height) {
+  if (
+    photoEditorState?.blur?.mode !== 'radial' ||
+    photoEditorState.blur.isConfirmed ||
+    !isPhotoEditorAccordionOpen('blur') ||
+    photoEditorState.maskTool !== 'none' ||
+    photoEditorState.draftMask
+  ) {
+    return;
+  }
+
+  const { centerX, centerY, radius, outerRadius } = getPhotoEditorBlurGeometry(
+    width,
+    height,
+    photoEditorState.blur
+  );
+  const lineWidth = Math.max(2, Math.round(Math.max(width, height) / 900));
+  const handleRadius = Math.max(7, lineWidth * 3);
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(79, 140, 255, 0.1)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.lineWidth = lineWidth;
+  ctx.setLineDash([10, 7]);
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.setLineDash([5, 6]);
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(79, 140, 255, 0.92)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+  ctx.lineWidth = Math.max(2, Math.round(lineWidth * 0.8));
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, handleRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(centerX + radius, centerY, handleRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(centerX + outerRadius, centerY, handleRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function getPhotoEditorImageSize(image) {
+  return {
+    width: Number(image?.naturalWidth || image?.width) || 0,
+    height: Number(image?.naturalHeight || image?.height) || 0,
+  };
+}
+
+function getPhotoEditorMaskCoordinateBounds(allowOutside = false) {
+  return allowOutside
+    ? {
+        min: -PHOTO_EDITOR_MASK_OUTSIDE_MARGIN,
+        max: 1 + PHOTO_EDITOR_MASK_OUTSIDE_MARGIN,
+      }
+    : { min: 0, max: 1 };
+}
+
+function canPhotoEditorMaskExtendOutside(maskOrShape) {
+  const shape =
+    typeof maskOrShape === 'string' ? maskOrShape : maskOrShape?.shape;
+
+  return shape === 'ellipse' || Boolean(maskOrShape?.allowOutside);
+}
+
+function mapPhotoEditorMaskPointToCanvas(
+  point,
+  mask,
+  width,
+  height,
+  sourceRect = null,
+  sourceImage = null
+) {
+  const allowOutside = canPhotoEditorMaskExtendOutside(mask);
+  const bounds = getPhotoEditorMaskCoordinateBounds(allowOutside);
+  const x = clampNumber(point?.x, bounds.min, bounds.max, 0);
+  const y = clampNumber(point?.y, bounds.min, bounds.max, 0);
+  const imageSize = getPhotoEditorImageSize(sourceImage);
+  const canUseSourceSpace =
+    mask?.space === 'source' &&
+    sourceRect &&
+    sourceRect.width > 0 &&
+    sourceRect.height > 0 &&
+    imageSize.width > 0 &&
+    imageSize.height > 0;
+
+  if (!canUseSourceSpace) {
+    return {
+      x: x * width,
+      y: y * height,
+    };
+  }
+
+  const geometry = getPhotoEditorCropRenderGeometry(
+    sourceRect,
+    width,
+    height,
+    photoEditorState?.crop || getDefaultPhotoEditorCropState()
+  );
+  const localX =
+    ((x * imageSize.width - sourceRect.x) / sourceRect.width - 0.5) *
+    geometry.drawWidth *
+    geometry.coverScale;
+  const localY =
+    ((y * imageSize.height - sourceRect.y) / sourceRect.height - 0.5) *
+    geometry.drawHeight *
+    geometry.coverScale;
+  const flippedX = geometry.flipX ? -localX : localX;
+  const cos = Math.cos(geometry.rotationRadians);
+  const sin = Math.sin(geometry.rotationRadians);
+
+  return {
+    x: width / 2 + flippedX * cos - localY * sin,
+    y: height / 2 + flippedX * sin + localY * cos,
+  };
+}
+
+function getPhotoEditorMaskCanvasPoints(
+  mask,
+  width,
+  height,
+  sourceRect = null,
+  sourceImage = null
+) {
+  return (Array.isArray(mask?.points) ? mask.points : [])
+    .filter((point) => Number.isFinite(point?.x) && Number.isFinite(point?.y))
+    .map((point) =>
+      mapPhotoEditorMaskPointToCanvas(
+        point,
+        mask,
+        width,
+        height,
+        sourceRect,
+        sourceImage
+      )
+    );
+}
+
+function getRawCanvasRectFromMask(
+  mask,
+  width,
+  height,
+  sourceRect = null,
+  sourceImage = null
+) {
+  if (mask?.shape === 'freehand') {
+    const points = getPhotoEditorMaskCanvasPoints(
+      mask,
+      width,
+      height,
+      sourceRect,
+      sourceImage
+    );
+
+    if (points.length > 0) {
+      const xs = points.map((point) => point.x);
+      const ys = points.map((point) => point.y);
+      const left = Math.min(...xs);
+      const top = Math.min(...ys);
+      const right = Math.max(...xs);
+      const bottom = Math.max(...ys);
+
+      return {
+        x: left,
+        y: top,
+        width: right - left,
+        height: bottom - top,
+      };
+    }
+  }
+
+  const corners = getPhotoEditorRotatedMaskRectCorners(mask, width, height).map((corner) =>
+    mapPhotoEditorMaskPointToCanvas(
+      corner,
+      mask,
+      width,
+      height,
+      sourceRect,
+      sourceImage
+    )
+  );
+  const xs = corners.map((corner) => corner.x);
+  const ys = corners.map((corner) => corner.y);
+  const left = Math.min(...xs);
+  const top = Math.min(...ys);
+  const right = Math.max(...xs);
+  const bottom = Math.max(...ys);
+
+  return {
+    x: left,
+    y: top,
+    width: right - left,
+    height: bottom - top,
+  };
+}
+
+function getVisibleCanvasRectFromMask(
+  mask,
+  width,
+  height,
+  sourceRect = null,
+  sourceImage = null
+) {
+  const maskRect = getRawCanvasRectFromMask(
+    mask,
+    width,
+    height,
+    sourceRect,
+    sourceImage
+  );
+
+  if (!maskRect) {
+    return null;
+  }
+
+  const left = clampNumber(maskRect.x, 0, width, 0);
+  const top = clampNumber(maskRect.y, 0, height, 0);
+  const right = clampNumber(maskRect.x + maskRect.width, 0, width, 0);
+  const bottom = clampNumber(maskRect.y + maskRect.height, 0, height, 0);
+
+  if (right <= left || bottom <= top) {
+    return null;
+  }
+
+  return {
+    x: Math.round(left),
+    y: Math.round(top),
+    width: Math.max(1, Math.round(right - left)),
+    height: Math.max(1, Math.round(bottom - top)),
+  };
+}
+
+function isPhotoEditorPointInsideMask(point, mask, width, height, sourceRect, sourceImage) {
+  if (!point || !mask || !photoEditorCanvas) {
+    return false;
+  }
+
+  const pointX = clampNumber(point.x, 0, 1, 0) * width;
+  const pointY = clampNumber(point.y, 0, 1, 0) * height;
+  const ctx = photoEditorCanvas.getContext('2d');
+
+  if (!ctx) {
+    const maskRect = getRawCanvasRectFromMask(
+      mask,
+      width,
+      height,
+      sourceRect,
+      sourceImage
+    );
+
+    return Boolean(
+      maskRect &&
+        pointX >= maskRect.x &&
+        pointX <= maskRect.x + maskRect.width &&
+        pointY >= maskRect.y &&
+        pointY <= maskRect.y + maskRect.height
+    );
+  }
+
+  ctx.save();
+  const pathRect = addPhotoEditorMaskPath(
+    ctx,
+    mask,
+    width,
+    height,
+    sourceRect,
+    sourceImage
+  );
+  const isInside = Boolean(pathRect && ctx.isPointInPath(pointX, pointY));
+  ctx.restore();
+  return isInside;
+}
+
+function addPhotoEditorMaskPath(
+  ctx,
+  mask,
+  width,
+  height,
+  sourceRect = null,
+  sourceImage = null
+) {
+  const maskRect = getRawCanvasRectFromMask(
+    mask,
+    width,
+    height,
+    sourceRect,
+    sourceImage
+  );
+
+  if (!maskRect || maskRect.width <= 0 || maskRect.height <= 0) {
+    return null;
+  }
+
+  ctx.beginPath();
+
+  if (
+    mask?.space !== 'source' &&
+    ['rect', 'ellipse'].includes(mask?.shape) &&
+    getPhotoEditorMaskRotation(mask) !== 0
+  ) {
+    const rect = getPhotoEditorMaskNormalizedRect(mask);
+    const center = getPhotoEditorMaskRectCenter(rect);
+    const centerX = center.x * width;
+    const centerY = center.y * height;
+    const rectWidth = rect.width * width;
+    const rectHeight = rect.height * height;
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(getPhotoEditorMaskRotation(mask) * Math.PI / 180);
+
+    if (mask.shape === 'ellipse') {
+      ctx.ellipse(0, 0, rectWidth / 2, rectHeight / 2, 0, 0, Math.PI * 2);
+    } else {
+      ctx.rect(-rectWidth / 2, -rectHeight / 2, rectWidth, rectHeight);
+    }
+
+    ctx.restore();
+    return maskRect;
+  }
+
+  if (mask?.shape === 'ellipse') {
+    ctx.ellipse(
+      maskRect.x + maskRect.width / 2,
+      maskRect.y + maskRect.height / 2,
+      maskRect.width / 2,
+      maskRect.height / 2,
+      0,
+      0,
+      Math.PI * 2
+    );
+    return maskRect;
+  }
+
+  if (mask?.shape === 'freehand' && Array.isArray(mask.points) && mask.points.length > 1) {
+    const points = getPhotoEditorMaskCanvasPoints(
+      mask,
+      width,
+      height,
+      sourceRect,
+      sourceImage
+    );
+
+    points.forEach((point, index) => {
+      const { x, y } = point;
+
+      if (index === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    ctx.closePath();
+    return maskRect;
+  }
+
+  ctx.rect(maskRect.x, maskRect.y, maskRect.width, maskRect.height);
+  return maskRect;
+}
+
+function withPhotoEditorMaskClip(
+  ctx,
+  mask,
+  width,
+  height,
+  sourceRect,
+  sourceImage,
+  draw
+) {
+  const maskRect = getVisibleCanvasRectFromMask(
+    mask,
+    width,
+    height,
+    sourceRect,
+    sourceImage
+  );
+
+  if (!maskRect) {
+    return;
+  }
+
+  ctx.save();
+  const pathRect = addPhotoEditorMaskPath(
+    ctx,
+    mask,
+    width,
+    height,
+    sourceRect,
+    sourceImage
+  );
+
+  if (!pathRect) {
+    ctx.restore();
+    return;
+  }
+
+  ctx.clip();
+  draw(maskRect);
+  ctx.restore();
+}
+
+function applyPhotoEditorFillMask(
+  ctx,
+  mask,
+  width,
+  height,
+  sourceRect,
+  sourceImage
+) {
+  const strength = clampNumber(mask?.strength, 0, 100, 45);
+
+  if (strength <= 0) {
+    return;
+  }
+
+  withPhotoEditorMaskClip(ctx, mask, width, height, sourceRect, sourceImage, (maskRect) => {
+    ctx.fillStyle = mask.color || '#111827';
+    ctx.globalAlpha = strength / 100;
+    ctx.fillRect(maskRect.x, maskRect.y, maskRect.width, maskRect.height);
+    ctx.globalAlpha = 1;
+  });
+}
+
+function applyPhotoEditorMosaicMask(
+  ctx,
+  mask,
+  width,
+  height,
+  sourceRect,
+  sourceImage
+) {
+  const strength = clampNumber(mask?.strength, 0, 100, 45);
+
+  if (strength <= 0) {
+    return;
+  }
+
+  const maskRect = getVisibleCanvasRectFromMask(
+    mask,
+    width,
+    height,
+    sourceRect,
+    sourceImage
+  );
+
+  if (!maskRect) {
+    return;
+  }
+
+  const tempCanvas = document.createElement('canvas');
+  const mosaicDivisor = Math.max(8, 30 - strength * 0.22);
+  const cellSize = Math.max(
+    3,
+    Math.round(Math.min(maskRect.width, maskRect.height) / mosaicDivisor)
+  );
+  tempCanvas.width = Math.max(1, Math.ceil(maskRect.width / cellSize));
+  tempCanvas.height = Math.max(1, Math.ceil(maskRect.height / cellSize));
+  const tempCtx = tempCanvas.getContext('2d');
+
+  if (!tempCtx) {
+    return;
+  }
+
+  tempCtx.imageSmoothingEnabled = true;
+  tempCtx.drawImage(
+    ctx.canvas,
+    maskRect.x,
+    maskRect.y,
+    maskRect.width,
+    maskRect.height,
+    0,
+    0,
+    tempCanvas.width,
+    tempCanvas.height
+  );
+
+  ctx.save();
+  const pathRect = addPhotoEditorMaskPath(
+    ctx,
+    mask,
+    width,
+    height,
+    sourceRect,
+    sourceImage
+  );
+
+  if (!pathRect) {
+    ctx.restore();
+    return;
+  }
+
+  ctx.clip();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(
+    tempCanvas,
+    0,
+    0,
+    tempCanvas.width,
+    tempCanvas.height,
+    maskRect.x,
+    maskRect.y,
+    maskRect.width,
+    maskRect.height
+  );
+  ctx.restore();
+}
+
+function applyPhotoEditorBlurMask(
+  ctx,
+  mask,
+  width,
+  height,
+  sourceRect,
+  sourceImage,
+  { isInteractivePreview = false } = {}
+) {
+  const strength = clampNumber(mask?.strength, 0, 100, 45);
+
+  if (strength <= 0) {
+    return;
+  }
+
+  const maskRect = getVisibleCanvasRectFromMask(
+    mask,
+    width,
+    height,
+    sourceRect,
+    sourceImage
+  );
+
+  if (!maskRect) {
+    return;
+  }
+
+  const blurRadius = Math.max(
+    1,
+    Math.min(
+      isInteractivePreview ? 28 : 46,
+      Math.round(
+        (Math.min(maskRect.width, maskRect.height) * (isInteractivePreview ? 0.075 : 0.1)) *
+          (strength / 100)
+      )
+    )
+  );
+  const padding = Math.ceil(blurRadius * 2);
+  const sourceX = Math.max(0, maskRect.x - padding);
+  const sourceY = Math.max(0, maskRect.y - padding);
+  const sourceRight = Math.min(ctx.canvas.width, maskRect.x + maskRect.width + padding);
+  const sourceBottom = Math.min(ctx.canvas.height, maskRect.y + maskRect.height + padding);
+  const sourceWidth = Math.max(1, sourceRight - sourceX);
+  const sourceHeight = Math.max(1, sourceBottom - sourceY);
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = sourceWidth;
+  tempCanvas.height = sourceHeight;
+  const tempCtx = tempCanvas.getContext('2d');
+
+  if (!tempCtx) {
+    return;
+  }
+
+  tempCtx.drawImage(
+    ctx.canvas,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    sourceWidth,
+    sourceHeight
+  );
+
+  ctx.save();
+  const pathRect = addPhotoEditorMaskPath(
+    ctx,
+    mask,
+    width,
+    height,
+    sourceRect,
+    sourceImage
+  );
+
+  if (!pathRect) {
+    ctx.restore();
+    ctx.filter = 'none';
+    return;
+  }
+
+  ctx.clip();
+  ctx.filter = `blur(${blurRadius}px)`;
+  ctx.drawImage(tempCanvas, sourceX, sourceY, sourceWidth, sourceHeight);
+  ctx.restore();
+  ctx.filter = 'none';
+}
+
+function applyPhotoEditorMasksToCanvas(
+  ctx,
+  masks,
+  width,
+  height,
+  sourceRect = null,
+  sourceImage = null,
+  { isInteractivePreview = false } = {}
+) {
+  for (const mask of Array.isArray(masks) ? masks : []) {
+    if (mask.type === 'blur') {
+      applyPhotoEditorBlurMask(ctx, mask, width, height, sourceRect, sourceImage, {
+        isInteractivePreview,
+      });
+      continue;
+    }
+
+    if (mask.type === 'mosaic') {
+      applyPhotoEditorMosaicMask(ctx, mask, width, height, sourceRect, sourceImage);
+      continue;
+    }
+
+    applyPhotoEditorFillMask(ctx, mask, width, height, sourceRect, sourceImage);
+  }
+}
+
+function drawPhotoEditorDraftMask(ctx, width, height, sourceRect = null, sourceImage = null) {
+  const draftMask = photoEditorState?.draftMask;
+
+  if (!draftMask) {
+    return;
+  }
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(79, 140, 255, 0.16)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
+  ctx.lineWidth = Math.max(2, Math.round(Math.max(width, height) / 800));
+  ctx.setLineDash([8, 6]);
+  const pathRect = addPhotoEditorMaskPath(
+    ctx,
+    draftMask,
+    width,
+    height,
+    sourceRect,
+    sourceImage
+  );
+
+  if (!pathRect) {
+    ctx.restore();
+    return;
+  }
+
+  ctx.fill();
+  ctx.stroke();
+  ctx.setLineDash([]);
+  const handles = getPhotoEditorDraftMaskHandles(width, height, sourceRect, sourceImage);
+  const handleRadius = Math.max(9, Math.round(Math.max(width, height) / 118));
+  const resizeHandleSize = handleRadius * 1.55;
+  ctx.fillStyle = 'rgba(79, 140, 255, 0.94)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+  ctx.lineWidth = Math.max(2, Math.round(Math.max(width, height) / 900));
+
+  if (handles) {
+    ctx.beginPath();
+    ctx.moveTo(handles.top.x, handles.top.y);
+    ctx.lineTo(handles.rotate.x, handles.rotate.y);
+    ctx.stroke();
+
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.42)';
+    ctx.shadowBlur = Math.max(4, handleRadius * 0.55);
+    ctx.shadowOffsetY = Math.max(1, handleRadius * 0.18);
+
+    ctx.beginPath();
+    ctx.arc(handles.move.x, handles.move.y, handleRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(handles.resize.x, handles.resize.y);
+    ctx.rotate(getPhotoEditorMaskRotation(draftMask) * Math.PI / 180);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.strokeStyle = 'rgba(79, 140, 255, 0.96)';
+    ctx.beginPath();
+    ctx.rect(
+      -resizeHandleSize / 2,
+      -resizeHandleSize / 2,
+      resizeHandleSize,
+      resizeHandleSize
+    );
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.96)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.96)';
+    ctx.beginPath();
+    ctx.arc(handles.rotate.x, handles.rotate.y, handleRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+  }
+
+  ctx.restore();
+}
+
+function clonePhotoEditorPlainValue(value) {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  return JSON.parse(JSON.stringify(value));
+}
+
+function getPhotoEditorRenderPayload({
+  outputSize,
+  sourceRect,
+  includeDraft = false,
+  responseType = 'bitmap',
+  exportSettings = null,
+  isInteractivePreview = false,
+} = {}) {
+  if (!photoEditorState?.sourceImage || !outputSize || !sourceRect) {
+    return null;
+  }
+
+  const sourceImageSize = getPhotoEditorImageSize(photoEditorState.sourceImage);
+
+  return {
+    responseType,
+    width: outputSize.width,
+    height: outputSize.height,
+    values: clonePhotoEditValues(photoEditorState.values),
+    curve: normalizePhotoEditorCurveState(photoEditorState.curve),
+    crop: normalizePhotoEditorCropState(photoEditorState.crop),
+    blur: normalizePhotoEditorBlurState(photoEditorState.blur),
+    masks: clonePhotoEditorPlainValue(photoEditorState.masks || []),
+    draftMask:
+      includeDraft && photoEditorState.draftMask
+        ? clonePhotoEditorPlainValue(photoEditorState.draftMask)
+        : null,
+    includeDraft,
+    sourceRect: {
+      x: sourceRect.x,
+      y: sourceRect.y,
+      width: sourceRect.width,
+      height: sourceRect.height,
+    },
+    sourceImageSize,
+    mimeType: exportSettings?.mimeType,
+    quality: exportSettings?.quality,
+    isInteractivePreview: Boolean(isInteractivePreview),
+  };
+}
+
+function handlePhotoEditorWorkerMessage(event) {
+  const message = event.data || {};
+
+  if (message.type !== 'render-result') {
+    return;
+  }
+
+  const request = photoEditorWorkerRequests.get(message.requestId);
+
+  if (!request) {
+    message.bitmap?.close?.();
+    return;
+  }
+
+  clearTimeout(request.timer);
+  photoEditorWorkerRequests.delete(message.requestId);
+
+  if (!message.ok) {
+    request.reject(new Error(message.error || '画像処理Workerで失敗しました'));
+    return;
+  }
+
+  request.resolve(message);
+}
+
+function handlePhotoEditorWorkerError(error) {
+  photoEditorWorkerUnavailable = true;
+
+  for (const request of photoEditorWorkerRequests.values()) {
+    clearTimeout(request.timer);
+    request.reject(error instanceof Error ? error : new Error('画像処理Workerで失敗しました'));
+  }
+
+  photoEditorWorkerRequests.clear();
+  photoEditorWorker?.terminate();
+  photoEditorWorker = null;
+}
+
+function cancelPhotoEditorPreviewWorkerRequests(reason = '画像処理プレビューを更新しました') {
+  let canceledPreviewCount = 0;
+  let hasNonPreviewRequest = false;
+  const cancelError = new Error(reason);
+
+  for (const [requestId, request] of photoEditorWorkerRequests.entries()) {
+    if (request.purpose === 'preview') {
+      clearTimeout(request.timer);
+      photoEditorWorkerRequests.delete(requestId);
+      request.reject(cancelError);
+      canceledPreviewCount += 1;
+    } else {
+      hasNonPreviewRequest = true;
+    }
+  }
+
+  if (canceledPreviewCount > 0 && !hasNonPreviewRequest) {
+    photoEditorWorker?.terminate();
+    photoEditorWorker = null;
+  }
+}
+
+function getPhotoEditorWorker() {
+  if (
+    photoEditorWorkerUnavailable ||
+    typeof Worker !== 'function' ||
+    typeof createImageBitmap !== 'function'
+  ) {
+    return null;
+  }
+
+  if (photoEditorWorker) {
+    return photoEditorWorker;
+  }
+
+  try {
+    const workerUrl = new URL('photo-editor-worker.js', window.location.href);
+    photoEditorWorker = new Worker(workerUrl.href);
+    photoEditorWorker.addEventListener('message', handlePhotoEditorWorkerMessage);
+    photoEditorWorker.addEventListener('error', handlePhotoEditorWorkerError);
+    return photoEditorWorker;
+  } catch (error) {
+    photoEditorWorkerUnavailable = true;
+    console.warn('画像処理Workerを起動できませんでした', error);
+    return null;
+  }
+}
+
+function requestPhotoEditorWorkerRender(
+  payload,
+  transferList = [],
+  { purpose = 'preview', cancelPendingPreview = false } = {}
+) {
+  if (cancelPendingPreview) {
+    cancelPhotoEditorPreviewWorkerRequests();
+  }
+
+  const worker = getPhotoEditorWorker();
+
+  if (!worker) {
+    return Promise.reject(new Error('画像処理Workerを利用できません'));
+  }
+
+  const requestId = ++photoEditorWorkerRequestId;
+
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      photoEditorWorkerRequests.delete(requestId);
+      reject(new Error('画像処理Workerがタイムアウトしました'));
+    }, 45000);
+
+    photoEditorWorkerRequests.set(requestId, { resolve, reject, timer, purpose });
+
+    try {
+      worker.postMessage(
+        {
+          type: 'render',
+          requestId,
+          payload,
+        },
+        transferList
+      );
+    } catch (error) {
+      clearTimeout(timer);
+      photoEditorWorkerRequests.delete(requestId);
+      reject(error);
+    }
+  });
+}
+
+async function applyPhotoEditorEffectsWithWorker(
+  targetCanvas,
+  renderBase,
+  {
+    includeDraft = false,
+    responseType = 'bitmap',
+    exportSettings = null,
+    purpose = 'preview',
+    cancelPendingPreview = false,
+    isInteractivePreview = false,
+  } = {}
+) {
+  if (!targetCanvas || !renderBase) {
+    return null;
+  }
+
+  const payload = getPhotoEditorRenderPayload({
+    outputSize: renderBase.outputSize,
+    sourceRect: renderBase.sourceRect,
+    includeDraft,
+    responseType,
+    exportSettings,
+    isInteractivePreview,
+  });
+
+  if (!payload) {
+    return null;
+  }
+
+  if (!getPhotoEditorWorker()) {
+    return Promise.reject(new Error('画像処理Workerを利用できません'));
+  }
+
+  let sourceBitmap = null;
+
+  try {
+    sourceBitmap = await createImageBitmap(targetCanvas);
+    payload.sourceBitmap = sourceBitmap;
+    return await requestPhotoEditorWorkerRender(payload, [sourceBitmap], {
+      purpose,
+      cancelPendingPreview,
+    });
+  } catch (error) {
+    try {
+      sourceBitmap?.close?.();
+    } catch {
+      // Ignore cleanup failures so the real render error is preserved.
+    }
+    throw error;
+  }
+}
+
+function drawPhotoEditorBaseToCanvas(targetCanvas, { maxEdge = null } = {}) {
+  if (!photoEditorState?.sourceImage || !targetCanvas) {
+    return null;
+  }
+
+  const crop = normalizePhotoEditorCropState(photoEditorState.crop);
+  photoEditorState.crop = crop;
+  const sourceRect = getPhotoEditorSourceRect(photoEditorState.sourceImage);
+  const outputSize = getPhotoEditorOutputSize(sourceRect, maxEdge, crop);
+  const ctx = targetCanvas.getContext('2d', { willReadFrequently: true });
+
+  if (!ctx) {
+    return null;
+  }
+
+  targetCanvas.width = outputSize.width;
+  targetCanvas.height = outputSize.height;
+  ctx.clearRect(0, 0, outputSize.width, outputSize.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  drawPhotoEditorCroppedSourceToCanvas(
+    ctx,
+    photoEditorState.sourceImage,
+    sourceRect,
+    outputSize,
+    crop
+  );
+
+  return {
+    ctx,
+    outputSize,
+    sourceRect,
+    crop,
+  };
+}
+
+function applyPhotoEditorEffectsToCanvas(
+  ctx,
+  outputSize,
+  sourceRect,
+  {
+    includeDraft = false,
+    drawOverlays = true,
+    isInteractivePreview = false,
+  } = {}
+) {
+  applyPhotoEditorAdjustmentsToCanvas(
+    ctx,
+    outputSize.width,
+    outputSize.height,
+    photoEditorState.values,
+    photoEditorState.curve
+  );
+  applyPhotoEditorBlurEffectToCanvas(
+    ctx,
+    outputSize.width,
+    outputSize.height,
+    photoEditorState.blur,
+    { isInteractivePreview }
+  );
+  applyPhotoEditorMasksToCanvas(
+    ctx,
+    photoEditorState.masks,
+    outputSize.width,
+    outputSize.height,
+    sourceRect,
+    photoEditorState.sourceImage,
+    { isInteractivePreview }
+  );
+
+  if (includeDraft) {
+    applyPhotoEditorMasksToCanvas(
+      ctx,
+      photoEditorState.draftMask ? [photoEditorState.draftMask] : [],
+      outputSize.width,
+      outputSize.height,
+      sourceRect,
+      photoEditorState.sourceImage,
+      { isInteractivePreview }
+    );
+  }
+
+  if (includeDraft && drawOverlays) {
+    drawPhotoEditorDraftMask(
+      ctx,
+      outputSize.width,
+      outputSize.height,
+      sourceRect,
+      photoEditorState.sourceImage
+    );
+  }
+
+  if (includeDraft && drawOverlays) {
+    drawPhotoEditorRadialBlurControl(
+      ctx,
+      outputSize.width,
+      outputSize.height
+    );
+  }
+}
+
+function renderPhotoEditorToCanvas(
+  targetCanvas,
+  { maxEdge = null, includeDraft = false, showOriginal = false } = {}
+) {
+  const renderBase = drawPhotoEditorBaseToCanvas(targetCanvas, { maxEdge });
+
+  if (!renderBase) {
+    return null;
+  }
+
+  const { ctx, outputSize, sourceRect } = renderBase;
+
+  if (!showOriginal) {
+    applyPhotoEditorEffectsToCanvas(ctx, outputSize, sourceRect, {
+      includeDraft,
+    });
+  }
+
+  return outputSize;
+}
+
+function analyzePhotoEditorPreviewClipping(canvas) {
+  if (!canvas || canvas.width <= 0 || canvas.height <= 0) {
+    return null;
+  }
+
+  const sampleEdge = 180;
+  const scale = Math.min(1, sampleEdge / Math.max(canvas.width, canvas.height));
+  const sampleWidth = Math.max(1, Math.round(canvas.width * scale));
+  const sampleHeight = Math.max(1, Math.round(canvas.height * scale));
+  const sampleCanvas = document.createElement('canvas');
+  sampleCanvas.width = sampleWidth;
+  sampleCanvas.height = sampleHeight;
+  const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+
+  if (!sampleCtx) {
+    return null;
+  }
+
+  sampleCtx.drawImage(canvas, 0, 0, sampleWidth, sampleHeight);
+
+  let imageData;
+
+  try {
+    imageData = sampleCtx.getImageData(0, 0, sampleWidth, sampleHeight);
+  } catch {
+    return null;
+  }
+
+  const data = imageData.data;
+  let shadowPixels = 0;
+  let highlightPixels = 0;
+  const totalPixels = Math.max(1, sampleWidth * sampleHeight);
+
+  for (let index = 0; index < data.length; index += 4) {
+    const luminance = 0.2126 * data[index] + 0.7152 * data[index + 1] + 0.0722 * data[index + 2];
+
+    if (luminance <= 8) {
+      shadowPixels += 1;
+    } else if (luminance >= 248) {
+      highlightPixels += 1;
+    }
+  }
+
+  return {
+    shadows: shadowPixels / totalPixels,
+    highlights: highlightPixels / totalPixels,
+  };
+}
+
+function formatPhotoEditorPercent(value) {
+  return `${(clampNumber(value, 0, 1, 0) * 100).toFixed(value >= 0.01 ? 1 : 2)}%`;
+}
+
+function getPhotoEditorAdjustmentDelta(values, key) {
+  const slider = getPhotoEditorSliderMeta(key);
+
+  if (!slider) {
+    return 0;
+  }
+
+  const baseValues = photoEditorPreviewCommittedValues || PHOTO_EDIT_DEFAULT_VALUES;
+  const currentValue = clampNumber(
+    values?.[key],
+    slider.min,
+    slider.max,
+    slider.defaultValue
+  );
+  const committedValue = clampNumber(
+    baseValues?.[key],
+    slider.min,
+    slider.max,
+    slider.defaultValue
+  );
+
+  return currentValue - committedValue;
+}
+
+function getPhotoEditorAdjustmentLivePreviewFilter(values) {
+  if (!values) {
+    return '';
+  }
+
+  const brightnessDelta =
+    getPhotoEditorAdjustmentDelta(values, 'brightness') * 0.44 +
+    getPhotoEditorAdjustmentDelta(values, 'exposure') * 0.58 +
+    getPhotoEditorAdjustmentDelta(values, 'gamma') * 0.28 +
+    getPhotoEditorAdjustmentDelta(values, 'highlights') * 0.12 +
+    getPhotoEditorAdjustmentDelta(values, 'shadows') * 0.12 +
+    getPhotoEditorAdjustmentDelta(values, 'whites') * 0.28 -
+    getPhotoEditorAdjustmentDelta(values, 'blacks') * 0.10;
+  const contrastDelta =
+    getPhotoEditorAdjustmentDelta(values, 'contrast') * 0.64 +
+    getPhotoEditorAdjustmentDelta(values, 'clarity') * 0.20 +
+    getPhotoEditorAdjustmentDelta(values, 'texture') * 0.12 +
+    getPhotoEditorAdjustmentDelta(values, 'sharpness') * 0.06 -
+    getPhotoEditorAdjustmentDelta(values, 'denoise') * 0.04 -
+    getPhotoEditorAdjustmentDelta(values, 'fade') * 0.36;
+  const saturationDelta =
+    getPhotoEditorAdjustmentDelta(values, 'saturation') * 0.64 +
+    getPhotoEditorAdjustmentDelta(values, 'vibrance') * 0.44;
+
+  if (
+    Math.abs(brightnessDelta) < 0.1 &&
+    Math.abs(contrastDelta) < 0.1 &&
+    Math.abs(saturationDelta) < 0.1
+  ) {
+    return '';
+  }
+
+  const brightness = clampNumber(1 + brightnessDelta / 185, 0.72, 1.38, 1);
+  const contrast = clampNumber(1 + contrastDelta / 165, 0.72, 1.42, 1);
+  const saturation = clampNumber(1 + saturationDelta / 155, 0.45, 1.70, 1);
+
+  return [
+    `brightness(${brightness.toFixed(3)})`,
+    `contrast(${contrast.toFixed(3)})`,
+    `saturate(${saturation.toFixed(3)})`,
+  ].join(' ');
+}
+
+function clearPhotoEditorAdjustmentLivePreview() {
+  if (!photoEditorCanvas) {
+    return;
+  }
+
+  photoEditorCanvas.style.filter = '';
+  photoEditorCanvas.style.willChange = '';
+}
+
+function applyPhotoEditorAdjustmentLivePreview() {
+  if (
+    !photoEditorCanvas ||
+    !photoEditorState ||
+    photoEditorState.showOriginalPreview
+  ) {
+    clearPhotoEditorAdjustmentLivePreview();
+    return;
+  }
+
+  const filter = getPhotoEditorAdjustmentLivePreviewFilter(photoEditorState.values);
+  photoEditorCanvas.style.filter = filter;
+  photoEditorCanvas.style.willChange = filter ? 'filter' : '';
+}
+
+async function renderPhotoEditorPreview() {
+  if (!photoEditorState?.sourceImage || !photoEditorCanvas) {
+    return;
+  }
+
+  const renderToken = ++photoEditorPreviewRenderToken;
+  const workCanvas = getPhotoEditorPreviewWorkCanvas();
+  const renderBase = drawPhotoEditorBaseToCanvas(workCanvas, {
+    maxEdge: getPhotoEditorPreviewMaxEdge(),
+  });
+
+  if (!renderBase) {
+    return;
+  }
+
+  const { ctx: workCtx, outputSize, sourceRect } = renderBase;
+  const shouldRenderEffects = !photoEditorState.showOriginalPreview;
+  const isInteractivePreview =
+    Boolean(photoEditorState.isInteractivePreview) ||
+    Boolean(photoEditorState.dragMode);
+  const dragMode = String(photoEditorState.dragMode || '');
+  const includeDraftEffect =
+    !['mask', 'mask-move', 'mask-resize', 'mask-rotate'].includes(dragMode);
+
+  syncPhotoEditorPreviewCanvasDisplaySize(outputSize);
+
+  if (shouldRenderEffects) {
+    let didRenderWithWorker = false;
+
+    try {
+      const workerResult = await applyPhotoEditorEffectsWithWorker(
+        workCanvas,
+        renderBase,
+        {
+          includeDraft: includeDraftEffect,
+          cancelPendingPreview: true,
+          isInteractivePreview,
+        }
+      );
+
+      if (renderToken !== photoEditorPreviewRenderToken || !photoEditorState) {
+        workerResult?.bitmap?.close?.();
+        return;
+      }
+
+      if (workerResult?.bitmap) {
+        workCtx.clearRect(0, 0, outputSize.width, outputSize.height);
+        workCtx.drawImage(workerResult.bitmap, 0, 0);
+        workerResult.bitmap.close?.();
+        didRenderWithWorker = true;
+      }
+    } catch (error) {
+      if (renderToken !== photoEditorPreviewRenderToken || !photoEditorState) {
+        return;
+      }
+
+      didRenderWithWorker = false;
+    }
+
+    if (!didRenderWithWorker) {
+      applyPhotoEditorEffectsToCanvas(workCtx, outputSize, sourceRect, {
+        includeDraft: includeDraftEffect,
+        drawOverlays: false,
+        isInteractivePreview,
+      });
+    }
+  }
+
+  if (renderToken !== photoEditorPreviewRenderToken || !photoEditorState) {
+    return;
+  }
+
+  if (shouldRenderEffects) {
+    storePhotoEditorPreviewOverlayBase(workCanvas, outputSize, sourceRect);
+    drawPhotoEditorPreviewOverlays(workCtx, outputSize, sourceRect);
+  } else {
+    photoEditorPreviewOverlayMeta = null;
+  }
+
+  clearPhotoEditorAdjustmentLivePreview();
+  commitPhotoEditorPreviewFrame(workCanvas, outputSize);
+  photoEditorPreviewCommittedValues = shouldRenderEffects
+    ? clonePhotoEditValues(photoEditorState.values)
+    : null;
+
+  if (!photoEditorState.isInteractivePreview) {
+    photoEditorState.lastClipInfo = analyzePhotoEditorPreviewClipping(photoEditorCanvas);
+  }
+
+  const pendingMaskText = photoEditorState.draftMask ? ' / 未確定: 1件' : '';
+  const clipInfo = photoEditorState.lastClipInfo;
+  const clipText = clipInfo
+    ? ` / 黒つぶれ: ${formatPhotoEditorPercent(clipInfo.shadows)} / 白飛び: ${formatPhotoEditorPercent(clipInfo.highlights)}`
+    : '';
+  const compareText = photoEditorState.showOriginalPreview ? ' / 比較中' : '';
+  setPhotoEditorStatus(
+    `出力: ${outputSize.fullWidth} x ${outputSize.fullHeight} / ` +
+      `目隠し: ${photoEditorState.masks.length}件${pendingMaskText}${clipText}${compareText}`
+  );
+  syncPhotoEditorBlurControls();
+  syncPhotoEditorMaskToolUi();
+}
+
+function markPhotoEditorInteractivePreview(settleMs = PHOTO_EDITOR_INTERACTIVE_PREVIEW_SETTLE_MS) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  photoEditorState.isInteractivePreview = true;
+
+  if (photoEditorPreviewSettleTimer) {
+    clearTimeout(photoEditorPreviewSettleTimer);
+    photoEditorPreviewSettleTimer = 0;
+  }
+
+  photoEditorPreviewSettleTimer = setTimeout(() => {
+    photoEditorPreviewSettleTimer = 0;
+
+    if (!photoEditorState || photoEditorState.dragMode) {
+      return;
+    }
+
+    photoEditorState.isInteractivePreview = false;
+    schedulePhotoEditorRender();
+  }, settleMs);
+}
+
+function finishPhotoEditorInteractivePreview() {
+  if (photoEditorPreviewSettleTimer) {
+    clearTimeout(photoEditorPreviewSettleTimer);
+    photoEditorPreviewSettleTimer = 0;
+  }
+
+  if (photoEditorRenderDebounceTimer) {
+    clearTimeout(photoEditorRenderDebounceTimer);
+    photoEditorRenderDebounceTimer = 0;
+  }
+
+  if (!photoEditorState) {
+    return;
+  }
+
+  photoEditorState.isInteractivePreview = false;
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+function getPhotoEditorInteractiveRenderDelay() {
+  const dragMode = String(photoEditorState?.dragMode || '');
+
+  if (
+    dragMode === 'mask' ||
+    dragMode.startsWith('blur-') ||
+    dragMode === 'curve'
+  ) {
+    return PHOTO_EDITOR_HEAVY_INTERACTIVE_PREVIEW_DEBOUNCE_MS;
+  }
+
+  return 0;
+}
+
+function schedulePhotoEditorRender({ debounceMs = 0, interactive = false } = {}) {
+  if (interactive) {
+    markPhotoEditorInteractivePreview();
+  }
+
+  if (photoEditorRenderDebounceTimer) {
+    clearTimeout(photoEditorRenderDebounceTimer);
+    photoEditorRenderDebounceTimer = 0;
+  }
+
+  const renderDelay = debounceMs > 0
+    ? debounceMs
+    : interactive
+      ? getPhotoEditorInteractiveRenderDelay()
+      : 0;
+
+  if (renderDelay > 0) {
+    photoEditorRenderDebounceTimer = setTimeout(() => {
+      photoEditorRenderDebounceTimer = 0;
+      schedulePhotoEditorRender();
+    }, renderDelay);
+    return;
+  }
+
+  if (photoEditorRenderFrame) {
+    cancelAnimationFrame(photoEditorRenderFrame);
+  }
+
+  photoEditorRenderFrame = requestAnimationFrame(() => {
+    photoEditorRenderFrame = 0;
+    renderPhotoEditorPreview();
+  });
+}
+
+function resetPhotoEditorAdjustments() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  if (photoEditorState.draftMask || photoEditorState.maskTool !== 'none') {
+    cancelPhotoEditorPendingMask();
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.values = clonePhotoEditValues();
+  clearPhotoEditorAutoEnhanceState();
+  syncPhotoEditorAdjustmentControls();
+  syncPhotoEditorAutoEnhanceControls();
+  clearPhotoEditorAdjustmentLivePreview();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+function resetPhotoEditorCrop() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  if (photoEditorState.draftMask || photoEditorState.maskTool !== 'none') {
+    cancelPhotoEditorPendingMask();
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.crop = getDefaultPhotoEditorCropState();
+  syncPhotoEditorCropControls();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+function resetPhotoEditorExportSettings() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.exportSettings = getDefaultPhotoEditorExportSettings();
+  syncPhotoEditorExportControls();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+function resetPhotoEditorBlur() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  if (photoEditorState.draftMask || photoEditorState.maskTool !== 'none') {
+    cancelPhotoEditorPendingMask();
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.blur = getDefaultPhotoEditorBlurState();
+  photoEditorState.dragInitialBlur = null;
+  syncPhotoEditorBlurControls();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+function resetPhotoEditorCurve() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  if (photoEditorState.draftMask || photoEditorState.maskTool !== 'none') {
+    cancelPhotoEditorPendingMask();
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.curve = getDefaultPhotoEditorCurveState();
+  photoEditorState.dragCurvePointIndex = null;
+  syncPhotoEditorCurveControls();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+function resetPhotoEditorAll() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.values = clonePhotoEditValues();
+  clearPhotoEditorAutoEnhanceState();
+  photoEditorState.crop = getDefaultPhotoEditorCropState();
+  photoEditorState.exportSettings = getDefaultPhotoEditorExportSettings();
+  photoEditorState.blur = getDefaultPhotoEditorBlurState();
+  photoEditorState.curve = getDefaultPhotoEditorCurveState();
+  photoEditorState.masks = [];
+  photoEditorState.maskTool = 'none';
+  photoEditorState.maskShape = 'rect';
+  photoEditorState.maskStrengths = { ...PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS };
+  photoEditorState.blurStrength = PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS.blur;
+  photoEditorState.dragMode = null;
+  photoEditorState.dragStart = null;
+  photoEditorState.dragInitialCrop = null;
+  photoEditorState.dragInitialSourceRect = null;
+  photoEditorState.dragInitialBlur = null;
+  photoEditorState.dragInitialMask = null;
+  photoEditorState.dragCurvePointIndex = null;
+  photoEditorState.draftMask = null;
+  photoEditorState.showOriginalPreview = false;
+  photoEditorState.isInteractivePreview = false;
+  photoEditorState.lastClipInfo = null;
+  photoEditorCanvas?.classList.remove('is-panning', 'is-mask-draft-active');
+  clearPhotoEditorAdjustmentLivePreview();
+  syncPhotoEditorUi();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+function updatePhotoEditorExportSettings(nextSettings = {}) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.exportSettings = getPhotoEditorEffectiveExportSettings({
+    ...photoEditorState.exportSettings,
+    ...nextSettings,
+  });
+  syncPhotoEditorExportControls();
+  schedulePhotoEditorRender();
+  schedulePhotoEditorHistoryCommit();
+}
+
+function togglePhotoEditorComparePreview() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  photoEditorState.showOriginalPreview = !photoEditorState.showOriginalPreview;
+  clearPhotoEditorAdjustmentLivePreview();
+  syncPhotoEditorCompareControl();
+  schedulePhotoEditorRender();
+}
+
+function updatePhotoEditorBlur(nextBlur = {}) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  if (photoEditorState.draftMask || photoEditorState.maskTool !== 'none') {
+    cancelPhotoEditorPendingMask();
+  }
+
+  beginPhotoEditorHistoryMutation();
+  const currentBlur = normalizePhotoEditorBlurState(photoEditorState.blur);
+  const shouldReopenRadialControl =
+    nextBlur.mode === 'radial' ||
+    nextBlur.centerX !== undefined ||
+    nextBlur.centerY !== undefined ||
+    nextBlur.radius !== undefined ||
+    nextBlur.outerRadius !== undefined;
+
+  photoEditorState.blur = normalizePhotoEditorBlurState({
+    ...currentBlur,
+    ...nextBlur,
+    isConfirmed: shouldReopenRadialControl
+      ? false
+      : nextBlur.isConfirmed ?? currentBlur.isConfirmed,
+  });
+  syncPhotoEditorBlurControls();
+  schedulePhotoEditorRender({
+    debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
+    interactive: true,
+  });
+  schedulePhotoEditorHistoryCommit();
+}
+
+function setPhotoEditorCurveMode(mode) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const curve = normalizePhotoEditorCurveState(photoEditorState.curve);
+  const nextMode = PHOTO_EDITOR_CURVE_MODES.includes(mode) ? mode : curve.mode;
+  const validChannelKeys = PHOTO_EDITOR_CURVE_CHANNELS[nextMode].map(
+    (channel) => channel.key
+  );
+
+  photoEditorState.curve = normalizePhotoEditorCurveState({
+    ...curve,
+    mode: nextMode,
+    channel: validChannelKeys.includes(curve.channel)
+      ? curve.channel
+      : validChannelKeys[0],
+  });
+  syncPhotoEditorCurveControls();
+}
+
+function setPhotoEditorCurveChannel(channel) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const curve = normalizePhotoEditorCurveState(photoEditorState.curve);
+  const validChannelKeys = PHOTO_EDITOR_CURVE_CHANNELS[curve.mode].map(
+    (entry) => entry.key
+  );
+
+  if (!validChannelKeys.includes(channel)) {
+    return;
+  }
+
+  photoEditorState.curve = {
+    ...curve,
+    channel,
+  };
+  syncPhotoEditorCurveControls();
+}
+
+function confirmPhotoEditorBlur() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const blur = normalizePhotoEditorBlurState(photoEditorState.blur);
+
+  if (blur.mode !== 'radial') {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.blur = normalizePhotoEditorBlurState({
+    ...blur,
+    isConfirmed: !blur.isConfirmed,
+  });
+  syncPhotoEditorBlurControls();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+function setPhotoEditorMaskTool(tool) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const normalizedTool = ['blur', 'mosaic', 'fill'].includes(tool)
+    ? tool
+    : 'none';
+
+  const shouldActivateTool =
+    normalizedTool !== 'none' && photoEditorState.maskTool !== normalizedTool;
+
+  if (photoEditorState.draftMask) {
+    cancelPhotoEditorPendingMask({ deactivateTool: false });
+  }
+
+  photoEditorState.maskTool = shouldActivateTool ? normalizedTool : 'none';
+
+  if (shouldActivateTool) {
+    photoEditorState.maskShape = 'rect';
+    photoEditorState.blurStrength =
+      photoEditorState.maskStrengths?.[normalizedTool] ??
+      PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS[normalizedTool] ??
+      PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS.blur;
+  }
+
+  syncPhotoEditorMaskToolUi();
+}
+
+function setPhotoEditorMaskShape(shape) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  if (photoEditorState.draftMask) {
+    cancelPhotoEditorPendingMask({ deactivateTool: false });
+  }
+
+  photoEditorState.maskShape = ['rect', 'ellipse', 'freehand'].includes(shape)
+    ? shape
+    : 'rect';
+  syncPhotoEditorMaskToolUi();
+}
+
+function setPhotoEditorBlurStrength(value) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const activeMaskType = photoEditorState.draftMask?.type || photoEditorState.maskTool;
+  const nextStrength = clampNumber(
+    value,
+    0,
+    100,
+    PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS[activeMaskType] ??
+      PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS.blur
+  );
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.blurStrength = nextStrength;
+
+  if (['blur', 'mosaic', 'fill'].includes(activeMaskType)) {
+    photoEditorState.maskStrengths = {
+      ...PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS,
+      ...(photoEditorState.maskStrengths || {}),
+      [activeMaskType]: nextStrength,
+    };
+  }
+
+  if (['blur', 'mosaic', 'fill'].includes(photoEditorState.draftMask?.type)) {
+    updatePhotoEditorDraftMask({ strength: photoEditorState.blurStrength });
+  }
+  syncPhotoEditorMaskToolUi();
+  schedulePhotoEditorHistoryCommit();
+}
+
+function getPhotoEditorHistogramPercentile(histogram, percentile) {
+  if (!Array.isArray(histogram) || histogram.length === 0) {
+    return 0;
+  }
+
+  const total = histogram.reduce((sum, count) => sum + count, 0);
+
+  if (total <= 0) {
+    return 0;
+  }
+
+  const target = total * clampNumber(percentile, 0, 1, 0);
+  let cumulative = 0;
+
+  for (let index = 0; index < histogram.length; index += 1) {
+    cumulative += histogram[index] || 0;
+
+    if (cumulative >= target) {
+      return index / Math.max(1, histogram.length - 1);
+    }
+  }
+
+  return 1;
+}
+
+function analyzePhotoEditorSourceImage() {
+  if (!photoEditorState?.sourceImage) {
+    return null;
+  }
+
+  const crop = normalizePhotoEditorCropState(photoEditorState.crop);
+  photoEditorState.crop = crop;
+  const sourceRect = getPhotoEditorSourceRect(photoEditorState.sourceImage);
+  const sampleSize = getPhotoEditorOutputSize(
+    sourceRect,
+    PHOTO_EDITOR_AUTO_ENHANCE_ANALYSIS_MAX_EDGE,
+    crop
+  );
+  const sampleCanvas = document.createElement('canvas');
+  sampleCanvas.width = sampleSize.width;
+  sampleCanvas.height = sampleSize.height;
+  const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+
+  if (!sampleCtx) {
+    return null;
+  }
+
+  sampleCtx.imageSmoothingEnabled = true;
+  sampleCtx.imageSmoothingQuality = 'high';
+  drawPhotoEditorCroppedSourceToCanvas(
+    sampleCtx,
+    photoEditorState.sourceImage,
+    sourceRect,
+    sampleSize,
+    crop
+  );
+
+  let imageData;
+
+  try {
+    imageData = sampleCtx.getImageData(0, 0, sampleSize.width, sampleSize.height);
+  } catch {
+    return null;
+  }
+
+  const data = imageData.data;
+  const pixelCount = Math.max(1, data.length / 4);
+  let luminanceTotal = 0;
+  let luminanceSquareTotal = 0;
+  let saturationTotal = 0;
+  let saturationSquareTotal = 0;
+  let redTotal = 0;
+  let greenTotal = 0;
+  let blueTotal = 0;
+  let neonCount = 0;
+  let darkCount = 0;
+  let brightCount = 0;
+  let nearBlackCount = 0;
+  let shadowCount = 0;
+  let midtoneCount = 0;
+  let highlightCount = 0;
+  let nearWhiteCount = 0;
+  let channelClipCount = 0;
+  let channelNearClipCount = 0;
+  let chromaClipCount = 0;
+  const luminanceHistogram = Array.from({ length: 256 }, () => 0);
+
+  for (let index = 0; index < data.length; index += 4) {
+    const red = data[index] / 255;
+    const green = data[index + 1] / 255;
+    const blue = data[index + 2] / 255;
+    const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    const maxChannel = Math.max(red, green, blue);
+    const minChannel = Math.min(red, green, blue);
+    const saturation = maxChannel === 0 ? 0 : (maxChannel - minChannel) / maxChannel;
+
+    luminanceTotal += luminance;
+    luminanceSquareTotal += luminance * luminance;
+    saturationTotal += saturation;
+    saturationSquareTotal += saturation * saturation;
+    redTotal += red;
+    greenTotal += green;
+    blueTotal += blue;
+    luminanceHistogram[
+      clampNumber(Math.round(luminance * 255), 0, 255, 0)
+    ] += 1;
+
+    if (luminance < 0.08) {
+      darkCount += 1;
+    }
+
+    if (luminance < 0.03) {
+      nearBlackCount += 1;
+    }
+
+    if (luminance < 0.25) {
+      shadowCount += 1;
+    }
+
+    if (luminance >= 0.24 && luminance <= 0.72) {
+      midtoneCount += 1;
+    }
+
+    if (luminance > 0.75) {
+      highlightCount += 1;
+    }
+
+    if (luminance > 0.92) {
+      brightCount += 1;
+    }
+
+    if (luminance > 0.97) {
+      nearWhiteCount += 1;
+    }
+
+    if (maxChannel > 0.985) {
+      channelClipCount += 1;
+    }
+
+    if (maxChannel > 0.955) {
+      channelNearClipCount += 1;
+    }
+
+    if (saturation > 0.62 && maxChannel > 0.94) {
+      chromaClipCount += 1;
+    }
+
+    if (saturation > 0.55 && luminance > 0.18) {
+      neonCount += 1;
+    }
+  }
+
+  const mean = luminanceTotal / pixelCount;
+  const variance = Math.max(0, luminanceSquareTotal / pixelCount - mean * mean);
+  const saturationMean = saturationTotal / pixelCount;
+  const saturationVariance = Math.max(
+    0,
+    saturationSquareTotal / pixelCount - saturationMean * saturationMean
+  );
+  const percentiles = {
+    p01: getPhotoEditorHistogramPercentile(luminanceHistogram, 0.01),
+    p02: getPhotoEditorHistogramPercentile(luminanceHistogram, 0.02),
+    p05: getPhotoEditorHistogramPercentile(luminanceHistogram, 0.05),
+    p10: getPhotoEditorHistogramPercentile(luminanceHistogram, 0.10),
+    p25: getPhotoEditorHistogramPercentile(luminanceHistogram, 0.25),
+    p50: getPhotoEditorHistogramPercentile(luminanceHistogram, 0.50),
+    p75: getPhotoEditorHistogramPercentile(luminanceHistogram, 0.75),
+    p90: getPhotoEditorHistogramPercentile(luminanceHistogram, 0.90),
+    p95: getPhotoEditorHistogramPercentile(luminanceHistogram, 0.95),
+    p98: getPhotoEditorHistogramPercentile(luminanceHistogram, 0.98),
+    p99: getPhotoEditorHistogramPercentile(luminanceHistogram, 0.99),
+  };
+
+  return {
+    mean,
+    meanLuminance: mean,
+    deviation: Math.sqrt(variance),
+    sampleWidth: sampleSize.width,
+    sampleHeight: sampleSize.height,
+    sampleData: new Uint8ClampedArray(data),
+    histogram: luminanceHistogram,
+    percentiles,
+    medianLuminance: percentiles.p50,
+    dynamicRange: Math.max(0, percentiles.p95 - percentiles.p05),
+    contrastScore: Math.max(0, percentiles.p95 - percentiles.p05),
+    darkRatio: darkCount / pixelCount,
+    brightRatio: brightCount / pixelCount,
+    nearBlackRatio: nearBlackCount / pixelCount,
+    shadowRatio: shadowCount / pixelCount,
+    midtoneRatio: midtoneCount / pixelCount,
+    highlightRatio: highlightCount / pixelCount,
+    nearWhiteRatio: nearWhiteCount / pixelCount,
+    redMean: redTotal / pixelCount,
+    greenMean: greenTotal / pixelCount,
+    blueMean: blueTotal / pixelCount,
+    channelClipRatio: channelClipCount / pixelCount,
+    channelNearClipRatio: channelNearClipCount / pixelCount,
+    chromaClipRatio: chromaClipCount / pixelCount,
+    neonRatio: neonCount / pixelCount,
+    saturation: saturationMean,
+    saturationMean,
+    saturationStd: Math.sqrt(saturationVariance),
+    clippingBlackRatio: nearBlackCount / pixelCount,
+    clippingWhiteRatio: nearWhiteCount / pixelCount,
+    colorCast: {
+      warmthBias: redTotal / pixelCount - blueTotal / pixelCount,
+      tintBias:
+        (redTotal / pixelCount + blueTotal / pixelCount) / 2 -
+        greenTotal / pixelCount,
+    },
+  };
+}
+
+function estimatePhotoEditorSmartAutoResult(analysis, values) {
+  if (
+    !analysis?.sampleData ||
+    !Number.isFinite(analysis.sampleWidth) ||
+    !Number.isFinite(analysis.sampleHeight)
+  ) {
+    return null;
+  }
+
+  const width = Math.max(1, Math.round(analysis.sampleWidth));
+  const height = Math.max(1, Math.round(analysis.sampleHeight));
+  const imageData = new ImageData(new Uint8ClampedArray(analysis.sampleData), width, height);
+
+  applyPhotoEditorPixelAdjustmentsToImageData(
+    imageData,
+    width,
+    getPhotoEditorAdjustmentRenderParams(clonePhotoEditValues(values))
+  );
+
+  const data = imageData.data;
+  const pixelCount = Math.max(1, data.length / 4);
+  let luminanceTotal = 0;
+  let nearWhiteCount = 0;
+  let nearBlackCount = 0;
+  let channelClipCount = 0;
+  let channelNearClipCount = 0;
+
+  for (let index = 0; index < data.length; index += 4) {
+    const red = data[index] / 255;
+    const green = data[index + 1] / 255;
+    const blue = data[index + 2] / 255;
+    const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    const maxChannel = Math.max(red, green, blue);
+
+    luminanceTotal += luminance;
+
+    if (luminance > 0.97) {
+      nearWhiteCount += 1;
+    }
+
+    if (luminance < 0.03) {
+      nearBlackCount += 1;
+    }
+
+    if (maxChannel > 0.985) {
+      channelClipCount += 1;
+    }
+
+    if (maxChannel > 0.955) {
+      channelNearClipCount += 1;
+    }
+  }
+
+  return {
+    mean: luminanceTotal / pixelCount,
+    nearWhiteRatio: nearWhiteCount / pixelCount,
+    nearBlackRatio: nearBlackCount / pixelCount,
+    channelClipRatio: channelClipCount / pixelCount,
+    channelNearClipRatio: channelNearClipCount / pixelCount,
+  };
+}
+
+function protectPhotoEditorSmartAutoHighlights(analysis, values) {
+  let nextValues = clonePhotoEditValues(values);
+  const sourceNearWhite = Number(analysis?.nearWhiteRatio) || 0;
+  const sourceChannelClip = Number(analysis?.channelClipRatio) || 0;
+  const sourceChannelNearClip = Number(analysis?.channelNearClipRatio) || 0;
+  const allowedNearWhite = Math.max(0.004, sourceNearWhite + 0.002);
+  const allowedChannelClip = Math.max(0.012, sourceChannelClip + 0.004);
+  const allowedChannelNearClip = Math.max(0.040, sourceChannelNearClip + 0.010);
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const result = estimatePhotoEditorSmartAutoResult(analysis, nextValues);
+
+    if (!result) {
+      return nextValues;
+    }
+
+    const nearWhiteExcess = Math.max(0, result.nearWhiteRatio - allowedNearWhite);
+    const channelClipExcess = Math.max(0, result.channelClipRatio - allowedChannelClip);
+    const nearClipExcess = Math.max(0, result.channelNearClipRatio - allowedChannelNearClip);
+    const outputIsTooHot =
+      nearWhiteExcess > 0 ||
+      channelClipExcess > 0 ||
+      nearClipExcess > 0 ||
+      result.mean > 0.66;
+
+    if (!outputIsTooHot) {
+      return nextValues;
+    }
+
+    const protection = clampNumber(
+      nearWhiteExcess * 18 +
+        channelClipExcess * 12 +
+        nearClipExcess * 5 +
+        Math.max(0, result.mean - 0.62) * 3,
+      0.35,
+      1,
+      0.5
+    );
+
+    nextValues = clonePhotoEditValues({
+      ...nextValues,
+      exposure: Math.round(nextValues.exposure - 5 * protection),
+      brightness: Math.round(nextValues.brightness - 3 * protection),
+      highlights: Math.round(nextValues.highlights - 14 * protection),
+      whites: Math.round(nextValues.whites - 18 * protection),
+      gamma: Math.round(nextValues.gamma - 8 * protection),
+      saturation: Math.round(nextValues.saturation - 3 * protection),
+      vibrance: Math.round(nextValues.vibrance - 3 * protection),
+    });
+  }
+
+  return nextValues;
+}
+
+function normalizePhotoEditorAutoStrength(value) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return 1;
+  }
+
+  return numericValue > 1
+    ? clampNumber(numericValue / 100, 0, 1, 1)
+    : clampNumber(numericValue, 0, 1, 1);
+}
+
+function detectPhotoEditorAutoEnhanceMode(analysis) {
+  const median = clampNumber(
+    analysis?.medianLuminance ?? analysis?.percentiles?.p50,
+    0,
+    1,
+    analysis?.mean ?? 0.5
+  );
+  const shadowRatio = Number(analysis?.shadowRatio) || 0;
+  const neonRatio = Number(analysis?.neonRatio) || 0;
+  const chromaClipRatio = Number(analysis?.chromaClipRatio) || 0;
+  const channelNearClipRatio = Number(analysis?.channelNearClipRatio) || 0;
+  const saturationMean = Number(analysis?.saturationMean ?? analysis?.saturation) || 0;
+
+  if (
+    neonRatio > 0.18 ||
+    chromaClipRatio > 0.018 ||
+    (channelNearClipRatio > 0.075 && saturationMean > 0.34)
+  ) {
+    return 'neon';
+  }
+
+  if (median < 0.38 || shadowRatio > 0.5) {
+    return 'dark';
+  }
+
+  return 'standard';
+}
+
+function generatePhotoEditorAutoEnhanceParams(analysis) {
+  const percentiles = analysis?.percentiles || {};
+  const medianLuminance = clampNumber(
+    analysis?.medianLuminance ?? percentiles.p50,
+    0,
+    1,
+    analysis?.mean ?? 0.5
+  );
+  const p05 = clampNumber(percentiles.p05, 0, 1, analysis?.mean ?? 0.5);
+  const p95 = clampNumber(percentiles.p95, 0, 1, analysis?.mean ?? 0.5);
+  const p98 = clampNumber(percentiles.p98, 0, 1, analysis?.mean ?? 0.5);
+  const dynamicRange = clampNumber(
+    analysis?.dynamicRange ?? p95 - p05,
+    0,
+    1,
+    Math.max(0, p95 - p05)
+  );
+  const shadowRatio = Number(analysis?.shadowRatio) || 0;
+  const highlightRatio = Number(analysis?.highlightRatio) || 0;
+  const clippingBlackRatio =
+    Number(analysis?.clippingBlackRatio ?? analysis?.nearBlackRatio) || 0;
+  const clippingWhiteRatio =
+    Number(analysis?.clippingWhiteRatio ?? analysis?.nearWhiteRatio) || 0;
+  const channelNearClipRatio = Number(analysis?.channelNearClipRatio) || 0;
+  const saturationMean =
+    Number(analysis?.saturationMean ?? analysis?.saturation) || 0;
+  const colorCast = analysis?.colorCast || {};
+  const mode = detectPhotoEditorAutoEnhanceMode(analysis);
+  const hasHotHighlights =
+    clippingWhiteRatio > 0.01 ||
+    channelNearClipRatio > 0.05 ||
+    p98 > 0.88;
+
+  let exposure = 0;
+  if (medianLuminance < 0.38) {
+    exposure += 0.12;
+  } else if (medianLuminance < 0.45) {
+    exposure += 0.06;
+  }
+  if (clippingWhiteRatio > 0.01) {
+    exposure -= 0.04;
+  }
+  if (mode === 'neon') {
+    exposure -= 0.04;
+  }
+  if (mode === 'dark' && hasHotHighlights) {
+    exposure = Math.min(exposure, 0.02);
+  }
+  exposure = clampNumber(exposure, -0.10, 0.18, 0);
+
+  let brilliance = 0.18;
+  if (shadowRatio > 0.35) {
+    brilliance += 0.18;
+  }
+  if (dynamicRange < 0.45) {
+    brilliance += 0.12;
+  }
+  if (clippingWhiteRatio > 0.03 || channelNearClipRatio > 0.08) {
+    brilliance -= 0.08;
+  }
+  if (mode === 'dark') {
+    brilliance += hasHotHighlights ? 0.02 : 0.05;
+  } else if (mode === 'neon') {
+    brilliance -= 0.03;
+  }
+  brilliance = clampNumber(brilliance, 0.05, mode === 'dark' ? 0.40 : 0.45, 0.18);
+
+  let highlights = -0.10;
+  if (highlightRatio > 0.25) {
+    highlights -= 0.10;
+  }
+  if (clippingWhiteRatio > 0.01 || channelNearClipRatio > 0.05) {
+    highlights -= 0.15;
+  }
+  if (clippingWhiteRatio > 0.04 || p98 > 0.92) {
+    highlights -= 0.10;
+  }
+  if (mode === 'neon') {
+    highlights -= 0.08;
+  }
+  highlights = clampNumber(highlights, -0.50, 0.05, -0.10);
+
+  let shadows = 0.08;
+  if (shadowRatio > 0.30) {
+    shadows += 0.15;
+  }
+  if (shadowRatio > 0.50) {
+    shadows += 0.12;
+  }
+  if (clippingBlackRatio > 0.08) {
+    shadows -= 0.05;
+  }
+  if (mode === 'dark') {
+    shadows += hasHotHighlights ? 0.02 : 0.05;
+  }
+  shadows = clampNumber(
+    shadows,
+    0,
+    mode === 'dark' && hasHotHighlights ? 0.34 : 0.42,
+    0.08
+  );
+
+  let contrast = 0.04;
+  if (dynamicRange < 0.40) {
+    contrast += 0.10;
+  }
+  if (dynamicRange > 0.70 || hasHotHighlights) {
+    contrast -= 0.04;
+  }
+  contrast = clampNumber(contrast, -0.05, 0.18, 0.04);
+
+  let brightness = 0;
+  if (medianLuminance < 0.40 && !hasHotHighlights) {
+    brightness += 0.05;
+  } else if (medianLuminance < 0.40) {
+    brightness += 0.02;
+  }
+  if (medianLuminance > 0.62 || clippingWhiteRatio > 0.03) {
+    brightness -= 0.03;
+  }
+  brightness = clampNumber(brightness, -0.08, 0.10, 0);
+
+  let blackPoint = 0.04;
+  if (clippingBlackRatio < 0.01 && dynamicRange < 0.55) {
+    blackPoint += 0.08;
+  }
+  if (shadowRatio > 0.55) {
+    blackPoint -= 0.03;
+  }
+  blackPoint = clampNumber(blackPoint, 0, 0.16, 0.04);
+
+  let saturation = 0.02;
+  if (saturationMean < 0.25) {
+    saturation += 0.04;
+  }
+  if (saturationMean > 0.55 || mode === 'neon') {
+    saturation -= 0.03;
+  }
+  saturation = clampNumber(saturation, -0.05, 0.08, 0.02);
+
+  let vibrance = 0.08;
+  if (saturationMean < 0.35) {
+    vibrance += 0.08;
+  }
+  if (dynamicRange < 0.45) {
+    vibrance += 0.04;
+  }
+  if (mode === 'neon') {
+    vibrance = Math.min(vibrance + 0.02, 0.16);
+  }
+  vibrance = clampNumber(vibrance, 0, 0.22, 0.08);
+
+  let warmth = 0;
+  let tint = 0;
+  if (Math.abs(Number(colorCast.warmthBias) || 0) > 0.18) {
+    warmth = clampNumber(-colorCast.warmthBias * 0.15, -0.05, 0.05, 0);
+  }
+  if (Math.abs(Number(colorCast.tintBias) || 0) > 0.18) {
+    tint = clampNumber(-colorCast.tintBias * 0.12, -0.04, 0.04, 0);
+  }
+
+  let definition = 0.06;
+  if (dynamicRange < 0.45) {
+    definition += 0.04;
+  }
+  definition = clampNumber(definition, 0, 0.12, 0.06);
+
+  const sharpness = clampNumber(0.03, 0, 0.08, 0.03);
+  const noiseReduction =
+    shadowRatio > 0.55 && medianLuminance < 0.35
+      ? clampNumber(mode === 'dark' ? 0.06 : 0.05, 0, 0.08, 0.05)
+      : 0;
+
+  return {
+    mode,
+    exposure,
+    brilliance,
+    highlights,
+    shadows,
+    contrast,
+    brightness,
+    blackPoint,
+    saturation,
+    vibrance,
+    warmth,
+    tint,
+    definition,
+    sharpness,
+    noiseReduction,
+  };
+}
+
+function convertPhotoEditorAutoEnhanceParamsToValues(params, analysis) {
+  const percentiles = analysis?.percentiles || {};
+  const p98 = clampNumber(percentiles.p98, 0, 1, analysis?.mean ?? 0.5);
+  const clippingWhiteRatio =
+    Number(analysis?.clippingWhiteRatio ?? analysis?.nearWhiteRatio) || 0;
+  const channelNearClipRatio = Number(analysis?.channelNearClipRatio) || 0;
+  const hotHighlightProtection = clampNumber(
+    clippingWhiteRatio * 3.2 +
+      channelNearClipRatio * 0.42 +
+      Math.max(0, p98 - 0.88) * 1.9 +
+      (params.mode === 'neon' ? 0.06 : 0),
+    0.04,
+    0.50,
+    0.08
+  );
+
+  return clonePhotoEditValues({
+    exposure: Math.round(params.exposure * 85),
+    brightness: Math.round(params.brightness * 255),
+    highlights: Math.round(params.highlights * 100 - params.brilliance * 10),
+    shadows: Math.round(params.shadows * 100 + params.brilliance * 16),
+    whites: -Math.round(
+      clampNumber(
+        hotHighlightProtection + Math.max(0, -params.highlights) * 0.24,
+        0,
+        0.58,
+        0.08
+      ) * 100
+    ),
+    blacks: -Math.round(params.blackPoint * 100),
+    gamma: Math.round(
+      params.brilliance * 8 +
+        params.shadows * 6 -
+        hotHighlightProtection * 28
+    ),
+    contrast: Math.round(params.contrast * 100 + params.brilliance * 8),
+    temperature: Math.round(params.warmth * 100),
+    tint: Math.round(params.tint * 100),
+    saturation: Math.round(params.saturation * 100),
+    vibrance: Math.round(params.vibrance * 100),
+    clarity: Math.round(params.definition * 100 + params.brilliance * 5),
+    texture: Math.round(params.definition * 65),
+    sharpness: Math.round(params.sharpness * 100),
+    denoise: Math.round(params.noiseReduction * 100),
+    fade: 0,
+    grain: 0,
+    vignette: params.mode === 'neon' ? 4 : 0,
+  });
+}
+
+function calculateSmartAutoPhotoEditValues({ strength = 1, baseValues = null } = {}) {
+  const analysis = analyzePhotoEditorSourceImage();
+  const normalizedStrength = normalizePhotoEditorAutoStrength(strength);
+
+  if (!analysis) {
+    const fallbackValues = clonePhotoEditValues({
+      brightness: 2,
+      exposure: 0,
+      contrast: 6,
+      highlights: -14,
+      shadows: 8,
+      whites: -8,
+      blacks: -4,
+      gamma: 3,
+      saturation: 2,
+      vibrance: 6,
+      clarity: 4,
+      texture: 3,
+      sharpness: 6,
+      denoise: 4,
+      vignette: 0,
+    });
+
+    return blendPhotoEditValues(
+      baseValues ? clonePhotoEditValues(baseValues) : clonePhotoEditValues(),
+      fallbackValues,
+      normalizedStrength
+    );
+  }
+
+  const autoParams = generatePhotoEditorAutoEnhanceParams(analysis);
+  const generatedValues = protectPhotoEditorSmartAutoHighlights(
+    analysis,
+    convertPhotoEditorAutoEnhanceParamsToValues(autoParams, analysis)
+  );
+
+  return blendPhotoEditValues(
+    baseValues ? clonePhotoEditValues(baseValues) : clonePhotoEditValues(),
+    generatedValues,
+    normalizedStrength
+  );
+}
+
+function calculatePhotoEditorUserPresetAverageValues() {
+  const usablePresets = photoEditorUserPresets
+    .map((preset) => normalizePhotoEditorUserPreset(preset))
+    .filter(Boolean);
+
+  if (usablePresets.length === 0) {
+    return null;
+  }
+
+  const totals = { ...PHOTO_EDIT_DEFAULT_VALUES };
+
+  for (const preset of usablePresets) {
+    const values = clonePhotoEditValues(preset.values);
+
+    for (const slider of PHOTO_EDIT_SLIDERS) {
+      totals[slider.key] += values[slider.key];
+    }
+  }
+
+  return clonePhotoEditValues(
+    Object.fromEntries(
+      PHOTO_EDIT_SLIDERS.map((slider) => [
+        slider.key,
+        Math.round(totals[slider.key] / usablePresets.length),
+      ])
+    )
+  );
+}
+
+function blendPhotoEditValues(baseValues, overlayValues, weight) {
+  const normalizedWeight = clampNumber(weight, 0, 1, 0);
+
+  return clonePhotoEditValues(
+    Object.fromEntries(
+      PHOTO_EDIT_SLIDERS.map((slider) => [
+        slider.key,
+        Math.round(
+          baseValues[slider.key] * (1 - normalizedWeight) +
+            overlayValues[slider.key] * normalizedWeight
+        ),
+      ])
+    )
+  );
+}
+
+function calculateLearningPhotoEditValues() {
+  const smartValues = calculateSmartAutoPhotoEditValues();
+  const learnedValues = calculatePhotoEditorUserPresetAverageValues();
+
+  if (!learnedValues) {
+    showToast('保存済みプリセットがないためスマート自動補正を適用しました');
+    return smartValues;
+  }
+
+  const learningWeight = Math.min(
+    0.45,
+    0.22 + photoEditorUserPresets.length * 0.035
+  );
+
+  return blendPhotoEditValues(smartValues, learnedValues, learningWeight);
+}
+
+function clearPhotoEditorAutoEnhanceState({ keepStrength = true } = {}) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const currentStrength = photoEditorState.autoEnhance?.strength;
+  photoEditorState.autoEnhance = {
+    ...getDefaultPhotoEditorAutoEnhanceState(),
+    strength: keepStrength
+      ? clampNumber(
+          currentStrength,
+          0,
+          100,
+          PHOTO_EDITOR_AUTO_ENHANCE_DEFAULT_STRENGTH
+        )
+      : PHOTO_EDITOR_AUTO_ENHANCE_DEFAULT_STRENGTH,
+  };
+}
+
+function getPhotoEditorAutoEnhanceStrengthValue() {
+  return clampNumber(
+    photoEditorState?.autoEnhance?.strength,
+    0,
+    100,
+    PHOTO_EDITOR_AUTO_ENHANCE_DEFAULT_STRENGTH
+  );
+}
+
+function getPhotoEditorAutoEnhanceGeneratedValues(preset) {
+  if (preset?.isLearningAuto) {
+    return calculateLearningPhotoEditValues();
+  }
+
+  if (preset?.isAuto) {
+    return calculateSmartAutoPhotoEditValues();
+  }
+
+  return clonePhotoEditValues(preset?.values);
+}
+
+function applyPhotoEditorAutoEnhancePreset(presetKey, preset) {
+  if (!photoEditorState || !preset) {
+    return;
+  }
+
+  if (photoEditorState.draftMask || photoEditorState.maskTool !== 'none') {
+    cancelPhotoEditorPendingMask();
+  }
+
+  const normalizedState = normalizePhotoEditorAutoEnhanceState(
+    photoEditorState.autoEnhance
+  );
+  const isTogglingOff =
+    (preset.isLearningAuto || preset.isAuto) &&
+    normalizedState.enabled &&
+    normalizedState.presetKey === presetKey;
+
+  beginPhotoEditorHistoryMutation();
+
+  if (isTogglingOff) {
+    photoEditorState.values = clonePhotoEditValues(
+      normalizedState.originalValuesBeforeAuto
+    );
+    clearPhotoEditorAutoEnhanceState();
+    syncPhotoEditorUi();
+    clearPhotoEditorAdjustmentLivePreview();
+    schedulePhotoEditorRender();
+    commitPhotoEditorHistoryMutation();
+    setPhotoEditorStatus('自動補正を解除しました');
+    return;
+  }
+
+  const originalValues = clonePhotoEditValues(photoEditorState.values);
+  const generatedValues = getPhotoEditorAutoEnhanceGeneratedValues(preset);
+  const strength = getPhotoEditorAutoEnhanceStrengthValue();
+
+  photoEditorState.autoEnhance = {
+    enabled: true,
+    originalValuesBeforeAuto: originalValues,
+    generatedValues,
+    strength,
+    presetKey,
+  };
+  photoEditorState.values = blendPhotoEditValues(
+    originalValues,
+    generatedValues,
+    normalizePhotoEditorAutoStrength(strength)
+  );
+
+  if (preset.crop) {
+    photoEditorState.crop = normalizePhotoEditorCropState(preset.crop);
+  }
+
+  if (preset.blur) {
+    photoEditorState.blur = normalizePhotoEditorBlurState(preset.blur);
+  }
+
+  if (preset.curve) {
+    photoEditorState.curve = normalizePhotoEditorCurveState(preset.curve);
+  }
+
+  if (preset.exportSettings) {
+    photoEditorState.exportSettings = normalizePhotoEditorExportSettings(
+      preset.exportSettings
+    );
+  }
+
+  syncPhotoEditorUi();
+  clearPhotoEditorAdjustmentLivePreview();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+  setPhotoEditorStatus(
+    preset.isLearningAuto
+      ? '学習補正を適用しました'
+      : preset.isAuto
+        ? '自動補正を適用しました'
+        : `プリセットを適用しました: ${preset.label || 'プリセット'}`
+  );
+}
+
+function updatePhotoEditorAutoEnhanceStrength(value) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const strength = clampNumber(
+    value,
+    0,
+    100,
+    PHOTO_EDITOR_AUTO_ENHANCE_DEFAULT_STRENGTH
+  );
+  const normalizedState = normalizePhotoEditorAutoEnhanceState(
+    photoEditorState.autoEnhance
+  );
+
+  if (!normalizedState.enabled) {
+    photoEditorState.autoEnhance = {
+      ...normalizedState,
+      strength,
+    };
+    syncPhotoEditorAutoEnhanceControls();
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.autoEnhance = {
+    ...normalizedState,
+    strength,
+  };
+
+  photoEditorState.values = blendPhotoEditValues(
+    normalizedState.originalValuesBeforeAuto,
+    normalizedState.generatedValues,
+    normalizePhotoEditorAutoStrength(strength)
+  );
+  syncPhotoEditorAdjustmentControls();
+  clearPhotoEditorAdjustmentLivePreview();
+  schedulePhotoEditorRender({
+    debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
+    interactive: true,
+  });
+
+  syncPhotoEditorAutoEnhanceControls();
+  schedulePhotoEditorHistoryCommit();
+}
+
+function applyPhotoEditorPreset(presetKey) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const preset = getPhotoEditorPreset(presetKey);
+
+  if (!preset) {
+    return;
+  }
+
+  applyPhotoEditorAutoEnhancePreset(presetKey, preset);
+}
+
+function updatePhotoEditorSliderValue(key, value) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const slider = getPhotoEditorSliderMeta(key);
+
+  if (!slider) {
+    return;
+  }
+
+  if (photoEditorState.draftMask || photoEditorState.maskTool !== 'none') {
+    cancelPhotoEditorPendingMask();
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.values[key] = clampNumber(
+    value,
+    slider.min,
+    slider.max,
+    slider.defaultValue
+  );
+  if (photoEditorState.autoEnhance?.enabled) {
+    photoEditorState.autoEnhance = {
+      ...normalizePhotoEditorAutoEnhanceState(photoEditorState.autoEnhance),
+      generatedValues: clonePhotoEditValues(photoEditorState.values),
+    };
+  }
+  syncPhotoEditorAdjustmentControls(key);
+  syncPhotoEditorAutoEnhanceControls();
+  applyPhotoEditorAdjustmentLivePreview();
+  schedulePhotoEditorRender({
+    debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
+    interactive: true,
+  });
+  schedulePhotoEditorHistoryCommit();
+}
+
+function updatePhotoEditorCrop(nextCrop) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  if (photoEditorState.draftMask || photoEditorState.maskTool !== 'none') {
+    cancelPhotoEditorPendingMask();
+  }
+
+  beginPhotoEditorHistoryMutation();
+  const currentCrop = normalizePhotoEditorCropState(photoEditorState.crop);
+
+  photoEditorState.crop = {
+    ...currentCrop,
+    ...nextCrop,
+    zoomMode: 'offset',
+    zoom: clampNumber(
+      nextCrop.zoom ?? currentCrop.zoom,
+      0,
+      PHOTO_EDITOR_CROP_ZOOM_MAX,
+      0
+    ),
+    offsetX: clampNumber(
+      nextCrop.offsetX ?? currentCrop.offsetX,
+      -100,
+      100,
+      0
+    ),
+    offsetY: clampNumber(
+      nextCrop.offsetY ?? currentCrop.offsetY,
+      -100,
+      100,
+      0
+    ),
+    rotation: normalizePhotoEditorCropRotation(
+      nextCrop.rotation ?? currentCrop.rotation
+    ),
+    flipX: Boolean(nextCrop.flipX ?? currentCrop.flipX),
+    flipY: Boolean(nextCrop.flipY ?? currentCrop.flipY),
+    tilt: clampNumber(nextCrop.tilt ?? currentCrop.tilt, -45, 45, 0),
+  };
+  syncPhotoEditorCropControls();
+  schedulePhotoEditorRender({
+    debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
+    interactive: true,
+  });
+  schedulePhotoEditorHistoryCommit();
+}
+
+function applyPhotoEditorCropPreset(presetKey) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const preset = getPhotoEditorCropPreset(presetKey);
+
+  if (photoEditorState.draftMask || photoEditorState.maskTool !== 'none') {
+    cancelPhotoEditorPendingMask();
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.crop = normalizePhotoEditorCropState({
+    ...photoEditorState.crop,
+    preset: preset.key,
+    zoom: preset.transparentPadding ? 0 : photoEditorState.crop?.zoom,
+    offsetX: 0,
+    offsetY: 0,
+  });
+
+  if (preset.exportMaxEdge || preset.exportFormat) {
+    photoEditorState.exportSettings = normalizePhotoEditorExportSettings({
+      ...photoEditorState.exportSettings,
+      format: preset.exportFormat || photoEditorState.exportSettings?.format,
+      maxEdge: preset.exportMaxEdge || photoEditorState.exportSettings?.maxEdge,
+    });
+  }
+
+  syncPhotoEditorCropControls();
+  syncPhotoEditorExportControls();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+function getPhotoEditorPreviewMaxEdge() {
+  const bounds = photoEditorCanvasWrap?.getBoundingClientRect();
+  const deviceScale = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const availableEdge =
+    bounds && bounds.width > 0 && bounds.height > 0
+      ? Math.max(bounds.width, bounds.height) * deviceScale
+      : PHOTO_EDITOR_PREVIEW_MAX_EDGE;
+  const dragMode = String(photoEditorState?.dragMode || '');
+  const isInteractive =
+    Boolean(photoEditorState?.isInteractivePreview) ||
+    Boolean(dragMode);
+  const hasHeavyInteractiveEffect =
+    isInteractive &&
+    (
+      dragMode === 'mask' ||
+      dragMode.startsWith('blur-') ||
+      Number(photoEditorState?.blur?.amount) > 0 ||
+      Boolean(photoEditorState?.draftMask) ||
+      (Array.isArray(photoEditorState?.masks) && photoEditorState.masks.length > 0)
+    );
+  const maxEdge = dragMode === 'curve'
+    ? PHOTO_EDITOR_CURVE_DRAG_PREVIEW_MAX_EDGE
+    : hasHeavyInteractiveEffect
+      ? PHOTO_EDITOR_HEAVY_INTERACTIVE_PREVIEW_MAX_EDGE
+    : isInteractive
+      ? PHOTO_EDITOR_INTERACTIVE_PREVIEW_MAX_EDGE
+      : PHOTO_EDITOR_PREVIEW_MAX_EDGE;
+  const minEdge = hasHeavyInteractiveEffect
+    ? 640
+    : isInteractive
+      ? 760
+      : 900;
+
+  return Math.max(
+    minEdge,
+    Math.min(maxEdge, Math.round(availableEdge))
+  );
+}
+
+function handlePhotoEditorCanvasWheel(event) {
+  if (!photoEditorState?.sourceImage) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const currentZoom = clampNumber(
+    photoEditorState.crop.zoom,
+    0,
+    PHOTO_EDITOR_CROP_ZOOM_MAX,
+    0
+  );
+  const currentScale = 1 + currentZoom / 100;
+  const zoomFactor = event.deltaY < 0 ? 1.08 : 1 / 1.08;
+  const nextZoom = Math.round((currentScale * zoomFactor - 1) * 100);
+
+  updatePhotoEditorCrop({
+    zoom: clampNumber(nextZoom, 0, PHOTO_EDITOR_CROP_ZOOM_MAX, 0),
+  });
+}
+
+function rotatePhotoEditorCrop(deltaDegrees) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  updatePhotoEditorCrop({
+    rotation: normalizePhotoEditorCropRotation(
+      (photoEditorState.crop.rotation || 0) + deltaDegrees
+    ),
+  });
+}
+
+function togglePhotoEditorCropFlipX() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  updatePhotoEditorCrop({
+    flipX: !photoEditorState.crop.flipX,
+  });
+}
+
+function togglePhotoEditorCropFlipY() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  updatePhotoEditorCrop({
+    flipY: !photoEditorState.crop.flipY,
+  });
+}
+
+function beginPhotoEditorPanDrag(point) {
+  const image = photoEditorState?.sourceImage;
+
+  if (!image || !photoEditorCanvas) {
+    return;
+  }
+
+  photoEditorState.dragMode = 'pan';
+  photoEditorState.dragStart = point;
+  photoEditorState.dragInitialCrop = { ...photoEditorState.crop };
+  photoEditorState.dragInitialSourceRect = getPhotoEditorSourceRect(image);
+  photoEditorCanvas.classList.add('is-panning');
+}
+
+function getPanAdjustedCropOffset(axis, deltaRatio) {
+  const image = photoEditorState?.sourceImage;
+  const initialCrop = photoEditorState?.dragInitialCrop;
+  const initialRect = photoEditorState?.dragInitialSourceRect;
+  const imageSize =
+    axis === 'x'
+      ? Number(image?.naturalWidth || image?.width) || 0
+      : Number(image?.naturalHeight || image?.height) || 0;
+  const cropSize = axis === 'x' ? initialRect?.width || 0 : initialRect?.height || 0;
+  const maxOffset = Math.max(0, (imageSize - cropSize) / 2);
+
+  if (!imageSize || !cropSize || maxOffset <= 0) {
+    return 0;
+  }
+
+  const initialOffset = axis === 'x'
+    ? Number(initialCrop?.offsetX) || 0
+    : Number(initialCrop?.offsetY) || 0;
+  const currentCenter = imageSize / 2 + maxOffset * initialOffset / 100;
+  const nextCenter = currentCenter - deltaRatio * cropSize;
+
+  return clampNumber((nextCenter - imageSize / 2) / maxOffset * 100, -100, 100, 0);
+}
+
+function updatePhotoEditorPanDrag(point) {
+  if (
+    !photoEditorState ||
+    photoEditorState.dragMode !== 'pan' ||
+    !photoEditorState.dragStart
+  ) {
+    return;
+  }
+
+  const deltaX = point.x - photoEditorState.dragStart.x;
+  const deltaY = point.y - photoEditorState.dragStart.y;
+
+  updatePhotoEditorCrop({
+    offsetX: Math.round(getPanAdjustedCropOffset('x', deltaX)),
+    offsetY: Math.round(getPanAdjustedCropOffset('y', deltaY)),
+  });
+}
+
+function finishPhotoEditorPanDrag() {
+  if (!photoEditorState || photoEditorState.dragMode !== 'pan') {
+    return;
+  }
+
+  photoEditorState.dragMode = null;
+  photoEditorState.dragStart = null;
+  photoEditorState.dragInitialCrop = null;
+  photoEditorState.dragInitialSourceRect = null;
+  photoEditorCanvas?.classList.remove('is-panning');
+  finishPhotoEditorInteractivePreview();
+}
+
+function getPhotoEditorCanvasDisplaySize() {
+  const bounds = photoEditorCanvas?.getBoundingClientRect();
+
+  return {
+    width: Math.max(1, Number(bounds?.width) || Number(photoEditorCanvas?.width) || 1),
+    height: Math.max(1, Number(bounds?.height) || Number(photoEditorCanvas?.height) || 1),
+  };
+}
+
+function getPhotoEditorRadialBlurDragMode(point) {
+  if (
+    photoEditorState?.blur?.mode !== 'radial' ||
+    photoEditorState.blur.isConfirmed ||
+    !isPhotoEditorAccordionOpen('blur')
+  ) {
+    return null;
+  }
+
+  const blur = normalizePhotoEditorBlurState(photoEditorState.blur);
+  const displaySize = getPhotoEditorCanvasDisplaySize();
+  const minEdge = Math.max(1, Math.min(displaySize.width, displaySize.height));
+  const centerX = blur.centerX * displaySize.width;
+  const centerY = blur.centerY * displaySize.height;
+  const pointX = clampNumber(point?.x, 0, 1, 0) * displaySize.width;
+  const pointY = clampNumber(point?.y, 0, 1, 0) * displaySize.height;
+  const distance = Math.hypot(pointX - centerX, pointY - centerY);
+  const radius = blur.radius * minEdge;
+  const outerRadius = blur.outerRadius * minEdge;
+  const edgeTolerance = Math.max(14, minEdge * 0.025);
+
+  if (Math.abs(distance - outerRadius) <= edgeTolerance) {
+    return 'blur-outer-radius';
+  }
+
+  if (Math.abs(distance - radius) <= edgeTolerance) {
+    return 'blur-inner-radius';
+  }
+
+  return distance <= outerRadius ? 'blur-center' : 'blur-center-snap';
+}
+
+function beginPhotoEditorBlurDrag(point, dragMode) {
+  if (!photoEditorState || !dragMode) {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+
+  if (dragMode === 'blur-center-snap') {
+    photoEditorState.blur = normalizePhotoEditorBlurState({
+      ...photoEditorState.blur,
+      centerX: point.x,
+      centerY: point.y,
+    });
+  }
+
+  photoEditorState.dragMode = dragMode;
+  photoEditorState.dragStart = point;
+  photoEditorState.dragInitialBlur = normalizePhotoEditorBlurState(
+    photoEditorState.blur
+  );
+  photoEditorCanvas?.classList.add('is-panning');
+  syncPhotoEditorBlurControls();
+  paintPhotoEditorPreviewOverlayOnly();
+  schedulePhotoEditorRender({
+    debounceMs: PHOTO_EDITOR_EFFECT_DRAG_PREVIEW_DEBOUNCE_MS,
+    interactive: true,
+  });
+}
+
+function updatePhotoEditorBlurDrag(point) {
+  if (
+    !photoEditorState ||
+    !photoEditorState.dragStart ||
+    !photoEditorState.dragInitialBlur
+  ) {
+    return;
+  }
+
+  const initialBlur = photoEditorState.dragInitialBlur;
+
+  if (photoEditorState.dragMode === 'blur-inner-radius') {
+    const displaySize = getPhotoEditorCanvasDisplaySize();
+    const minEdge = Math.max(1, Math.min(displaySize.width, displaySize.height));
+    const distance = Math.hypot(
+      (point.x - initialBlur.centerX) * displaySize.width,
+      (point.y - initialBlur.centerY) * displaySize.height
+    );
+
+    photoEditorState.blur = normalizePhotoEditorBlurState({
+      ...photoEditorState.blur,
+      radius: Math.min(
+        distance / minEdge,
+        initialBlur.outerRadius - PHOTO_EDITOR_RADIAL_BLUR_MIN_FEATHER
+      ),
+      outerRadius: initialBlur.outerRadius,
+    });
+  } else if (photoEditorState.dragMode === 'blur-outer-radius') {
+    const displaySize = getPhotoEditorCanvasDisplaySize();
+    const minEdge = Math.max(1, Math.min(displaySize.width, displaySize.height));
+    const distance = Math.hypot(
+      (point.x - initialBlur.centerX) * displaySize.width,
+      (point.y - initialBlur.centerY) * displaySize.height
+    );
+
+    photoEditorState.blur = normalizePhotoEditorBlurState({
+      ...photoEditorState.blur,
+      outerRadius: Math.max(
+        distance / minEdge,
+        initialBlur.radius + PHOTO_EDITOR_RADIAL_BLUR_MIN_FEATHER
+      ),
+      radius: initialBlur.radius,
+    });
+  } else {
+    const deltaX = point.x - photoEditorState.dragStart.x;
+    const deltaY = point.y - photoEditorState.dragStart.y;
+
+    photoEditorState.blur = normalizePhotoEditorBlurState({
+      ...photoEditorState.blur,
+      centerX: initialBlur.centerX + deltaX,
+      centerY: initialBlur.centerY + deltaY,
+    });
+  }
+
+  syncPhotoEditorBlurControls();
+  paintPhotoEditorPreviewOverlayOnly();
+  schedulePhotoEditorRender({
+    debounceMs: PHOTO_EDITOR_EFFECT_DRAG_PREVIEW_DEBOUNCE_MS,
+    interactive: true,
+  });
+}
+
+function finishPhotoEditorBlurDrag() {
+  if (!photoEditorState || !String(photoEditorState.dragMode || '').startsWith('blur-')) {
+    return;
+  }
+
+  photoEditorState.dragMode = null;
+  photoEditorState.dragStart = null;
+  photoEditorState.dragInitialBlur = null;
+  photoEditorCanvas?.classList.remove('is-panning');
+  syncPhotoEditorBlurControls();
+  finishPhotoEditorInteractivePreview();
+  commitPhotoEditorHistoryMutation();
+}
+
+function normalizePhotoEditorMaskRect(
+  startPoint,
+  endPoint,
+  { constrainSquare = false, allowOutside = false } = {}
+) {
+  let nextEndPoint = endPoint;
+  const bounds = getPhotoEditorMaskCoordinateBounds(allowOutside);
+
+  if (constrainSquare) {
+    const displaySize = getPhotoEditorCanvasDisplaySize();
+    const deltaX = endPoint.x - startPoint.x;
+    const deltaY = endPoint.y - startPoint.y;
+    const directionX = deltaX < 0 ? -1 : 1;
+    const directionY = deltaY < 0 ? -1 : 1;
+    const maxWidth =
+      directionX > 0 ? bounds.max - startPoint.x : startPoint.x - bounds.min;
+    const maxHeight =
+      directionY > 0 ? bounds.max - startPoint.y : startPoint.y - bounds.min;
+    const sizeInPixels = Math.min(
+      Math.abs(deltaX) * displaySize.width,
+      Math.abs(deltaY) * displaySize.height,
+      maxWidth * displaySize.width,
+      maxHeight * displaySize.height
+    );
+
+    nextEndPoint = {
+      x: startPoint.x + directionX * sizeInPixels / displaySize.width,
+      y: startPoint.y + directionY * sizeInPixels / displaySize.height,
+    };
+  }
+
+  const left = clampNumber(
+    Math.min(startPoint.x, nextEndPoint.x),
+    bounds.min,
+    bounds.max,
+    0
+  );
+  const top = clampNumber(
+    Math.min(startPoint.y, nextEndPoint.y),
+    bounds.min,
+    bounds.max,
+    0
+  );
+  const right = clampNumber(
+    Math.max(startPoint.x, nextEndPoint.x),
+    bounds.min,
+    bounds.max,
+    0
+  );
+  const bottom = clampNumber(
+    Math.max(startPoint.y, nextEndPoint.y),
+    bounds.min,
+    bounds.max,
+    0
+  );
+
+  return {
+    x: left,
+    y: top,
+    width: Math.max(0, right - left),
+    height: Math.max(0, bottom - top),
+  };
+}
+
+function getPhotoEditorPointsMaskRect(points, { allowOutside = false } = {}) {
+  const validPoints = (Array.isArray(points) ? points : []).filter(
+    (point) => Number.isFinite(point?.x) && Number.isFinite(point?.y)
+  );
+
+  if (validPoints.length === 0) {
+    return {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    };
+  }
+
+  const bounds = getPhotoEditorMaskCoordinateBounds(allowOutside);
+  const xs = validPoints.map((point) =>
+    clampNumber(point.x, bounds.min, bounds.max, 0)
+  );
+  const ys = validPoints.map((point) =>
+    clampNumber(point.y, bounds.min, bounds.max, 0)
+  );
+  const left = Math.min(...xs);
+  const top = Math.min(...ys);
+  const right = Math.max(...xs);
+  const bottom = Math.max(...ys);
+
+  return {
+    x: left,
+    y: top,
+    width: Math.max(0, right - left),
+    height: Math.max(0, bottom - top),
+  };
+}
+
+function getPhotoEditorMaskNormalizedRect(mask) {
+  if (mask?.shape === 'freehand') {
+    return getPhotoEditorPointsMaskRect(mask.points, {
+      allowOutside: canPhotoEditorMaskExtendOutside(mask),
+    });
+  }
+
+  const rect = mask?.rect || {};
+
+  return {
+    x: Number(rect.x) || 0,
+    y: Number(rect.y) || 0,
+    width: Math.max(0, Number(rect.width) || 0),
+    height: Math.max(0, Number(rect.height) || 0),
+  };
+}
+
+function normalizePhotoEditorMaskRotation(rotation) {
+  const numericRotation = Number(rotation) || 0;
+  let normalizedRotation = ((numericRotation % 360) + 360) % 360;
+
+  if (normalizedRotation > 180) {
+    normalizedRotation -= 360;
+  }
+
+  return normalizedRotation;
+}
+
+function getPhotoEditorMaskRotation(mask) {
+  return normalizePhotoEditorMaskRotation(mask?.rotation);
+}
+
+function rotatePointAroundCenter(point, center, rotationRadians) {
+  const cos = Math.cos(rotationRadians);
+  const sin = Math.sin(rotationRadians);
+  const deltaX = point.x - center.x;
+  const deltaY = point.y - center.y;
+
+  return {
+    x: center.x + deltaX * cos - deltaY * sin,
+    y: center.y + deltaX * sin + deltaY * cos,
+  };
+}
+
+function rotateNormalizedPointAroundCenterForSize(
+  point,
+  center,
+  rotationRadians,
+  width,
+  height
+) {
+  const rotatedPoint = rotatePointAroundCenter(
+    {
+      x: point.x * width,
+      y: point.y * height,
+    },
+    {
+      x: center.x * width,
+      y: center.y * height,
+    },
+    rotationRadians
+  );
+
+  return {
+    x: rotatedPoint.x / Math.max(1, width),
+    y: rotatedPoint.y / Math.max(1, height),
+  };
+}
+
+function getPhotoEditorMaskRectCenter(rect) {
+  return {
+    x: (Number(rect?.x) || 0) + (Number(rect?.width) || 0) / 2,
+    y: (Number(rect?.y) || 0) + (Number(rect?.height) || 0) / 2,
+  };
+}
+
+function getPhotoEditorRotatedMaskRectCorners(mask, width = 1, height = 1) {
+  const rect = getPhotoEditorMaskNormalizedRect(mask);
+  const center = getPhotoEditorMaskRectCenter(rect);
+  const rotationRadians = getPhotoEditorMaskRotation(mask) * Math.PI / 180;
+  const corners = [
+    { x: rect.x, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y + rect.height },
+    { x: rect.x, y: rect.y + rect.height },
+  ];
+
+  return rotationRadians === 0
+    ? corners
+    : corners.map((corner) =>
+        rotateNormalizedPointAroundCenterForSize(
+          corner,
+          center,
+          rotationRadians,
+          width,
+          height
+        )
+      );
+}
+
+function getPhotoEditorConstrainedMaskDelta(mask, deltaX, deltaY) {
+  const allowOutside = canPhotoEditorMaskExtendOutside(mask);
+  const bounds = getPhotoEditorMaskCoordinateBounds(allowOutside);
+  const rect = getPhotoEditorMaskNormalizedRect(mask);
+  const minDeltaX = bounds.min - rect.x;
+  const maxDeltaX = bounds.max - (rect.x + rect.width);
+  const minDeltaY = bounds.min - rect.y;
+  const maxDeltaY = bounds.max - (rect.y + rect.height);
+
+  return {
+    x: clampNumber(deltaX, minDeltaX, maxDeltaX, 0),
+    y: clampNumber(deltaY, minDeltaY, maxDeltaY, 0),
+  };
+}
+
+function translatePhotoEditorMask(mask, deltaX, deltaY) {
+  if (!mask) {
+    return null;
+  }
+
+  const constrainedDelta = getPhotoEditorConstrainedMaskDelta(
+    mask,
+    deltaX,
+    deltaY
+  );
+  const rect = mask.rect || {};
+  const points = Array.isArray(mask.points)
+    ? mask.points.map((point) => ({
+        x: point.x + constrainedDelta.x,
+        y: point.y + constrainedDelta.y,
+      }))
+    : null;
+
+  return {
+    ...mask,
+    rect: {
+      x: (Number(rect.x) || 0) + constrainedDelta.x,
+      y: (Number(rect.y) || 0) + constrainedDelta.y,
+      width: Math.max(0, Number(rect.width) || 0),
+      height: Math.max(0, Number(rect.height) || 0),
+    },
+    points,
+  };
+}
+
+function getPhotoEditorDraftMaskHandles(width, height, sourceRect = null, sourceImage = null) {
+  const mask = photoEditorState?.draftMask;
+
+  if (!mask) {
+    return null;
+  }
+
+  const maskRect = getRawCanvasRectFromMask(mask, width, height, sourceRect, sourceImage);
+
+  if (!maskRect || maskRect.width <= 0 || maskRect.height <= 0) {
+    return null;
+  }
+
+  const rect = getPhotoEditorMaskNormalizedRect(mask);
+  const center = getPhotoEditorMaskRectCenter(rect);
+  const rotationRadians = getPhotoEditorMaskRotation(mask) * Math.PI / 180;
+  const centerPoint = mapPhotoEditorMaskPointToCanvas(
+    center,
+    mask,
+    width,
+    height,
+    sourceRect,
+    sourceImage
+  );
+  const resizePoint = mapPhotoEditorMaskPointToCanvas(
+    rotateNormalizedPointAroundCenterForSize(
+      {
+        x: rect.x + rect.width,
+        y: rect.y + rect.height,
+      },
+      center,
+      rotationRadians,
+      width,
+      height
+    ),
+    mask,
+    width,
+    height,
+    sourceRect,
+    sourceImage
+  );
+  const topPoint = mapPhotoEditorMaskPointToCanvas(
+    rotateNormalizedPointAroundCenterForSize(
+      {
+        x: rect.x + rect.width / 2,
+        y: rect.y,
+      },
+      center,
+      rotationRadians,
+      width,
+      height
+    ),
+    mask,
+    width,
+    height,
+    sourceRect,
+    sourceImage
+  );
+  const handleMargin = PHOTO_EDITOR_MASK_HANDLE_HIT_RADIUS * 0.7;
+  const rawRotatePoint = {
+    x:
+      topPoint.x +
+      Math.sin(rotationRadians) * PHOTO_EDITOR_MASK_ROTATE_HANDLE_OFFSET,
+    y:
+      topPoint.y -
+      Math.cos(rotationRadians) * PHOTO_EDITOR_MASK_ROTATE_HANDLE_OFFSET,
+  };
+  const rotatePoint = {
+    x: clampNumber(rawRotatePoint.x, handleMargin, width - handleMargin, rawRotatePoint.x),
+    y: clampNumber(rawRotatePoint.y, handleMargin, height - handleMargin, rawRotatePoint.y),
+  };
+
+  return {
+    move: centerPoint,
+    resize: resizePoint,
+    rotate: rotatePoint,
+    top: topPoint,
+    bounds: maskRect,
+  };
+}
+
+function getPhotoEditorMaskLocalPointFromCanvasPoint(mask, point) {
+  const displaySize = getPhotoEditorCanvasDisplaySize();
+  const rect = getPhotoEditorMaskNormalizedRect(mask);
+  const center = getPhotoEditorMaskRectCenter(rect);
+  const centerX = center.x * displaySize.width;
+  const centerY = center.y * displaySize.height;
+  const pointX = clampNumber(point?.x, -10, 10, 0) * displaySize.width;
+  const pointY = clampNumber(point?.y, -10, 10, 0) * displaySize.height;
+  const rotationRadians = -getPhotoEditorMaskRotation(mask) * Math.PI / 180;
+  const rotatedPoint = rotatePointAroundCenter(
+    { x: pointX, y: pointY },
+    { x: centerX, y: centerY },
+    rotationRadians
+  );
+
+  return {
+    x: (rotatedPoint.x - centerX) / displaySize.width,
+    y: (rotatedPoint.y - centerY) / displaySize.height,
+  };
+}
+
+function resizePhotoEditorMask(mask, point, { keepRatio = false } = {}) {
+  if (!mask) {
+    return null;
+  }
+
+  const rect = getPhotoEditorMaskNormalizedRect(mask);
+  const center = getPhotoEditorMaskRectCenter(rect);
+  const localPoint = getPhotoEditorMaskLocalPointFromCanvasPoint(mask, point);
+  let nextWidth = Math.max(PHOTO_EDITOR_MIN_MASK_SIZE, Math.abs(localPoint.x) * 2);
+  let nextHeight = Math.max(PHOTO_EDITOR_MIN_MASK_SIZE, Math.abs(localPoint.y) * 2);
+
+  if (keepRatio || mask.shape === 'ellipse') {
+    const currentRatio = rect.height > 0 ? rect.width / rect.height : 1;
+
+    if (Math.abs(localPoint.x) >= Math.abs(localPoint.y) * currentRatio) {
+      nextHeight = nextWidth / Math.max(0.01, currentRatio);
+    } else {
+      nextWidth = nextHeight * currentRatio;
+    }
+  }
+
+  const allowOutside = canPhotoEditorMaskExtendOutside(mask);
+  const bounds = getPhotoEditorMaskCoordinateBounds(allowOutside);
+  const maxWidth = Math.max(
+    PHOTO_EDITOR_MIN_MASK_SIZE,
+    Math.min(
+      (center.x - bounds.min) * 2,
+      (bounds.max - center.x) * 2
+    )
+  );
+  const maxHeight = Math.max(
+    PHOTO_EDITOR_MIN_MASK_SIZE,
+    Math.min(
+      (center.y - bounds.min) * 2,
+      (bounds.max - center.y) * 2
+    )
+  );
+  nextWidth = clampNumber(nextWidth, PHOTO_EDITOR_MIN_MASK_SIZE, maxWidth, rect.width);
+  nextHeight = clampNumber(nextHeight, PHOTO_EDITOR_MIN_MASK_SIZE, maxHeight, rect.height);
+
+  if (mask.shape === 'freehand' && Array.isArray(mask.points) && rect.width > 0 && rect.height > 0) {
+    const widthScale = nextWidth / rect.width;
+    const heightScale = nextHeight / rect.height;
+    const points = mask.points.map((maskPoint) => ({
+      x: center.x + (maskPoint.x - center.x) * widthScale,
+      y: center.y + (maskPoint.y - center.y) * heightScale,
+    }));
+
+    return {
+      ...mask,
+      rect: getPhotoEditorPointsMaskRect(points, {
+        allowOutside: canPhotoEditorMaskExtendOutside(mask),
+      }),
+      points,
+    };
+  }
+
+  return {
+    ...mask,
+    rect: {
+      x: center.x - nextWidth / 2,
+      y: center.y - nextHeight / 2,
+      width: nextWidth,
+      height: nextHeight,
+    },
+  };
+}
+
+function rotatePhotoEditorMask(mask, startPoint, currentPoint) {
+  if (!mask) {
+    return null;
+  }
+
+  const displaySize = getPhotoEditorCanvasDisplaySize();
+  const rect = getPhotoEditorMaskNormalizedRect(mask);
+  const center = getPhotoEditorMaskRectCenter(rect);
+  const centerX = center.x * displaySize.width;
+  const centerY = center.y * displaySize.height;
+  const getAngle = (point) =>
+    Math.atan2(
+      point.y * displaySize.height - centerY,
+      point.x * displaySize.width - centerX
+    );
+  const deltaDegrees = (getAngle(currentPoint) - getAngle(startPoint)) * 180 / Math.PI;
+
+  if (mask.shape === 'freehand' && Array.isArray(mask.points)) {
+    const rotationRadians = deltaDegrees * Math.PI / 180;
+    const points = mask.points.map((maskPoint) =>
+      rotatePointAroundCenter(maskPoint, center, rotationRadians)
+    );
+
+    return {
+      ...mask,
+      rect: getPhotoEditorPointsMaskRect(points, {
+        allowOutside: canPhotoEditorMaskExtendOutside(mask),
+      }),
+      points,
+    };
+  }
+
+  return {
+    ...mask,
+    rotation: normalizePhotoEditorMaskRotation(
+      getPhotoEditorMaskRotation(mask) + deltaDegrees
+    ),
+  };
+}
+
+function getPhotoEditorCanvasPointerPoint(event, { allowOutside = false } = {}) {
+  if (!photoEditorCanvas) {
+    return null;
+  }
+
+  const bounds = photoEditorCanvas.getBoundingClientRect();
+
+  if (bounds.width <= 0 || bounds.height <= 0) {
+    return null;
+  }
+
+  const boundsLimit = getPhotoEditorMaskCoordinateBounds(allowOutside);
+
+  return {
+    x: clampNumber(
+      (event.clientX - bounds.left) / bounds.width,
+      boundsLimit.min,
+      boundsLimit.max,
+      0
+    ),
+    y: clampNumber(
+      (event.clientY - bounds.top) / bounds.height,
+      boundsLimit.min,
+      boundsLimit.max,
+      0
+    ),
+  };
+}
+
+function mapPhotoEditorOutputPointToSource(
+  point,
+  sourceRect,
+  image,
+  { allowOutside = false } = {}
+) {
+  const imageSize = getPhotoEditorImageSize(image);
+  const bounds = getPhotoEditorMaskCoordinateBounds(allowOutside);
+
+  if (
+    !sourceRect ||
+    sourceRect.width <= 0 ||
+    sourceRect.height <= 0 ||
+    imageSize.width <= 0 ||
+    imageSize.height <= 0
+  ) {
+    return {
+      x: clampNumber(point?.x, bounds.min, bounds.max, 0),
+      y: clampNumber(point?.y, bounds.min, bounds.max, 0),
+    };
+  }
+
+  const outputSize = getPhotoEditorOutputSize(sourceRect, null, photoEditorState?.crop);
+  const geometry = getPhotoEditorCropRenderGeometry(
+    sourceRect,
+    outputSize.width,
+    outputSize.height,
+    photoEditorState?.crop || getDefaultPhotoEditorCropState()
+  );
+  const outputX =
+    clampNumber(point?.x, bounds.min, bounds.max, 0) * outputSize.width -
+    outputSize.width / 2;
+  const outputY =
+    clampNumber(point?.y, bounds.min, bounds.max, 0) * outputSize.height -
+    outputSize.height / 2;
+  const cos = Math.cos(geometry.rotationRadians);
+  const sin = Math.sin(geometry.rotationRadians);
+  let localX = outputX * cos + outputY * sin;
+  let localY = -outputX * sin + outputY * cos;
+
+  if (geometry.flipX) {
+    localX = -localX;
+  }
+
+  if (geometry.flipY) {
+    localY = -localY;
+  }
+
+  const sourceX =
+    sourceRect.x +
+    (localX / (geometry.drawWidth * geometry.coverScale) + 0.5) *
+      sourceRect.width;
+  const sourceY =
+    sourceRect.y +
+    (localY / (geometry.drawHeight * geometry.coverScale) + 0.5) *
+      sourceRect.height;
+
+  return {
+    x: clampNumber(sourceX / imageSize.width, bounds.min, bounds.max, 0),
+    y: clampNumber(sourceY / imageSize.height, bounds.min, bounds.max, 0),
+  };
+}
+
+function getPhotoEditorOutputMaskOutlinePoints(mask, outputSize = null) {
+  if (!mask || mask.space === 'source') {
+    return [];
+  }
+
+  const width = Math.max(1, Number(outputSize?.width) || 1);
+  const height = Math.max(1, Number(outputSize?.height) || 1);
+  const rect = getPhotoEditorMaskNormalizedRect(mask);
+  const center = getPhotoEditorMaskRectCenter(rect);
+  const rotationRadians = getPhotoEditorMaskRotation(mask) * Math.PI / 180;
+
+  if (mask.shape === 'ellipse') {
+    const points = [];
+    const pointCount = 48;
+
+    for (let index = 0; index < pointCount; index += 1) {
+      const angle = index / pointCount * Math.PI * 2;
+      const point = {
+        x: center.x + Math.cos(angle) * rect.width / 2,
+        y: center.y + Math.sin(angle) * rect.height / 2,
+      };
+      points.push(
+        rotationRadians === 0
+          ? point
+          : rotateNormalizedPointAroundCenterForSize(
+              point,
+              center,
+              rotationRadians,
+              width,
+              height
+            )
+      );
+    }
+
+    return points;
+  }
+
+  if (mask.shape === 'rect') {
+    return getPhotoEditorRotatedMaskRectCorners(mask, width, height);
+  }
+
+  return Array.isArray(mask.points) ? mask.points : [];
+}
+
+function convertPhotoEditorMaskToSourceSpace(mask) {
+  if (!photoEditorState?.sourceImage || !mask || mask.space === 'source') {
+    return mask;
+  }
+
+  const sourceImage = photoEditorState.sourceImage;
+  const sourceRect = getPhotoEditorSourceRect(sourceImage);
+  const outputSize = getPhotoEditorOutputSize(
+    sourceRect,
+    null,
+    photoEditorState.crop
+  );
+  const rect = mask.rect || {};
+  const allowOutside = canPhotoEditorMaskExtendOutside(mask);
+  const shouldConvertAsOutline =
+    ['rect', 'ellipse'].includes(mask.shape) &&
+    getPhotoEditorMaskRotation(mask) !== 0;
+
+  if (shouldConvertAsOutline) {
+    const sourcePoints = getPhotoEditorOutputMaskOutlinePoints(
+      mask,
+      outputSize
+    ).map((point) =>
+      mapPhotoEditorOutputPointToSource(point, sourceRect, sourceImage, {
+        allowOutside,
+      })
+    );
+
+    return {
+      ...mask,
+      shape: 'freehand',
+      space: 'source',
+      allowOutside,
+      rotation: 0,
+      rect: getPhotoEditorPointsMaskRect(sourcePoints, { allowOutside }),
+      points: sourcePoints,
+    };
+  }
+
+  const topLeft = mapPhotoEditorOutputPointToSource(rect, sourceRect, sourceImage, {
+    allowOutside,
+  });
+  const bottomRight = mapPhotoEditorOutputPointToSource(
+    {
+      x: rect.x + rect.width,
+      y: rect.y + rect.height,
+    },
+    sourceRect,
+    sourceImage,
+    { allowOutside }
+  );
+  const points = Array.isArray(mask.points)
+    ? mask.points.map((point) =>
+        mapPhotoEditorOutputPointToSource(point, sourceRect, sourceImage, {
+          allowOutside,
+        })
+      )
+    : null;
+
+  return {
+    ...mask,
+    space: 'source',
+    rect: normalizePhotoEditorMaskRect(topLeft, bottomRight, { allowOutside }),
+    points,
+  };
+}
+
+function cancelPhotoEditorPendingMask({ deactivateTool = true } = {}) {
+  if (!photoEditorState) {
+    return false;
+  }
+
+  const hadDraft = Boolean(photoEditorState.draftMask);
+  const wasMaskDrag = String(photoEditorState.dragMode || '').startsWith('mask');
+
+  photoEditorState.dragMode = wasMaskDrag ? null : photoEditorState.dragMode;
+  photoEditorState.dragStart = wasMaskDrag ? null : photoEditorState.dragStart;
+  photoEditorState.dragInitialMask = wasMaskDrag
+    ? null
+    : photoEditorState.dragInitialMask;
+  photoEditorState.draftMask = null;
+  photoEditorCanvas?.classList.remove('is-panning');
+
+  if (deactivateTool) {
+    photoEditorState.maskTool = 'none';
+  }
+
+  if (hadDraft) {
+    syncPhotoEditorMaskToolUi();
+    schedulePhotoEditorRender();
+  } else {
+    syncPhotoEditorMaskToolUi();
+  }
+
+  return hadDraft;
+}
+
+function updatePhotoEditorDraftMask(values = {}) {
+  if (!photoEditorState?.draftMask) {
+    return;
+  }
+
+  photoEditorState.draftMask = {
+    ...photoEditorState.draftMask,
+    ...values,
+  };
+  schedulePhotoEditorRender({
+    debounceMs: PHOTO_EDITOR_EFFECT_DRAG_PREVIEW_DEBOUNCE_MS,
+    interactive: true,
+  });
+}
+
+function cancelPhotoEditorPendingMaskFromControl() {
+  if (
+    photoEditorState?.draftMask ||
+    (photoEditorState && photoEditorState.maskTool !== 'none')
+  ) {
+    cancelPhotoEditorPendingMask();
+  }
+}
+
+function getPhotoEditorDraftMaskDragMode(point) {
+  if (!photoEditorState?.draftMask || !photoEditorCanvas) {
+    return null;
+  }
+
+  const sourceImage = photoEditorState.sourceImage;
+  const sourceRect = sourceImage ? getPhotoEditorSourceRect(sourceImage) : null;
+  const handles = getPhotoEditorDraftMaskHandles(
+    photoEditorCanvas.width,
+    photoEditorCanvas.height,
+    sourceRect,
+    sourceImage
+  );
+  const pointX = clampNumber(point?.x, -10, 10, 0) * photoEditorCanvas.width;
+  const pointY = clampNumber(point?.y, -10, 10, 0) * photoEditorCanvas.height;
+  const isNearHandle = (handlePoint) =>
+    Boolean(
+      handlePoint &&
+        Math.hypot(pointX - handlePoint.x, pointY - handlePoint.y) <=
+          PHOTO_EDITOR_MASK_HANDLE_HIT_RADIUS
+    );
+
+  if (isNearHandle(handles?.rotate)) {
+    return 'mask-rotate';
+  }
+
+  if (isNearHandle(handles?.resize)) {
+    return 'mask-resize';
+  }
+
+  if (isNearHandle(handles?.move)) {
+    return 'mask-move';
+  }
+
+  return isPhotoEditorPointInsideMask(
+    point,
+    photoEditorState.draftMask,
+    photoEditorCanvas.width,
+    photoEditorCanvas.height,
+    sourceRect,
+    sourceImage
+  )
+    ? 'mask-move'
+    : null;
+}
+
+function beginPhotoEditorDraftMaskTransform(point, dragMode) {
+  if (!photoEditorState?.draftMask) {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.dragMode = dragMode || 'mask-move';
+  photoEditorState.dragStart = point;
+  photoEditorState.dragInitialMask = clonePhotoEditorPlainValue(
+    photoEditorState.draftMask
+  );
+  photoEditorCanvas?.classList.add('is-panning');
+  paintPhotoEditorPreviewOverlayOnly();
+  schedulePhotoEditorRender({ interactive: true });
+}
+
+function beginPhotoEditorMaskDrag(event) {
+  if (
+    !photoEditorState ||
+    !photoEditorState.sourceImage
+  ) {
+    return;
+  }
+
+  const point = getPhotoEditorCanvasPointerPoint(event, {
+    allowOutside: Boolean(photoEditorState.draftMask),
+  });
+
+  if (!point) {
+    return;
+  }
+
+  event.preventDefault();
+  safelySetPointerCapture(photoEditorCanvas, event.pointerId);
+
+  const draftMaskDragMode = getPhotoEditorDraftMaskDragMode(point);
+
+  if (draftMaskDragMode) {
+    beginPhotoEditorDraftMaskTransform(point, draftMaskDragMode);
+    return;
+  }
+
+  if (photoEditorState.maskTool === 'none') {
+    const blurDragMode = getPhotoEditorRadialBlurDragMode(point);
+
+    if (blurDragMode) {
+      beginPhotoEditorBlurDrag(point, blurDragMode);
+      return;
+    }
+
+    beginPhotoEditorPanDrag(point);
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.dragMode = 'mask';
+  photoEditorState.dragStart = point;
+  photoEditorState.draftMask = {
+    type: photoEditorState.maskTool,
+    shape: photoEditorState.maskShape,
+    space: 'output',
+    strength: photoEditorState.blurStrength,
+    color: photoEditorState.fillColor,
+    rotation: 0,
+    allowOutside: canPhotoEditorMaskExtendOutside(photoEditorState.maskShape),
+    points: photoEditorState.maskShape === 'freehand' ? [point] : null,
+    rect: {
+      x: point.x,
+      y: point.y,
+      width: 0,
+      height: 0,
+    },
+  };
+  paintPhotoEditorPreviewOverlayOnly();
+  schedulePhotoEditorRender({
+    debounceMs: PHOTO_EDITOR_EFFECT_DRAG_PREVIEW_DEBOUNCE_MS,
+    interactive: true,
+  });
+}
+
+function updatePhotoEditorMaskDrag(event) {
+  if (!photoEditorState?.dragStart) {
+    return;
+  }
+
+  const isMaskTransform = ['mask-move', 'mask-resize', 'mask-rotate'].includes(
+    String(photoEditorState.dragMode || '')
+  );
+  const allowOutside =
+    isMaskTransform ||
+    canPhotoEditorMaskExtendOutside(photoEditorState.draftMask?.shape);
+  const point = getPhotoEditorCanvasPointerPoint(event, { allowOutside });
+
+  if (!point) {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (photoEditorState.dragMode === 'pan') {
+    updatePhotoEditorPanDrag(point);
+    return;
+  }
+
+  if (String(photoEditorState.dragMode || '').startsWith('blur-')) {
+    updatePhotoEditorBlurDrag(point);
+    return;
+  }
+
+  if (
+    photoEditorState.dragMode === 'mask-move' ||
+    photoEditorState.dragMode === 'mask-resize' ||
+    photoEditorState.dragMode === 'mask-rotate'
+  ) {
+    const initialMask = photoEditorState.dragInitialMask;
+
+    if (!initialMask) {
+      return;
+    }
+
+    if (photoEditorState.dragMode === 'mask-resize') {
+      photoEditorState.draftMask = resizePhotoEditorMask(initialMask, point, {
+        keepRatio: Boolean(event.shiftKey),
+      });
+    } else if (photoEditorState.dragMode === 'mask-rotate') {
+      photoEditorState.draftMask = rotatePhotoEditorMask(
+        initialMask,
+        photoEditorState.dragStart,
+        point
+      );
+    } else {
+      photoEditorState.draftMask = translatePhotoEditorMask(
+        initialMask,
+        point.x - photoEditorState.dragStart.x,
+        point.y - photoEditorState.dragStart.y
+      );
+    }
+
+    paintPhotoEditorPreviewOverlayOnly();
+    schedulePhotoEditorRender({
+      debounceMs: PHOTO_EDITOR_EFFECT_DRAG_PREVIEW_DEBOUNCE_MS,
+      interactive: true,
+    });
+    return;
+  }
+
+  if (!photoEditorState.draftMask) {
+    return;
+  }
+
+  if (photoEditorState.draftMask.shape === 'freehand') {
+    const points = Array.isArray(photoEditorState.draftMask.points)
+      ? photoEditorState.draftMask.points
+      : [];
+    const lastPoint = points[points.length - 1];
+    const shouldAddPoint =
+      !lastPoint ||
+      Math.hypot(point.x - lastPoint.x, point.y - lastPoint.y) > 0.006;
+
+    photoEditorState.draftMask = {
+      ...photoEditorState.draftMask,
+      points: shouldAddPoint ? [...points, point] : points,
+      rect: normalizePhotoEditorMaskRect(photoEditorState.dragStart, point),
+    };
+  } else {
+    photoEditorState.draftMask = {
+      ...photoEditorState.draftMask,
+      rect: normalizePhotoEditorMaskRect(photoEditorState.dragStart, point, {
+        constrainSquare: Boolean(event.shiftKey),
+        allowOutside,
+      }),
+    };
+  }
+
+  paintPhotoEditorPreviewOverlayOnly();
+  schedulePhotoEditorRender({
+    debounceMs: PHOTO_EDITOR_EFFECT_DRAG_PREVIEW_DEBOUNCE_MS,
+    interactive: true,
+  });
+}
+
+function finishPhotoEditorMaskDrag(event) {
+  if (!photoEditorState?.dragStart) {
+    return;
+  }
+
+  if (photoEditorState.dragMode === 'pan') {
+    finishPhotoEditorPanDrag();
+    return;
+  }
+
+  if (String(photoEditorState.dragMode || '').startsWith('blur-')) {
+    finishPhotoEditorBlurDrag();
+    return;
+  }
+
+  if (
+    photoEditorState.dragMode === 'mask-move' ||
+    photoEditorState.dragMode === 'mask-resize' ||
+    photoEditorState.dragMode === 'mask-rotate'
+  ) {
+    photoEditorState.dragStart = null;
+    photoEditorState.dragMode = null;
+    photoEditorState.dragInitialMask = null;
+    photoEditorCanvas?.classList.remove('is-panning');
+    syncPhotoEditorMaskToolUi();
+    finishPhotoEditorInteractivePreview();
+    return;
+  }
+
+  if (!photoEditorState.draftMask) {
+    return;
+  }
+
+  const isMaskTransform = ['mask-move', 'mask-resize', 'mask-rotate'].includes(
+    String(photoEditorState.dragMode || '')
+  );
+  const allowOutside =
+    isMaskTransform ||
+    canPhotoEditorMaskExtendOutside(photoEditorState.draftMask?.shape);
+  const point =
+    getPhotoEditorCanvasPointerPoint(event, { allowOutside }) ||
+    photoEditorState.dragStart;
+  const draftMask = photoEditorState.draftMask;
+  const points =
+    draftMask.shape === 'freehand'
+      ? [
+          ...(Array.isArray(draftMask.points) ? draftMask.points : []),
+          point,
+        ]
+      : null;
+  const rect =
+    draftMask.shape === 'freehand'
+      ? getPhotoEditorPointsMaskRect(points)
+      : normalizePhotoEditorMaskRect(photoEditorState.dragStart, point, {
+          constrainSquare: Boolean(event.shiftKey),
+          allowOutside,
+        });
+  const shouldSaveMask =
+    rect.width >= PHOTO_EDITOR_MIN_MASK_SIZE &&
+    rect.height >= PHOTO_EDITOR_MIN_MASK_SIZE;
+
+  const isFreehandMask =
+    draftMask.shape === 'freehand' &&
+    Array.isArray(points) &&
+    points.length > 2 &&
+    shouldSaveMask;
+
+  if (!shouldSaveMask) {
+    photoEditorState.dragStart = null;
+    photoEditorState.dragMode = null;
+    photoEditorState.dragInitialMask = null;
+    photoEditorState.draftMask = null;
+    syncPhotoEditorMaskToolUi();
+    finishPhotoEditorInteractivePreview();
+    return;
+  }
+
+  photoEditorState.draftMask = {
+    type: draftMask.type,
+    shape: isFreehandMask
+      ? 'freehand'
+      : draftMask.shape === 'ellipse'
+        ? 'ellipse'
+        : 'rect',
+    space: 'output',
+    strength: draftMask.strength,
+    color: draftMask.color,
+    rotation: getPhotoEditorMaskRotation(draftMask),
+    allowOutside: canPhotoEditorMaskExtendOutside(draftMask),
+    points: isFreehandMask ? points : null,
+    rect,
+  };
+
+  photoEditorState.dragStart = null;
+  photoEditorState.dragMode = null;
+  photoEditorState.dragInitialMask = null;
+  photoEditorCanvas?.classList.remove('is-panning');
+  syncPhotoEditorMaskToolUi();
+  finishPhotoEditorInteractivePreview();
+}
+
+function confirmPhotoEditorMask() {
+  if (
+    !photoEditorState?.draftMask ||
+    String(photoEditorState.dragMode || '').startsWith('mask')
+  ) {
+    return;
+  }
+
+  const committedMask = convertPhotoEditorMaskToSourceSpace(photoEditorState.draftMask);
+
+  if (!committedMask) {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.masks.push(committedMask);
+  photoEditorState.draftMask = null;
+  photoEditorState.maskTool = 'none';
+  photoEditorState.dragMode = null;
+  photoEditorState.dragStart = null;
+  syncPhotoEditorMaskToolUi();
+  finishPhotoEditorInteractivePreview();
+  commitPhotoEditorHistoryMutation();
+}
+
+function undoPhotoEditorMask() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  if (photoEditorState.draftMask) {
+    cancelPhotoEditorPendingMask();
+    return;
+  }
+
+  if (photoEditorState.masks.length === 0) {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.masks.pop();
+  syncPhotoEditorMaskToolUi();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+function clearPhotoEditorMasks() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.masks = [];
+  photoEditorState.draftMask = null;
+  photoEditorState.dragMode = null;
+  photoEditorState.dragStart = null;
+  photoEditorState.dragInitialMask = null;
+  photoEditorState.maskTool = 'none';
+  photoEditorState.maskShape = 'rect';
+  photoEditorState.maskStrengths = { ...PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS };
+  photoEditorState.blurStrength = PHOTO_EDITOR_MASK_DEFAULT_STRENGTHS.blur;
+  photoEditorState.fillColor = '#111827';
+  syncPhotoEditorMaskToolUi();
+  if (photoEditorFillColorInput) {
+    photoEditorFillColorInput.value = photoEditorState.fillColor;
+  }
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+function closePhotoEditorModal() {
+  if (!photoEditorModal) {
+    return;
+  }
+
+  photoEditorPreviewRenderToken += 1;
+  photoEditorPreviewCommittedValues = null;
+  clearPhotoEditorAdjustmentLivePreview();
+  cancelPhotoEditorPreviewWorkerRequests('画像編集モーダルを閉じました');
+
+  if (photoEditorRenderFrame) {
+    cancelAnimationFrame(photoEditorRenderFrame);
+    photoEditorRenderFrame = 0;
+  }
+
+  if (photoEditorRenderDebounceTimer) {
+    clearTimeout(photoEditorRenderDebounceTimer);
+    photoEditorRenderDebounceTimer = 0;
+  }
+
+  if (photoEditorPreviewSettleTimer) {
+    clearTimeout(photoEditorPreviewSettleTimer);
+    photoEditorPreviewSettleTimer = 0;
+  }
+
+  const closingState = photoEditorState;
+
+  closeSubModalElement(photoEditorModal, {
+    onClosed: () => {
+      if (photoEditorState !== closingState) {
+        return;
+      }
+
+      photoEditorState = null;
+      if (photoEditorCanvas) {
+        const ctx = photoEditorCanvas.getContext('2d');
+        ctx?.clearRect(0, 0, photoEditorCanvas.width, photoEditorCanvas.height);
+        photoEditorCanvas.width = 0;
+        photoEditorCanvas.height = 0;
+        photoEditorCanvas.style.width = '';
+        photoEditorCanvas.style.height = '';
+        photoEditorCanvas.style.aspectRatio = '';
+        photoEditorCanvas.style.filter = '';
+        photoEditorCanvas.style.willChange = '';
+        photoEditorCanvas.classList.remove(
+          'is-blur-tool-active',
+          'is-mask-tool-active',
+          'is-mask-draft-active',
+          'is-panning'
+        );
+      }
+      if (photoEditorPreviewWorkCanvas) {
+        photoEditorPreviewWorkCanvas.width = 0;
+        photoEditorPreviewWorkCanvas.height = 0;
+      }
+      if (photoEditorPreviewOverlayCanvas) {
+        photoEditorPreviewOverlayCanvas.width = 0;
+        photoEditorPreviewOverlayCanvas.height = 0;
+      }
+      photoEditorPreviewOverlayMeta = null;
+      setPhotoEditorStatus('');
+      if (photoEditorFileName) {
+        photoEditorFileName.textContent = '-';
+      }
+    },
+  });
+}
+
+function loadPhotoEditorSourceImage(photo, state) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const loadToken = Symbol('photo-editor-load');
+    state.loadToken = loadToken;
+
+    image.onload = () => {
+      if (photoEditorState !== state || state.loadToken !== loadToken) {
+        reject(new Error('画像読み込みがキャンセルされました'));
+        return;
+      }
+
+      resolve(image);
+    };
+    image.onerror = () => {
+      reject(new Error('画像を読み込めませんでした'));
+    };
+    image.decoding = 'async';
+    image.src = photo.fileUrl;
+  });
+}
+
+async function openPhotoEditorModal() {
+  if (!currentModalPhoto || !photoEditorModal) {
+    return;
+  }
+
+  if (!currentModalPhoto.fileUrl) {
+    showToast('画像を読み込めませんでした');
+    return;
+  }
+
+  initializePhotoEditorUi();
+  const nextState = createPhotoEditorState(currentModalPhoto);
+  photoEditorPreviewCommittedValues = null;
+  clearPhotoEditorAdjustmentLivePreview();
+  photoEditorState = nextState;
+
+  if (photoEditorFileName) {
+    photoEditorFileName.textContent = currentModalPhoto.fileName || '-';
+  }
+
+  setPhotoEditorStatus('読み込み中...');
+  syncPhotoEditorUi();
+  openSubModalElement(photoEditorModal);
+
+  try {
+    const image = await loadPhotoEditorSourceImage(currentModalPhoto, nextState);
+
+    if (photoEditorState !== nextState) {
+      return;
+    }
+
+    photoEditorState.sourceImage = image;
+    syncPhotoEditorUi();
+    schedulePhotoEditorRender();
+  } catch (error) {
+    if (photoEditorState === nextState) {
+      setPhotoEditorStatus(error.message || '画像を読み込めませんでした');
+    }
+  }
+}
+
+function getPhotoEditorExportFormatMeta(settings = null) {
+  const exportSettings = normalizePhotoEditorExportSettings(
+    settings || photoEditorState?.exportSettings
+  );
+
+  return PHOTO_EDITOR_EXPORT_FORMATS[exportSettings.format] ||
+    PHOTO_EDITOR_EXPORT_FORMATS.png;
+}
+
+function getPhotoEditorEffectiveExportSettings(settings = null) {
+  const exportSettings = normalizePhotoEditorExportSettings(
+    settings || photoEditorState?.exportSettings
+  );
+  const cropPreset = getPhotoEditorCropPreset(photoEditorState?.crop?.preset);
+
+  if (!cropPreset.transparentPadding) {
+    return exportSettings;
+  }
+
+  return normalizePhotoEditorExportSettings({
+    ...exportSettings,
+    format: cropPreset.exportFormat || 'png',
+    maxEdge: cropPreset.exportMaxEdge || exportSettings.maxEdge,
+  });
+}
+
+function getPhotoEditorExportDataUrl(canvas, settings = null) {
+  const exportSettings = normalizePhotoEditorExportSettings(
+    settings || photoEditorState?.exportSettings
+  );
+  const formatMeta = getPhotoEditorExportFormatMeta(exportSettings);
+  const quality = getPhotoEditorExportQuality(exportSettings, formatMeta);
+
+  return canvas.toDataURL(formatMeta.mimeType, quality);
+}
+
+function getPhotoEditorExportQuality(exportSettings, formatMeta) {
+  return formatMeta.supportsQuality
+    ? clampNumber(exportSettings.quality, 60, 100, 92) / 100
+    : undefined;
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = '';
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(index, index + chunkSize)
+    );
+  }
+
+  return btoa(binary);
+}
+
+async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
+  const renderBase = drawPhotoEditorBaseToCanvas(exportCanvas, {
+    maxEdge: exportSettings.maxEdge > 0 ? exportSettings.maxEdge : null,
+  });
+
+  if (!renderBase) {
+    throw new Error('編集結果を描画できませんでした');
+  }
+
+  const formatMeta = getPhotoEditorExportFormatMeta(exportSettings);
+  const quality = getPhotoEditorExportQuality(exportSettings, formatMeta);
+
+  try {
+    const workerResult = await applyPhotoEditorEffectsWithWorker(
+      exportCanvas,
+      renderBase,
+      {
+        includeDraft: false,
+        responseType: 'blob',
+        exportSettings: {
+          mimeType: formatMeta.mimeType,
+          quality,
+        },
+        purpose: 'export',
+      }
+    );
+
+    if (workerResult?.buffer) {
+      return {
+        dataUrl: `data:${workerResult.mimeType || formatMeta.mimeType};base64,${arrayBufferToBase64(workerResult.buffer)}`,
+        outputSize: renderBase.outputSize,
+      };
+    }
+  } catch (error) {
+    applyPhotoEditorEffectsToCanvas(
+      renderBase.ctx,
+      renderBase.outputSize,
+      renderBase.sourceRect,
+      {
+        includeDraft: false,
+      }
+    );
+
+    return {
+      dataUrl: getPhotoEditorExportDataUrl(exportCanvas, exportSettings),
+      outputSize: renderBase.outputSize,
+    };
+  }
+
+  applyPhotoEditorEffectsToCanvas(
+    renderBase.ctx,
+    renderBase.outputSize,
+    renderBase.sourceRect,
+    {
+      includeDraft: false,
+    }
+  );
+
+  return {
+    dataUrl: getPhotoEditorExportDataUrl(exportCanvas, exportSettings),
+    outputSize: renderBase.outputSize,
+  };
+}
+
+function buildPhotoEditorSourceMetadataPayload(sourcePhoto) {
+  if (!sourcePhoto) {
+    return null;
+  }
+
+  const labels = [
+    ...(Array.isArray(sourcePhoto.photoLabels) ? sourcePhoto.photoLabels : []),
+    ...(Array.isArray(currentModalPhotoLabels) && currentModalPhoto?.id === sourcePhoto.id
+      ? currentModalPhotoLabels
+      : []),
+  ];
+
+  return {
+    takenAt: sourcePhoto.takenAt,
+    takenAtTimestamp: sourcePhoto.takenAtTimestamp,
+    groupDate: sourcePhoto.groupDate,
+    year: sourcePhoto.year,
+    month: sourcePhoto.month,
+    day: sourcePhoto.day,
+    worldId: sourcePhoto.worldId,
+    worldName: sourcePhoto.rawWorldName || sourcePhoto.worldName,
+    worldNameManual: sourcePhoto.worldNameManual,
+    worldUrl: sourcePhoto.worldUrl,
+    isFavorite: Boolean(sourcePhoto.isFavorite),
+    printNoteText: sourcePhoto.printNoteText,
+    memoText: sourcePhoto.memoText,
+    labels: labels.map((label) => label?.name).filter(Boolean),
+  };
+}
+
+async function savePhotoEditorImage() {
+  if (!photoEditorState?.sourceImage || photoEditorState.isSaving) {
+    return;
+  }
+
+  if (!window.electronAPI.saveEditedPhoto) {
+    setPhotoEditorStatus('保存機能を利用できません');
+    return;
+  }
+
+  setPhotoEditorSaving(true);
+  setPhotoEditorStatus('保存中...');
+
+  try {
+    const exportCanvas = document.createElement('canvas');
+    const exportSettings = getPhotoEditorEffectiveExportSettings(
+      photoEditorState.exportSettings
+    );
+    const renderResult = await renderPhotoEditorExportDataUrl(
+      exportCanvas,
+      exportSettings
+    );
+
+    if (!renderResult?.dataUrl) {
+      throw new Error('編集結果を描画できませんでした');
+    }
+
+    const sourcePhoto = photoEditorState.sourcePhoto;
+    const result = await window.electronAPI.saveEditedPhoto({
+      sourceFilePath: sourcePhoto.filePath,
+      sourceFileName: sourcePhoto.fileName,
+      sourceTakenAtTimestamp: sourcePhoto.takenAtTimestamp,
+      sourcePhotoMetadata: buildPhotoEditorSourceMetadataPayload(sourcePhoto),
+      outputFormat: exportSettings.format,
+      outputQuality: exportSettings.quality,
+      dataUrl: renderResult.dataUrl,
+    });
+
+    if (result?.canceled) {
+      setPhotoEditorStatus('保存をキャンセルしました');
+      return;
+    }
+
+    if (!result?.ok) {
+      setPhotoEditorStatus(result?.message || '保存に失敗しました');
+      return;
+    }
+
+    if (result.importResult && !result.importFailed) {
+      await restorePhotoDataSelectionFromResult(result.importResult, currentSelection);
+      await queueWorldMetadataSyncForResult(result.importResult);
+    }
+
+    closePhotoEditorModal();
+    showToast(
+      result.importFailed
+        ? `保存しました（登録は未反映）: ${result.fileName || ''}`
+        : `編集済み画像を保存しました: ${result.fileName || ''}`
+    );
+  } catch (error) {
+    setPhotoEditorStatus(`保存に失敗しました: ${error.message}`);
+  } finally {
+    setPhotoEditorSaving(false);
+  }
+}
+
 async function openPhotoLabelModal() {
   if (!currentModalPhoto || !photoLabelModal) {
     return;
@@ -5693,6 +13835,10 @@ function showImageModalPhoto(item, { direction = null } = {}) {
     closePhotoLabelModal();
   }
 
+  if (photoEditorModal && !photoEditorModal.classList.contains('hidden')) {
+    closePhotoEditorModal();
+  }
+
   invalidateCurrentModalAsyncRequests();
   setCurrentModalPhotoState(latestPhoto, { resetScroll: true });
   populateModal(latestPhoto);
@@ -5784,6 +13930,7 @@ function closeImageModal() {
   }
 
   closePhotoLabelModal();
+  closePhotoEditorModal();
 
   const prefersReducedMotion = window.matchMedia?.(
     '(prefers-reduced-motion: reduce)'
@@ -6259,6 +14406,7 @@ function syncSettingsUninstallUi() {
 function initializeModalCloseIcons() {
   [
     imageModalClose,
+    photoEditorClose,
     worldNameEditClose,
     photoLabelClose,
     settingsModalClose,
@@ -6292,6 +14440,13 @@ function handleDelegatedSubModalClose(event) {
     event.preventDefault();
     event.stopPropagation();
     closePhotoLabelModal();
+    return;
+  }
+
+  if (closeButton === photoEditorClose) {
+    event.preventDefault();
+    event.stopPropagation();
+    closePhotoEditorModal();
     return;
   }
 
@@ -6452,6 +14607,10 @@ function initializeImageModalUi() {
     modalOpenOriginalButton.textContent = '画像を開く';
   }
 
+  if (modalEditPhotoButton) {
+    modalEditPhotoButton.textContent = '画像を加工する';
+  }
+
   if (modalOpenFolderButton) {
     modalOpenFolderButton.textContent = '保存先を開く';
   }
@@ -6475,6 +14634,111 @@ function initializeImageModalUi() {
 
   modalDangerActions?.remove();
   updateImageModalNavigationState();
+}
+
+function initializePhotoEditorUi() {
+  initializePhotoEditorAccordions();
+  photoEditorUserPresets = loadPhotoEditorUserPresets();
+  renderPhotoEditorPresetButtons();
+
+  if (photoEditorCropPresetList && !photoEditorCropPresetList.dataset.initialized) {
+    photoEditorCropPresetList.innerHTML = '';
+
+    for (const preset of PHOTO_EDITOR_CROP_PRESETS) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'photo-editor-crop-button';
+      button.dataset.photoEditorCrop = preset.key;
+      button.setAttribute('aria-pressed', 'false');
+      button.textContent = preset.label;
+      if (preset.transparentPadding) {
+        button.classList.add('is-output-preset');
+      }
+      button.addEventListener('click', () => {
+        applyPhotoEditorCropPreset(preset.key);
+      });
+      photoEditorCropPresetList.appendChild(button);
+    }
+
+    photoEditorCropPresetList.dataset.initialized = 'true';
+  }
+
+  if (
+    photoEditorCurveChannelList &&
+    !photoEditorCurveChannelList.dataset.initialized
+  ) {
+    photoEditorCurveChannelList.innerHTML = '';
+
+    for (let index = 0; index < 4; index += 1) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'photo-editor-curve-channel-button';
+      button.dataset.photoEditorCurveChannel = '';
+      button.setAttribute('aria-pressed', 'false');
+      button.addEventListener('click', () => {
+        setPhotoEditorCurveChannel(button.dataset.photoEditorCurveChannel);
+      });
+      photoEditorCurveChannelList.appendChild(button);
+    }
+
+    photoEditorCurveChannelList.dataset.initialized = 'true';
+  }
+
+  if (photoEditorAdjustmentList && !photoEditorAdjustmentList.dataset.initialized) {
+    photoEditorAdjustmentList.innerHTML = '';
+
+    for (const slider of PHOTO_EDIT_SLIDERS) {
+      const row = document.createElement('div');
+      row.className = 'photo-editor-slider-row';
+
+      const label = document.createElement('div');
+      label.className = 'photo-editor-slider-label';
+
+      const labelText = document.createElement('span');
+      labelText.textContent = slider.label;
+      label.appendChild(labelText);
+
+      const valueText = document.createElement('span');
+      valueText.dataset.photoEditorValue = slider.key;
+      valueText.textContent = String(slider.defaultValue);
+      label.appendChild(valueText);
+
+      const control = document.createElement('div');
+      control.className = 'photo-editor-slider-control';
+
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.min = String(slider.min);
+      input.max = String(slider.max);
+      input.value = String(slider.defaultValue);
+      input.dataset.photoEditorSlider = slider.key;
+      input.addEventListener('input', () => {
+        updatePhotoEditorSliderValue(slider.key, input.value);
+      });
+      input.addEventListener('change', () => {
+        finishPhotoEditorInteractivePreview();
+      });
+      control.appendChild(input);
+
+      const resetButton = document.createElement('button');
+      resetButton.type = 'button';
+      resetButton.className = 'photo-editor-slider-reset';
+      resetButton.setAttribute('aria-label', `${slider.label}をリセット`);
+      resetButton.title = `${slider.label}をリセット`;
+      resetButton.innerHTML =
+        '<span class="material-symbols-outlined">restart_alt</span>';
+      resetButton.addEventListener('click', () => {
+        updatePhotoEditorSliderValue(slider.key, slider.defaultValue);
+      });
+      control.appendChild(resetButton);
+
+      row.appendChild(label);
+      row.appendChild(control);
+      photoEditorAdjustmentList.appendChild(row);
+    }
+
+    photoEditorAdjustmentList.dataset.initialized = 'true';
+  }
 }
 
 function initializeWorldNameEditUi() {
@@ -10604,10 +18868,20 @@ function bindPhotoAndEditModalControls() {
     openWorldNameEditModal();
   });
 
+  modalEditPhotoButton?.addEventListener('click', () => {
+    openPhotoEditorModal();
+  });
+
   bindSubModalCloseTriggers(
     worldNameEditBackdrop,
     worldNameEditClose,
     closeWorldNameEditModal
+  );
+
+  bindSubModalCloseTriggers(
+    photoEditorBackdrop,
+    photoEditorClose,
+    closePhotoEditorModal
   );
 
   bindSubModalCloseTriggers(imageModalBackdrop, imageModalClose, closeImageModal);
@@ -10638,6 +18912,337 @@ function bindPhotoAndEditModalControls() {
 
   modalOpenFolderButton?.addEventListener('click', async () => {
     await openCurrentModalContainingFolder();
+  });
+
+  photoEditorResetButton?.addEventListener('click', () => {
+    resetPhotoEditorAll();
+  });
+
+  photoEditorCompareButton?.addEventListener('click', () => {
+    togglePhotoEditorComparePreview();
+  });
+
+  photoEditorPresetResetButton?.addEventListener('click', () => {
+    resetPhotoEditorAdjustments();
+  });
+
+  photoEditorAutoStrengthInput?.addEventListener('input', () => {
+    updatePhotoEditorAutoEnhanceStrength(photoEditorAutoStrengthInput.value);
+  });
+  photoEditorAutoStrengthInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorAdjustmentResetButton?.addEventListener('click', () => {
+    resetPhotoEditorAdjustments();
+  });
+
+  photoEditorSavePresetButton?.addEventListener('click', () => {
+    saveCurrentPhotoEditorPreset();
+  });
+
+  photoEditorPresetNameInput?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      saveCurrentPhotoEditorPreset();
+    }
+  });
+
+  photoEditorCropResetButton?.addEventListener('click', () => {
+    resetPhotoEditorCrop();
+  });
+
+  photoEditorExportResetButton?.addEventListener('click', () => {
+    resetPhotoEditorExportSettings();
+  });
+
+  photoEditorBlurResetButton?.addEventListener('click', () => {
+    resetPhotoEditorBlur();
+  });
+
+  photoEditorCurveResetButton?.addEventListener('click', () => {
+    resetPhotoEditorCurve();
+  });
+
+  photoEditorBlurConfirmButton?.addEventListener('click', () => {
+    confirmPhotoEditorBlur();
+  });
+
+  photoEditorSaveButton?.addEventListener('click', async () => {
+    await savePhotoEditorImage();
+  });
+
+  photoEditorUndoButton?.addEventListener('click', () => {
+    undoPhotoEditorEdit();
+  });
+
+  photoEditorRedoButton?.addEventListener('click', () => {
+    redoPhotoEditorEdit();
+  });
+
+  photoEditorRuleGridButton?.addEventListener('click', () => {
+    if (!photoEditorState) {
+      return;
+    }
+
+    photoEditorState.showRuleOfThirdsGrid = !photoEditorState.showRuleOfThirdsGrid;
+    syncPhotoEditorOverlayControls();
+    if (!paintPhotoEditorPreviewOverlayOnly()) {
+      schedulePhotoEditorRender();
+    }
+  });
+
+  photoEditorRulerButton?.addEventListener('click', () => {
+    if (!photoEditorState) {
+      return;
+    }
+
+    photoEditorState.showRulers = !photoEditorState.showRulers;
+    syncPhotoEditorOverlayControls();
+    if (!paintPhotoEditorPreviewOverlayOnly()) {
+      schedulePhotoEditorRender();
+    }
+  });
+
+  for (const toggle of photoEditorAccordionToggles) {
+    toggle.addEventListener('click', () => {
+      const key = toggle.dataset.photoEditorAccordionToggle;
+
+      if (!key) {
+        return;
+      }
+
+      const shouldOpen = toggle.getAttribute('aria-expanded') !== 'true';
+      setPhotoEditorAccordionOpen(key, shouldOpen);
+
+      if (key === 'mask' && !shouldOpen) {
+        cancelPhotoEditorPendingMask();
+      }
+
+      if (key === 'blur') {
+        syncPhotoEditorBlurControls();
+        schedulePhotoEditorRender();
+      }
+
+      if (key === 'curve') {
+        syncPhotoEditorCurveControls();
+      }
+    });
+  }
+
+  [
+    photoEditorResetButton,
+    photoEditorUndoButton,
+    photoEditorRedoButton,
+    photoEditorCompareButton,
+    photoEditorSaveButton,
+    photoEditorPresetResetButton,
+    photoEditorAdjustmentResetButton,
+    ...photoEditorAccordionToggles,
+    photoEditorPresetList,
+    photoEditorPresetNameInput,
+    photoEditorSavePresetButton,
+    photoEditorCropPresetList,
+    photoEditorCropResetButton,
+    photoEditorCropRotateLeftButton,
+    photoEditorCropRotateRightButton,
+    photoEditorCropFlipXButton,
+    photoEditorCropFlipYButton,
+    photoEditorCropZoomInput,
+    photoEditorCropTiltInput,
+    photoEditorCropXInput,
+    photoEditorCropYInput,
+    photoEditorExportResetButton,
+    photoEditorExportFormatSelect,
+    photoEditorExportMaxEdgeSelect,
+    photoEditorExportQualityInput,
+    photoEditorBlurResetButton,
+    photoEditorBlurModeGroup,
+    photoEditorBlurAmountInput,
+    photoEditorBlurConfirmButton,
+    photoEditorCurveResetButton,
+    photoEditorCurveModeGroup,
+    photoEditorCurveChannelList,
+    photoEditorCurveCanvas,
+    photoEditorAdjustmentList,
+  ]
+    .filter(Boolean)
+    .forEach((element) => {
+      element.addEventListener('pointerdown', cancelPhotoEditorPendingMaskFromControl);
+    });
+
+  photoEditorCropZoomInput?.addEventListener('input', () => {
+    updatePhotoEditorCrop({ zoom: photoEditorCropZoomInput.value });
+  });
+  photoEditorCropZoomInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorCropRotateLeftButton?.addEventListener('click', () => {
+    rotatePhotoEditorCrop(-90);
+  });
+
+  photoEditorCropRotateRightButton?.addEventListener('click', () => {
+    rotatePhotoEditorCrop(90);
+  });
+
+  photoEditorCropFlipXButton?.addEventListener('click', () => {
+    togglePhotoEditorCropFlipX();
+  });
+
+  photoEditorCropFlipYButton?.addEventListener('click', () => {
+    togglePhotoEditorCropFlipY();
+  });
+
+  photoEditorCropTiltInput?.addEventListener('input', () => {
+    updatePhotoEditorCrop({ tilt: photoEditorCropTiltInput.value });
+  });
+  photoEditorCropTiltInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorCropXInput?.addEventListener('input', () => {
+    updatePhotoEditorCrop({ offsetX: photoEditorCropXInput.value });
+  });
+  photoEditorCropXInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorCropYInput?.addEventListener('input', () => {
+    updatePhotoEditorCrop({ offsetY: photoEditorCropYInput.value });
+  });
+  photoEditorCropYInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorExportFormatSelect?.addEventListener('change', () => {
+    updatePhotoEditorExportSettings({
+      format: photoEditorExportFormatSelect.value,
+    });
+  });
+
+  photoEditorExportMaxEdgeSelect?.addEventListener('change', () => {
+    updatePhotoEditorExportSettings({
+      maxEdge: photoEditorExportMaxEdgeSelect.value,
+    });
+  });
+
+  photoEditorExportQualityInput?.addEventListener('input', () => {
+    updatePhotoEditorExportSettings({
+      quality: photoEditorExportQualityInput.value,
+    });
+  });
+  photoEditorExportQualityInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorBlurModeGroup?.addEventListener('click', (event) => {
+    const modeButton = event.target.closest('[data-photo-editor-blur-mode]');
+
+    if (!modeButton || !photoEditorState) {
+      return;
+    }
+
+    updatePhotoEditorBlur({
+      mode: modeButton.dataset.photoEditorBlurMode || 'full',
+    });
+  });
+
+  photoEditorBlurAmountInput?.addEventListener('input', () => {
+    updatePhotoEditorBlur({ amount: photoEditorBlurAmountInput.value });
+  });
+  photoEditorBlurAmountInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorCurveModeGroup?.addEventListener('click', (event) => {
+    const modeButton = event.target.closest('[data-photo-editor-curve-mode]');
+
+    if (!modeButton || !photoEditorState) {
+      return;
+    }
+
+    setPhotoEditorCurveMode(modeButton.dataset.photoEditorCurveMode || 'rgb');
+  });
+
+  photoEditorMaskToolGroup?.addEventListener('click', (event) => {
+    const toolButton = event.target.closest('[data-photo-editor-mask-tool]');
+
+    if (!toolButton || !photoEditorState) {
+      return;
+    }
+
+    setPhotoEditorMaskTool(toolButton.dataset.photoEditorMaskTool || 'none');
+  });
+
+  photoEditorMaskShapeGroup?.addEventListener('click', (event) => {
+    const shapeButton = event.target.closest('[data-photo-editor-mask-shape]');
+
+    if (!shapeButton || !photoEditorState) {
+      return;
+    }
+
+    setPhotoEditorMaskShape(shapeButton.dataset.photoEditorMaskShape || 'rect');
+  });
+
+  photoEditorMaskBlurStrengthInput?.addEventListener('input', () => {
+    setPhotoEditorBlurStrength(photoEditorMaskBlurStrengthInput.value);
+  });
+  photoEditorMaskBlurStrengthInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorFillColorInput?.addEventListener('input', () => {
+    if (!photoEditorState) {
+      return;
+    }
+
+    beginPhotoEditorHistoryMutation();
+    photoEditorState.fillColor = photoEditorFillColorInput.value || '#111827';
+    if (photoEditorState.draftMask?.type === 'fill') {
+      updatePhotoEditorDraftMask({ color: photoEditorState.fillColor });
+    }
+    syncPhotoEditorMaskToolUi();
+    schedulePhotoEditorHistoryCommit();
+  });
+  photoEditorFillColorInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorMaskConfirmButton?.addEventListener('click', () => {
+    confirmPhotoEditorMask();
+  });
+
+  photoEditorMaskUndoButton?.addEventListener('click', () => {
+    undoPhotoEditorMask();
+  });
+
+  photoEditorMaskClearButton?.addEventListener('click', () => {
+    clearPhotoEditorMasks();
+  });
+
+  photoEditorCanvas?.addEventListener('pointerdown', beginPhotoEditorMaskDrag);
+  photoEditorCanvas?.addEventListener('pointermove', updatePhotoEditorMaskDrag);
+  photoEditorCanvas?.addEventListener('pointerup', finishPhotoEditorMaskDrag);
+  photoEditorCanvas?.addEventListener('pointercancel', finishPhotoEditorMaskDrag);
+  photoEditorCanvas?.addEventListener('wheel', handlePhotoEditorCanvasWheel, {
+    passive: false,
+  });
+  photoEditorCurveCanvas?.addEventListener('pointerdown', beginPhotoEditorCurveDrag);
+  photoEditorCurveCanvas?.addEventListener('pointermove', updatePhotoEditorCurveDrag);
+  photoEditorCurveCanvas?.addEventListener('pointerup', finishPhotoEditorCurveDrag);
+  photoEditorCurveCanvas?.addEventListener(
+    'pointercancel',
+    finishPhotoEditorCurveDrag
+  );
+  window.addEventListener('resize', () => {
+    if (
+      photoEditorState?.sourceImage &&
+      photoEditorModal?.classList.contains('hidden') === false
+    ) {
+      drawPhotoEditorCurveCanvas();
+      schedulePhotoEditorRender();
+    }
   });
 
   modalFavoriteButton?.addEventListener('click', async () => {
@@ -11035,6 +19640,11 @@ function bindGlobalDocumentInteractions() {
       return;
     }
 
+    if (photoEditorModal && !photoEditorModal.classList.contains('hidden')) {
+      closePhotoEditorModal();
+      return;
+    }
+
     if (trackedFolderModal && !trackedFolderModal.classList.contains('hidden')) {
       closeTrackedFolderModal();
       return;
@@ -11060,7 +19670,8 @@ function bindGlobalDocumentInteractions() {
       !imageModal ||
       imageModal.classList.contains('hidden') ||
       worldNameEditModal?.classList.contains('hidden') === false ||
-      photoLabelModal?.classList.contains('hidden') === false
+      photoLabelModal?.classList.contains('hidden') === false ||
+      photoEditorModal?.classList.contains('hidden') === false
     ) {
       return;
     }
@@ -11081,6 +19692,7 @@ function bindGlobalDocumentInteractions() {
       imageModal?.classList.contains('hidden') === false ||
       worldNameEditModal?.classList.contains('hidden') === false ||
       photoLabelModal?.classList.contains('hidden') === false ||
+      photoEditorModal?.classList.contains('hidden') === false ||
       trackedFolderModal?.classList.contains('hidden') === false ||
       settingsModal?.classList.contains('hidden') === false ||
       confirmModal?.classList.contains('hidden') === false ||
@@ -11183,6 +19795,7 @@ function initializeRendererUi() {
   initializePhotoCardDensityPreference();
   initializeBackgroundImagePreference();
   initializeImageModalUi();
+  initializePhotoEditorUi();
   initializeWorldNameEditUi();
   initializePhotoLabelUi();
   initializeModalPrintNoteUi();
