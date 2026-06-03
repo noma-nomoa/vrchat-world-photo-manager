@@ -2504,6 +2504,15 @@ body[data-theme="light"] .primary-link-button {
   display: none;
 }
 
+.photo-editor-text-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.photo-editor-text-controls[hidden] {
+  display: none !important;
+}
+
 .photo-editor-text-item {
   min-width: 0;
   min-height: 34px;

@@ -368,6 +368,9 @@ const photoEditorTextDeleteButton = document.getElementById(
 const photoEditorTextList = document.getElementById(
   'photo-editor-text-list'
 );
+const photoEditorTextControls = document.getElementById(
+  'photo-editor-text-controls'
+);
 const photoEditorTextContentInput = document.getElementById(
   'photo-editor-text-content'
 );
@@ -858,7 +861,7 @@ const TOOLBAR_SEARCH_SCOPE_META = {
 };
 const PHOTO_EDITOR_PREVIEW_MAX_EDGE = 3200;
 const PHOTO_EDITOR_INTERACTIVE_PREVIEW_MAX_EDGE = 1200;
-const PHOTO_EDITOR_CROP_INTERACTIVE_PREVIEW_MAX_EDGE = 780;
+const PHOTO_EDITOR_CROP_INTERACTIVE_PREVIEW_MAX_EDGE = 520;
 const PHOTO_EDITOR_CURVE_DRAG_PREVIEW_MAX_EDGE = 820;
 const PHOTO_EDITOR_HEAVY_INTERACTIVE_PREVIEW_MAX_EDGE = 760;
 const PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS = 16;
@@ -6797,9 +6800,10 @@ function getPhotoEditorTextCollectionFromState(state = photoEditorState) {
         : []
   );
   const activeTextId =
-    textOverlays.some((textOverlay) => textOverlay.id === state?.activeTextId)
+    state?.activeTextId &&
+    textOverlays.some((textOverlay) => textOverlay.id === state.activeTextId)
       ? state.activeTextId
-      : textOverlays[0]?.id || '';
+      : '';
 
   return {
     textOverlays,
@@ -6815,14 +6819,14 @@ function setPhotoEditorTextCollection(textOverlays, activeTextId = '') {
   const normalizedOverlays = normalizePhotoEditorTextOverlays(textOverlays);
   photoEditorState.textOverlays = normalizedOverlays;
   photoEditorState.activeTextId =
+    activeTextId &&
     normalizedOverlays.some((textOverlay) => textOverlay.id === activeTextId)
       ? activeTextId
-      : normalizedOverlays[0]?.id || '';
+      : '';
   photoEditorState.textOverlay =
     normalizedOverlays.find(
       (textOverlay) => textOverlay.id === photoEditorState.activeTextId
     ) ||
-    normalizedOverlays[0] ||
     getDefaultPhotoEditorTextState();
 }
 
@@ -6875,10 +6879,13 @@ async function loadPhotoEditorTextFont(textOverlay) {
   }
 
   const textState = normalizePhotoEditorTextState(textOverlay);
+  const primaryFontFamily =
+    getPhotoEditorTextFontOption(textState.fontKey).family.split(',')[0]?.trim() ||
+    textState.fontFamily;
 
   try {
     await document.fonts.load(
-      `${textState.weight} ${Math.round(textState.size)}px ${textState.fontFamily}`,
+      `${textState.weight} ${Math.round(textState.size)}px ${primaryFontFamily}`,
       textState.text || 'WorldShot'
     );
   } catch {
@@ -8316,6 +8323,10 @@ function syncPhotoEditorTextControls() {
     photoEditorTextDeleteButton.disabled = !textOverlay;
   }
 
+  if (photoEditorTextControls) {
+    photoEditorTextControls.hidden = !textOverlay;
+  }
+
   setPhotoEditorTextControlsDisabled(!textOverlay);
 
   photoEditorCanvas?.classList.toggle(
@@ -8365,6 +8376,20 @@ function selectPhotoEditorTextOverlay(textId) {
   if (!paintPhotoEditorPreviewOverlayOnly()) {
     schedulePhotoEditorRender();
   }
+}
+
+function clearPhotoEditorTextSelection() {
+  if (!photoEditorState?.activeTextId) {
+    return false;
+  }
+
+  photoEditorState.activeTextId = '';
+  photoEditorState.textOverlay = getDefaultPhotoEditorTextState();
+  syncPhotoEditorTextControls();
+  if (!paintPhotoEditorPreviewOverlayOnly()) {
+    schedulePhotoEditorRender();
+  }
+  return true;
 }
 
 function addPhotoEditorTextOverlay(overrides = {}) {
@@ -8460,7 +8485,11 @@ function updatePhotoEditorTextOverlay(nextText = {}, { interactive = true } = {}
     nextState.id
   );
 
-  if (nextText.fontKey !== undefined) {
+  if (
+    nextText.fontKey !== undefined ||
+    nextText.weight !== undefined ||
+    nextText.size !== undefined
+  ) {
     rememberPhotoEditorTextFont(nextState.fontKey);
     loadPhotoEditorTextFont(nextState).then(() => {
       if (photoEditorState?.activeTextId === nextState.id) {
@@ -12976,17 +13005,19 @@ function getPhotoEditorPreviewMaxEdge() {
     (dragMode === 'pan' || Boolean(photoEditorState?.isCropInteractivePreview));
   const maxEdge = dragMode === 'curve'
     ? PHOTO_EDITOR_CURVE_DRAG_PREVIEW_MAX_EDGE
-    : hasHeavyInteractiveEffect
-      ? PHOTO_EDITOR_HEAVY_INTERACTIVE_PREVIEW_MAX_EDGE
     : isCropInteractive
       ? PHOTO_EDITOR_CROP_INTERACTIVE_PREVIEW_MAX_EDGE
+    : hasHeavyInteractiveEffect
+      ? PHOTO_EDITOR_HEAVY_INTERACTIVE_PREVIEW_MAX_EDGE
     : isInteractive
       ? PHOTO_EDITOR_INTERACTIVE_PREVIEW_MAX_EDGE
       : PHOTO_EDITOR_PREVIEW_MAX_EDGE;
   const minEdge = hasHeavyInteractiveEffect
-    ? 640
+    ? isCropInteractive
+      ? 360
+      : 640
     : isCropInteractive
-      ? 520
+      ? 360
     : isInteractive
       ? 760
       : 900;
@@ -14290,6 +14321,10 @@ function beginPhotoEditorMaskDrag(event) {
 
     if (textDragInfo) {
       beginPhotoEditorTextDrag(point, textDragInfo);
+      return;
+    }
+
+    if (isPhotoEditorAccordionOpen('text') && clearPhotoEditorTextSelection()) {
       return;
     }
 

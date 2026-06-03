@@ -1158,91 +1158,97 @@
                     id="photo-editor-text-list"
                     class="photo-editor-text-list"
                   ></div>
-                  <label class="photo-editor-text-field photo-editor-text-field-full" for="photo-editor-text-content">
-                    <span>テキスト</span>
-                    <textarea
-                      id="photo-editor-text-content"
-                      rows="3"
-                      maxlength="160"
-                      placeholder="テキストを入力"
-                    ></textarea>
-                  </label>
-                  <div class="photo-editor-text-grid">
-                    <label class="photo-editor-select-field" for="photo-editor-text-font">
-                      <span>フォント</span>
-                      <select id="photo-editor-text-font"></select>
+                  <div
+                    id="photo-editor-text-controls"
+                    class="photo-editor-text-controls"
+                    hidden
+                  >
+                    <label class="photo-editor-text-field photo-editor-text-field-full" for="photo-editor-text-content">
+                      <span>テキスト</span>
+                      <textarea
+                        id="photo-editor-text-content"
+                        rows="3"
+                        maxlength="160"
+                        placeholder="テキストを入力"
+                      ></textarea>
                     </label>
-                    <label class="photo-editor-select-field" for="photo-editor-text-weight">
-                      <span>太さ</span>
-                      <select id="photo-editor-text-weight">
-                        <option value="400">標準</option>
-                        <option value="500">中太</option>
-                        <option value="700">太字</option>
-                        <option value="900">極太</option>
-                      </select>
-                    </label>
-                    <label class="photo-editor-color-field" for="photo-editor-text-color">
-                      <span>色</span>
-                      <input id="photo-editor-text-color" type="color" value="#ffffff" />
-                    </label>
-                    <label class="photo-editor-color-field" for="photo-editor-text-stroke-color">
-                      <span>縁の色</span>
-                      <input id="photo-editor-text-stroke-color" type="color" value="#111827" />
-                    </label>
-                  </div>
-                  <div class="photo-editor-text-grid">
-                    <label class="photo-editor-select-field" for="photo-editor-text-stroke-type">
-                      <span>縁の種類</span>
-                      <select id="photo-editor-text-stroke-type">
-                        <option value="none">なし</option>
-                        <option value="outline">縁取り</option>
-                        <option value="shadow">影</option>
-                        <option value="glow">発光</option>
-                      </select>
-                    </label>
-                    <label class="photo-editor-checkbox-field" for="photo-editor-text-fill-transparent">
-                      <input id="photo-editor-text-fill-transparent" type="checkbox" />
-                      <span>縁内を透過</span>
-                    </label>
-                  </div>
-                  <div class="photo-editor-slider-row">
-                    <div class="photo-editor-slider-label">
-                      <span>文字サイズ</span>
-                      <span id="photo-editor-text-size-value">64</span>
+                    <div class="photo-editor-text-grid">
+                      <label class="photo-editor-select-field" for="photo-editor-text-font">
+                        <span>フォント</span>
+                        <select id="photo-editor-text-font"></select>
+                      </label>
+                      <label class="photo-editor-select-field" for="photo-editor-text-weight">
+                        <span>太さ</span>
+                        <select id="photo-editor-text-weight">
+                          <option value="400">標準</option>
+                          <option value="500">中太</option>
+                          <option value="700">太字</option>
+                          <option value="900">極太</option>
+                        </select>
+                      </label>
+                      <label class="photo-editor-color-field" for="photo-editor-text-color">
+                        <span>色</span>
+                        <input id="photo-editor-text-color" type="color" value="#ffffff" />
+                      </label>
+                      <label class="photo-editor-color-field" for="photo-editor-text-stroke-color">
+                        <span>縁の色</span>
+                        <input id="photo-editor-text-stroke-color" type="color" value="#111827" />
+                      </label>
                     </div>
-                    <input
-                      id="photo-editor-text-size"
-                      type="range"
-                      min="12"
-                      max="220"
-                      value="64"
-                    />
-                  </div>
-                  <div class="photo-editor-slider-row">
-                    <div class="photo-editor-slider-label">
-                      <span>縁の太さ</span>
-                      <span id="photo-editor-text-stroke-width-value">4</span>
+                    <div class="photo-editor-text-grid">
+                      <label class="photo-editor-select-field" for="photo-editor-text-stroke-type">
+                        <span>縁の種類</span>
+                        <select id="photo-editor-text-stroke-type">
+                          <option value="none">なし</option>
+                          <option value="outline">縁取り</option>
+                          <option value="shadow">影</option>
+                          <option value="glow">発光</option>
+                        </select>
+                      </label>
+                      <label class="photo-editor-checkbox-field" for="photo-editor-text-fill-transparent">
+                        <input id="photo-editor-text-fill-transparent" type="checkbox" />
+                        <span>縁内を透過</span>
+                      </label>
                     </div>
-                    <input
-                      id="photo-editor-text-stroke-width"
-                      type="range"
-                      min="0"
-                      max="28"
-                      value="4"
-                    />
-                  </div>
-                  <div class="photo-editor-slider-row">
-                    <div class="photo-editor-slider-label">
-                      <span>文字間隔</span>
-                      <span id="photo-editor-text-letter-spacing-value">0</span>
+                    <div class="photo-editor-slider-row">
+                      <div class="photo-editor-slider-label">
+                        <span>文字サイズ</span>
+                        <span id="photo-editor-text-size-value">64</span>
+                      </div>
+                      <input
+                        id="photo-editor-text-size"
+                        type="range"
+                        min="12"
+                        max="220"
+                        value="64"
+                      />
                     </div>
-                    <input
-                      id="photo-editor-text-letter-spacing"
-                      type="range"
-                      min="-10"
-                      max="40"
-                      value="0"
-                    />
+                    <div class="photo-editor-slider-row">
+                      <div class="photo-editor-slider-label">
+                        <span>縁の太さ</span>
+                        <span id="photo-editor-text-stroke-width-value">4</span>
+                      </div>
+                      <input
+                        id="photo-editor-text-stroke-width"
+                        type="range"
+                        min="0"
+                        max="28"
+                        value="4"
+                      />
+                    </div>
+                    <div class="photo-editor-slider-row">
+                      <div class="photo-editor-slider-label">
+                        <span>文字間隔</span>
+                        <span id="photo-editor-text-letter-spacing-value">0</span>
+                      </div>
+                      <input
+                        id="photo-editor-text-letter-spacing"
+                        type="range"
+                        min="-10"
+                        max="40"
+                        value="0"
+                      />
+                    </div>
                   </div>
                 </div>
               </section>
