@@ -10,7 +10,7 @@
     />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500;700&family=M+PLUS+1:wght@400;500;700&family=Sawarabi+Mincho&family=Zen+Maru+Gothic:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Hachi+Maru+Pop&family=Kaisei+Decol:wght@400;500;700&family=Kaisei+Opti:wght@400;500;700&family=Kiwi+Maru:wght@400;500;700&family=Lobster&family=M+PLUS+1:wght@400;500;700&family=Monomaniac+One&family=Rampart+One&family=RocknRoll+One&family=Sacramento&family=Sawarabi+Mincho&family=Walter+Turncoat&family=Zen+Maru+Gothic:wght@400;500;700&display=swap"
     />
   </head>
   <body>
@@ -1137,6 +1137,27 @@
                   class="photo-editor-accordion-panel"
                   hidden
                 >
+                  <div class="photo-editor-text-actions">
+                    <button
+                      id="photo-editor-text-add-btn"
+                      type="button"
+                      class="small-action-button"
+                    >
+                      <span class="material-symbols-outlined">add</span>
+                      <span>追加</span>
+                    </button>
+                    <button
+                      id="photo-editor-text-delete-btn"
+                      type="button"
+                      class="secondary"
+                    >
+                      削除
+                    </button>
+                  </div>
+                  <div
+                    id="photo-editor-text-list"
+                    class="photo-editor-text-list"
+                  ></div>
                   <label class="photo-editor-text-field photo-editor-text-field-full" for="photo-editor-text-content">
                     <span>テキスト</span>
                     <textarea
