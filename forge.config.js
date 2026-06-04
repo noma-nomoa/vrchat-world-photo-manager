@@ -12,9 +12,22 @@ const WINDOWS_ICON_PATH = './img/logo.ico';
 const PACKAGER_IGNORE_PATTERNS = [
   /^\/\.git($|\/)/,
   /^\/\.gitignore$/,
+  /^\/assets($|\/)/,
+  /^\/docs($|\/)/,
+  /^\/index\.html$/,
+  /^\/release-notes($|\/)/,
+  /^\/test_pic($|\/)/,
+  /^\/tmp($|\/)/,
   /^\/thumbnails($|\/)/,
   /^\/out($|\/)/,
   /^\/make($|\/)/,
+  /^\/img\/\.png$/,
+  /^\/img\/app_view($|\/)/,
+  /^\/img\/booth_logo_icon\.svg$/,
+  /^\/img\/editingtools($|\/)/,
+  /^\/img\/notuse\.png$/,
+  /^\/img\/usecase($|\/)/,
+  /^\/img\/vrc($|\/)/,
   /^\/src\/renderer\.js\.bak-corrupt$/,
 ];
 

@@ -10618,7 +10618,10 @@ function measurePhotoEditorTextLineWidth(ctx, line, letterSpacing = 0) {
 
 function drawPhotoEditorTextLine(ctx, line, x, y, textState) {
   const characters = Array.from(String(line || ''));
-  const letterSpacing = clampNumber(textState.letterSpacing, -10, 40, 0);
+  const numericLetterSpacing = Number(textState.letterSpacing);
+  const letterSpacing = Number.isFinite(numericLetterSpacing)
+    ? numericLetterSpacing
+    : 0;
   let currentX =
     x - measurePhotoEditorTextLineWidth(ctx, line, letterSpacing) / 2;
 
@@ -10635,15 +10638,45 @@ function drawPhotoEditorTextLine(ctx, line, x, y, textState) {
   }
 }
 
-function getPhotoEditorTextMetrics(ctx, textOverlay) {
+function getPhotoEditorTextRenderScale(textScale = 1) {
+  const numericScale = Number(textScale);
+  return Number.isFinite(numericScale) && numericScale > 0 ? numericScale : 1;
+}
+
+function getPhotoEditorTextRenderState(textOverlay, { textScale = 1 } = {}) {
   const textState = normalizePhotoEditorTextState(textOverlay);
+  const scale = getPhotoEditorTextRenderScale(textScale);
+
+  if (Math.abs(scale - 1) < 0.0001) {
+    return textState;
+  }
+
+  return {
+    ...textState,
+    size: clampNumber(textState.size * scale, 1, 4096, textState.size),
+    strokeWidth: clampNumber(
+      textState.strokeWidth * scale,
+      0,
+      1024,
+      textState.strokeWidth
+    ),
+    letterSpacing: clampNumber(
+      textState.letterSpacing * scale,
+      -1024,
+      4096,
+      textState.letterSpacing
+    ),
+  };
+}
+
+function getPhotoEditorTextMetricsForState(ctx, textState) {
   const lines = textState.enabled ? getPhotoEditorTextLines(textState.text) : [];
 
   if (lines.length === 0) {
     return null;
   }
 
-  const size = clampNumber(textState.size, 12, 220, 64);
+  const size = clampNumber(textState.size, 1, 4096, 64);
   const lineHeight = size * 1.18;
   const width = Math.max(
     1,
@@ -10663,8 +10696,21 @@ function getPhotoEditorTextMetrics(ctx, textOverlay) {
   };
 }
 
-function drawPhotoEditorSingleTextOverlay(ctx, width, height, textOverlay) {
-  const textState = normalizePhotoEditorTextState(textOverlay);
+function getPhotoEditorTextMetrics(ctx, textOverlay, options = {}) {
+  return getPhotoEditorTextMetricsForState(
+    ctx,
+    getPhotoEditorTextRenderState(textOverlay, options)
+  );
+}
+
+function drawPhotoEditorSingleTextOverlay(
+  ctx,
+  width,
+  height,
+  textOverlay,
+  { textScale = 1 } = {}
+) {
+  const textState = getPhotoEditorTextRenderState(textOverlay, { textScale });
 
   if (!textState.enabled || !textState.text.trim()) {
     return;
@@ -10672,12 +10718,12 @@ function drawPhotoEditorSingleTextOverlay(ctx, width, height, textOverlay) {
 
   const x = clampNumber(textState.x, 0, 1, 0.5) * width;
   const y = clampNumber(textState.y, 0, 1, 0.5) * height;
-  const size = clampNumber(textState.size, 12, 220, 64);
-  const strokeWidth = clampNumber(textState.strokeWidth, 0, 28, 4);
+  const size = clampNumber(textState.size, 1, 4096, 64);
+  const strokeWidth = clampNumber(textState.strokeWidth, 0, 1024, 4);
 
   ctx.save();
   ctx.font = `${textState.weight} ${size}px ${textState.fontFamily}`;
-  const metrics = getPhotoEditorTextMetrics(ctx, textState);
+  const metrics = getPhotoEditorTextMetricsForState(ctx, textState);
 
   if (!metrics) {
     ctx.restore();
@@ -10720,7 +10766,13 @@ function drawPhotoEditorSingleTextOverlay(ctx, width, height, textOverlay) {
   ctx.restore();
 }
 
-function applyPhotoEditorTextOverlayToCanvas(ctx, width, height, textOverlays) {
+function applyPhotoEditorTextOverlayToCanvas(
+  ctx,
+  width,
+  height,
+  textOverlays,
+  { textScale = 1 } = {}
+) {
   const overlays = Array.isArray(textOverlays)
     ? textOverlays
     : textOverlays
@@ -10728,12 +10780,14 @@ function applyPhotoEditorTextOverlayToCanvas(ctx, width, height, textOverlays) {
       : [];
 
   for (const textOverlay of normalizePhotoEditorTextOverlays(overlays)) {
-    drawPhotoEditorSingleTextOverlay(ctx, width, height, textOverlay);
+    drawPhotoEditorSingleTextOverlay(ctx, width, height, textOverlay, {
+      textScale,
+    });
   }
 }
 
 function getPhotoEditorTextCanvasMetrics(ctx, width, height, textOverlay) {
-  const textState = normalizePhotoEditorTextState(textOverlay);
+  const textState = getPhotoEditorTextRenderState(textOverlay);
 
   if (!textState.enabled || !textState.text.trim()) {
     return null;
@@ -10741,7 +10795,7 @@ function getPhotoEditorTextCanvasMetrics(ctx, width, height, textOverlay) {
 
   ctx.save();
   ctx.font = `${textState.weight} ${Math.round(textState.size)}px ${textState.fontFamily}`;
-  const metrics = getPhotoEditorTextMetrics(ctx, textState);
+  const metrics = getPhotoEditorTextMetricsForState(ctx, textState);
   ctx.restore();
 
   if (!metrics) {
@@ -11209,6 +11263,7 @@ function applyPhotoEditorEffectsToCanvas(
     includeDraft = false,
     drawOverlays = true,
     isInteractivePreview = false,
+    textScale = 1,
   } = {}
 ) {
   applyPhotoEditorAdjustmentsToCanvas(
@@ -11251,7 +11306,8 @@ function applyPhotoEditorEffectsToCanvas(
     ctx,
     outputSize.width,
     outputSize.height,
-    getPhotoEditorTextCollectionFromState().textOverlays
+    getPhotoEditorTextCollectionFromState().textOverlays,
+    { textScale }
   );
 
   if (includeDraft && drawOverlays) {
@@ -11275,7 +11331,12 @@ function applyPhotoEditorEffectsToCanvas(
 
 function renderPhotoEditorToCanvas(
   targetCanvas,
-  { maxEdge = null, includeDraft = false, showOriginal = false } = {}
+  {
+    maxEdge = null,
+    includeDraft = false,
+    showOriginal = false,
+    textScale = 1,
+  } = {}
 ) {
   const renderBase = drawPhotoEditorBaseToCanvas(targetCanvas, { maxEdge });
 
@@ -11288,6 +11349,7 @@ function renderPhotoEditorToCanvas(
   if (!showOriginal) {
     applyPhotoEditorEffectsToCanvas(ctx, outputSize, sourceRect, {
       includeDraft,
+      textScale,
     });
   }
 
@@ -14821,6 +14883,51 @@ function getPhotoEditorExportQuality(exportSettings, formatMeta) {
     : undefined;
 }
 
+function getPhotoEditorTextScaleBaselineOutputSize() {
+  const overlayOutputSize = photoEditorPreviewOverlayMeta?.outputSize;
+
+  if (
+    overlayOutputSize &&
+    Number(overlayOutputSize.width) > 0 &&
+    Number(overlayOutputSize.height) > 0
+  ) {
+    return {
+      width: Number(overlayOutputSize.width),
+      height: Number(overlayOutputSize.height),
+    };
+  }
+
+  const canvasWidth = Number(photoEditorCanvas?.width);
+  const canvasHeight = Number(photoEditorCanvas?.height);
+
+  if (canvasWidth > 0 && canvasHeight > 0) {
+    return {
+      width: canvasWidth,
+      height: canvasHeight,
+    };
+  }
+
+  return null;
+}
+
+function getPhotoEditorTextScaleForOutputSize(outputSize) {
+  const baselineSize = getPhotoEditorTextScaleBaselineOutputSize();
+  const outputEdge = Math.max(
+    Number(outputSize?.width) || 0,
+    Number(outputSize?.height) || 0
+  );
+  const baselineEdge = Math.max(
+    Number(baselineSize?.width) || 0,
+    Number(baselineSize?.height) || 0
+  );
+
+  if (outputEdge <= 0 || baselineEdge <= 0) {
+    return 1;
+  }
+
+  return clampNumber(outputEdge / baselineEdge, 0.05, 32, 1);
+}
+
 function arrayBufferToBase64(buffer) {
   const bytes = new Uint8Array(buffer);
   const chunkSize = 0x8000;
@@ -14848,6 +14955,9 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
   const quality = getPhotoEditorExportQuality(exportSettings, formatMeta);
   const textOverlays = getPhotoEditorTextCollectionFromState().textOverlays;
   const hasTextOverlays = textOverlays.length > 0;
+  const textScale = hasTextOverlays
+    ? getPhotoEditorTextScaleForOutputSize(renderBase.outputSize)
+    : 1;
 
   try {
     const workerResult = await applyPhotoEditorEffectsWithWorker(
@@ -14877,7 +14987,8 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
         renderBase.ctx,
         renderBase.outputSize.width,
         renderBase.outputSize.height,
-        textOverlays
+        textOverlays,
+        { textScale }
       );
 
       return {
@@ -14899,6 +15010,7 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
       renderBase.sourceRect,
       {
         includeDraft: false,
+        textScale,
       }
     );
 
@@ -14914,6 +15026,7 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
     renderBase.sourceRect,
     {
       includeDraft: false,
+      textScale,
     }
   );
 
