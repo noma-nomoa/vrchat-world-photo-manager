@@ -880,6 +880,10 @@ const PHOTO_EDITOR_USER_PRESETS_STORAGE_KEY =
 const PHOTO_EDITOR_TEXT_RECENT_FONTS_STORAGE_KEY =
   'vrchat-world-photo-manager-photo-editor-recent-text-fonts';
 const PHOTO_EDITOR_TEXT_RECENT_FONT_LIMIT = 10;
+const PHOTO_EDITOR_TEXT_REFERENCE_EDGE = 900;
+const PHOTO_EDITOR_TEXT_CENTER_SNAP_THRESHOLD = 0.006;
+const PHOTO_EDITOR_RULER_GUIDE_LIMIT = 40;
+const PHOTO_EDITOR_RULER_GUIDE_MIN_DRAG_PX = 8;
 const PHOTO_EDITOR_TEXT_FONT_OPTIONS = Object.freeze([
   {
     key: 'system',
@@ -6791,6 +6795,33 @@ function normalizePhotoEditorTextOverlays(textOverlays = []) {
     .slice(0, 20);
 }
 
+function normalizePhotoEditorRulerGuides(rulerGuides = {}) {
+  const normalizeAxisGuides = (values) => {
+    const sortedValues = (Array.isArray(values) ? values : [])
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value))
+      .map((value) => clampNumber(value, 0, 1, 0))
+      .sort((left, right) => left - right);
+    const uniqueValues = [];
+
+    for (const value of sortedValues) {
+      if (
+        uniqueValues.length === 0 ||
+        Math.abs(uniqueValues[uniqueValues.length - 1] - value) > 0.001
+      ) {
+        uniqueValues.push(value);
+      }
+    }
+
+    return uniqueValues.slice(-PHOTO_EDITOR_RULER_GUIDE_LIMIT);
+  };
+
+  return {
+    x: normalizeAxisGuides(rulerGuides?.x),
+    y: normalizeAxisGuides(rulerGuides?.y),
+  };
+}
+
 function getPhotoEditorTextCollectionFromState(state = photoEditorState) {
   const textOverlays = normalizePhotoEditorTextOverlays(
     Array.isArray(state?.textOverlays)
@@ -7065,6 +7096,10 @@ function createPhotoEditorState(photo) {
     textOverlay: getDefaultPhotoEditorTextState(),
     textOverlays: [],
     activeTextId: '',
+    rulerGuides: normalizePhotoEditorRulerGuides(),
+    draftRulerGuide: null,
+    dragInitialRulerGuide: null,
+    snapGuide: null,
     exportSettings: getDefaultPhotoEditorExportSettings(),
     masks: [],
     maskTool: 'none',
@@ -7119,6 +7154,7 @@ function capturePhotoEditorHistorySnapshot() {
     ),
     textOverlays: clonePhotoEditorHistoryData(textCollection.textOverlays),
     activeTextId: textCollection.activeTextId,
+    rulerGuides: normalizePhotoEditorRulerGuides(photoEditorState.rulerGuides),
     exportSettings: normalizePhotoEditorExportSettings(
       photoEditorState.exportSettings
     ),
@@ -7238,6 +7274,9 @@ function applyPhotoEditorHistorySnapshot(snapshot) {
         : [],
     snapshot.activeTextId || ''
   );
+  photoEditorState.rulerGuides = normalizePhotoEditorRulerGuides(
+    snapshot.rulerGuides
+  );
   photoEditorState.exportSettings = normalizePhotoEditorExportSettings(
     snapshot.exportSettings
   );
@@ -7262,6 +7301,9 @@ function applyPhotoEditorHistorySnapshot(snapshot) {
   photoEditorState.dragInitialBlur = null;
   photoEditorState.dragInitialMask = null;
   photoEditorState.dragInitialText = null;
+  photoEditorState.draftRulerGuide = null;
+  photoEditorState.dragInitialRulerGuide = null;
+  photoEditorState.snapGuide = null;
   photoEditorState.dragCurvePointIndex = null;
   photoEditorState.draftMask = null;
   photoEditorState.lastClipInfo = null;
@@ -8514,6 +8556,7 @@ function resetPhotoEditorTextOverlay() {
   beginPhotoEditorHistoryMutation();
   setPhotoEditorTextCollection([], '');
   photoEditorState.dragInitialText = null;
+  photoEditorState.snapGuide = null;
   syncPhotoEditorTextControls();
   schedulePhotoEditorRender();
   commitPhotoEditorHistoryMutation();
@@ -8965,12 +9008,16 @@ function drawPhotoEditorRuleOfThirdsGrid(ctx, width, height) {
   ctx.restore();
 }
 
+function getPhotoEditorRulerEdgeSize(width, height) {
+  return Math.max(18, Math.min(width, height) * 0.035);
+}
+
 function drawPhotoEditorRulers(ctx, width, height) {
   if (!ctx || width <= 0 || height <= 0) {
     return;
   }
 
-  const edge = Math.max(18, Math.min(width, height) * 0.035);
+  const edge = getPhotoEditorRulerEdgeSize(width, height);
   const majorStep = Math.max(40, Math.min(width, height) / 6);
   const minorStep = majorStep / 4;
 
@@ -9004,6 +9051,55 @@ function drawPhotoEditorRulers(ctx, width, height) {
   ctx.restore();
 }
 
+function drawPhotoEditorRulerGuides(ctx, width, height) {
+  if (!ctx || !photoEditorState?.showRulers || width <= 0 || height <= 0) {
+    return;
+  }
+
+  const guides = normalizePhotoEditorRulerGuides(photoEditorState.rulerGuides);
+  const draftGuide = photoEditorState.draftRulerGuide;
+  const verticalGuides = [...guides.x];
+  const horizontalGuides = [...guides.y];
+
+  if (draftGuide?.axis === 'x') {
+    verticalGuides.push(clampNumber(draftGuide.position, 0, 1, 0.5));
+  } else if (draftGuide?.axis === 'y') {
+    horizontalGuides.push(clampNumber(draftGuide.position, 0, 1, 0.5));
+  }
+
+  if (verticalGuides.length === 0 && horizontalGuides.length === 0) {
+    return;
+  }
+
+  const edge = Math.max(width, height);
+  const lineWidth = Math.max(1.5, edge / 1100);
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(96, 165, 250, 0.82)';
+  ctx.lineWidth = lineWidth;
+  ctx.setLineDash([Math.max(8, lineWidth * 4), Math.max(6, lineWidth * 3)]);
+  ctx.shadowColor = 'rgba(15, 23, 42, 0.58)';
+  ctx.shadowBlur = Math.max(2, lineWidth * 2);
+
+  for (const guideX of verticalGuides) {
+    const x = clampNumber(guideX, 0, 1, 0.5) * width;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+
+  for (const guideY of horizontalGuides) {
+    const y = clampNumber(guideY, 0, 1, 0.5) * height;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 function drawPhotoEditorPreviewOverlays(ctx, outputSize, sourceRect) {
   if (!ctx || !photoEditorState || photoEditorState.showOriginalPreview) {
     return;
@@ -9015,8 +9111,10 @@ function drawPhotoEditorPreviewOverlays(ctx, outputSize, sourceRect) {
 
   if (photoEditorState.showRulers) {
     drawPhotoEditorRulers(ctx, outputSize.width, outputSize.height);
+    drawPhotoEditorRulerGuides(ctx, outputSize.width, outputSize.height);
   }
 
+  drawPhotoEditorSnapGuides(ctx, outputSize.width, outputSize.height);
   drawPhotoEditorDraftMask(
     ctx,
     outputSize.width,
@@ -9030,6 +9128,20 @@ function drawPhotoEditorPreviewOverlays(ctx, outputSize, sourceRect) {
     outputSize.height
   );
   drawPhotoEditorTextControls(ctx, outputSize.width, outputSize.height);
+}
+
+function drawPhotoEditorPreviewTextAndOverlays(ctx, outputSize, sourceRect) {
+  if (!ctx || !outputSize || !photoEditorState) {
+    return;
+  }
+
+  applyPhotoEditorTextOverlayToCanvas(
+    ctx,
+    outputSize.width,
+    outputSize.height,
+    getPhotoEditorTextCollectionFromState().textOverlays
+  );
+  drawPhotoEditorPreviewOverlays(ctx, outputSize, sourceRect);
 }
 
 function paintPhotoEditorPreviewOverlayOnly() {
@@ -9049,7 +9161,7 @@ function paintPhotoEditorPreviewOverlayOnly() {
     return false;
   }
 
-  drawPhotoEditorPreviewOverlays(ctx, outputSize, sourceRect);
+  drawPhotoEditorPreviewTextAndOverlays(ctx, outputSize, sourceRect);
   return true;
 }
 
@@ -10643,6 +10755,22 @@ function getPhotoEditorTextRenderScale(textScale = 1) {
   return Number.isFinite(numericScale) && numericScale > 0 ? numericScale : 1;
 }
 
+function getPhotoEditorTextCanvasRenderScale(width, height, textScale = 1) {
+  const canvasEdge = Math.max(Number(width) || 0, Number(height) || 0);
+  const baseScale = getPhotoEditorTextRenderScale(textScale);
+
+  if (canvasEdge <= 0) {
+    return baseScale;
+  }
+
+  return clampNumber(
+    (canvasEdge / PHOTO_EDITOR_TEXT_REFERENCE_EDGE) * baseScale,
+    0.05,
+    32,
+    baseScale
+  );
+}
+
 function getPhotoEditorTextRenderState(textOverlay, { textScale = 1 } = {}) {
   const textState = normalizePhotoEditorTextState(textOverlay);
   const scale = getPhotoEditorTextRenderScale(textScale);
@@ -10710,7 +10838,9 @@ function drawPhotoEditorSingleTextOverlay(
   textOverlay,
   { textScale = 1 } = {}
 ) {
-  const textState = getPhotoEditorTextRenderState(textOverlay, { textScale });
+  const textState = getPhotoEditorTextRenderState(textOverlay, {
+    textScale: getPhotoEditorTextCanvasRenderScale(width, height, textScale),
+  });
 
   if (!textState.enabled || !textState.text.trim()) {
     return;
@@ -10787,7 +10917,9 @@ function applyPhotoEditorTextOverlayToCanvas(
 }
 
 function getPhotoEditorTextCanvasMetrics(ctx, width, height, textOverlay) {
-  const textState = getPhotoEditorTextRenderState(textOverlay);
+  const textState = getPhotoEditorTextRenderState(textOverlay, {
+    textScale: getPhotoEditorTextCanvasRenderScale(width, height),
+  });
 
   if (!textState.enabled || !textState.text.trim()) {
     return null;
@@ -10857,6 +10989,201 @@ function getPhotoEditorTextHandles(metrics) {
     top,
     rotate,
   };
+}
+
+function getPhotoEditorSnapTargets(axis, { includeCenter = true } = {}) {
+  const targets = includeCenter ? [0.5] : [];
+  const guides = normalizePhotoEditorRulerGuides(photoEditorState?.rulerGuides);
+
+  if (photoEditorState?.showRulers && (axis === 'x' || axis === 'y')) {
+    targets.push(...guides[axis]);
+  }
+
+  return targets
+    .map((value) => clampNumber(value, 0, 1, 0.5))
+    .sort((left, right) => left - right)
+    .filter((value, index, values) => index === 0 || Math.abs(value - values[index - 1]) > 0.001);
+}
+
+function getPhotoEditorAxisSnap(value, axis, { includeCenter = true } = {}) {
+  const numericValue = Number(value);
+  const originalValue = Number.isFinite(numericValue) ? numericValue : 0.5;
+  const targets = getPhotoEditorSnapTargets(axis, { includeCenter });
+  let bestTarget = null;
+  let bestDistance = Infinity;
+
+  for (const target of targets) {
+    const distance = Math.abs(originalValue - target);
+
+    if (distance < bestDistance) {
+      bestTarget = target;
+      bestDistance = distance;
+    }
+  }
+
+  if (
+    bestTarget !== null &&
+    bestDistance <= PHOTO_EDITOR_TEXT_CENTER_SNAP_THRESHOLD
+  ) {
+    return {
+      value: bestTarget,
+      originalValue,
+      target: bestTarget,
+      distance: bestDistance,
+      snapped: true,
+    };
+  }
+
+  return {
+    value: originalValue,
+    originalValue,
+    target: null,
+    distance: bestDistance,
+    snapped: false,
+  };
+}
+
+function getPhotoEditorSnapGuideFromAxisSnaps(snapX, snapY) {
+  const guide = {};
+
+  if (snapX?.snapped) {
+    guide.x = snapX.target;
+  }
+
+  if (snapY?.snapped) {
+    guide.y = snapY.target;
+  }
+
+  return guide.x !== undefined || guide.y !== undefined ? guide : null;
+}
+
+function setPhotoEditorSnapGuideFromAxisSnaps(snapX, snapY) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  photoEditorState.snapGuide = getPhotoEditorSnapGuideFromAxisSnaps(
+    snapX,
+    snapY
+  );
+}
+
+function getPhotoEditorTextSnapCandidates(textOverlay) {
+  const textState = normalizePhotoEditorTextState(textOverlay);
+  const width = Math.max(1, Number(photoEditorCanvas?.width) || 1);
+  const height = Math.max(1, Number(photoEditorCanvas?.height) || 1);
+  const ctx = photoEditorCanvas?.getContext('2d');
+
+  if (!ctx) {
+    return {
+      x: [textState.x],
+      y: [textState.y],
+    };
+  }
+
+  const metrics = getPhotoEditorTextCanvasMetrics(
+    ctx,
+    width,
+    height,
+    textState
+  );
+
+  if (!metrics) {
+    return {
+      x: [textState.x],
+      y: [textState.y],
+    };
+  }
+
+  const center = {
+    x: metrics.centerX,
+    y: metrics.centerY,
+  };
+  const halfWidth = metrics.width / 2;
+  const halfHeight = metrics.height / 2;
+  const corners = [
+    { x: -halfWidth, y: -halfHeight },
+    { x: halfWidth, y: -halfHeight },
+    { x: halfWidth, y: halfHeight },
+    { x: -halfWidth, y: halfHeight },
+  ].map((corner) =>
+    rotatePhotoEditorCanvasPoint(
+      {
+        x: center.x + corner.x,
+        y: center.y + corner.y,
+      },
+      center,
+      metrics.rotationRadians
+    )
+  );
+  const xs = [center.x, ...corners.map((corner) => corner.x)];
+  const ys = [center.y, ...corners.map((corner) => corner.y)];
+
+  return {
+    x: [
+      center.x / width,
+      Math.min(...xs) / width,
+      Math.max(...xs) / width,
+    ],
+    y: [
+      center.y / height,
+      Math.min(...ys) / height,
+      Math.max(...ys) / height,
+    ],
+  };
+}
+
+function snapPhotoEditorTextToGuides(textOverlay) {
+  const textState = normalizePhotoEditorTextState(textOverlay);
+  const candidates = getPhotoEditorTextSnapCandidates(textState);
+  const snapX = getPhotoEditorBestAxisSnap(candidates.x, 'x');
+  const snapY = getPhotoEditorBestAxisSnap(candidates.y, 'y');
+
+  setPhotoEditorSnapGuideFromAxisSnaps(snapX, snapY);
+
+  if (!snapX && !snapY) {
+    return textState;
+  }
+
+  return normalizePhotoEditorTextState({
+    ...textState,
+    x: textState.x + (snapX ? snapX.value - snapX.originalValue : 0),
+    y: textState.y + (snapY ? snapY.value - snapY.originalValue : 0),
+  });
+}
+
+function drawPhotoEditorSnapGuides(ctx, width, height) {
+  const guide = photoEditorState?.snapGuide;
+
+  if (guide?.x === undefined && guide?.y === undefined) {
+    return;
+  }
+
+  const edge = Math.max(width, height);
+  const lineWidth = Math.max(2, Math.round(edge / 900));
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(125, 211, 252, 0.88)';
+  ctx.lineWidth = lineWidth;
+  ctx.setLineDash([Math.max(10, lineWidth * 5), Math.max(8, lineWidth * 4)]);
+
+  if (guide.x !== undefined) {
+    const x = clampNumber(guide.x, 0, 1, 0.5) * width;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+
+  if (guide.y !== undefined) {
+    const y = clampNumber(guide.y, 0, 1, 0.5) * height;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }
 
 function drawPhotoEditorTextControls(ctx, width, height) {
@@ -11264,6 +11591,7 @@ function applyPhotoEditorEffectsToCanvas(
     drawOverlays = true,
     isInteractivePreview = false,
     textScale = 1,
+    drawTextOverlay = true,
   } = {}
 ) {
   applyPhotoEditorAdjustmentsToCanvas(
@@ -11302,13 +11630,15 @@ function applyPhotoEditorEffectsToCanvas(
     );
   }
 
-  applyPhotoEditorTextOverlayToCanvas(
-    ctx,
-    outputSize.width,
-    outputSize.height,
-    getPhotoEditorTextCollectionFromState().textOverlays,
-    { textScale }
-  );
+  if (drawTextOverlay) {
+    applyPhotoEditorTextOverlayToCanvas(
+      ctx,
+      outputSize.width,
+      outputSize.height,
+      getPhotoEditorTextCollectionFromState().textOverlays,
+      { textScale }
+    );
+  }
 
   if (includeDraft && drawOverlays) {
     drawPhotoEditorDraftMask(
@@ -11549,12 +11879,6 @@ async function renderPhotoEditorPreview() {
         workCtx.clearRect(0, 0, outputSize.width, outputSize.height);
         workCtx.drawImage(workerResult.bitmap, 0, 0);
         workerResult.bitmap.close?.();
-        applyPhotoEditorTextOverlayToCanvas(
-          workCtx,
-          outputSize.width,
-          outputSize.height,
-          getPhotoEditorTextCollectionFromState().textOverlays
-        );
         didRenderWithWorker = true;
       }
     } catch (error) {
@@ -11570,6 +11894,7 @@ async function renderPhotoEditorPreview() {
         includeDraft: includeDraftEffect,
         drawOverlays: false,
         isInteractivePreview,
+        drawTextOverlay: false,
       });
     }
   }
@@ -11580,7 +11905,7 @@ async function renderPhotoEditorPreview() {
 
   if (shouldRenderEffects) {
     storePhotoEditorPreviewOverlayBase(workCanvas, outputSize, sourceRect);
-    drawPhotoEditorPreviewOverlays(workCtx, outputSize, sourceRect);
+    drawPhotoEditorPreviewTextAndOverlays(workCtx, outputSize, sourceRect);
   } else {
     photoEditorPreviewOverlayMeta = null;
   }
@@ -11795,6 +12120,10 @@ function resetPhotoEditorAll() {
   photoEditorState.crop = getDefaultPhotoEditorCropState();
   photoEditorState.exportSettings = getDefaultPhotoEditorExportSettings();
   setPhotoEditorTextCollection([], '');
+  photoEditorState.rulerGuides = normalizePhotoEditorRulerGuides();
+  photoEditorState.draftRulerGuide = null;
+  photoEditorState.dragInitialRulerGuide = null;
+  photoEditorState.snapGuide = null;
   photoEditorState.blur = getDefaultPhotoEditorBlurState();
   photoEditorState.curve = getDefaultPhotoEditorCurveState();
   photoEditorState.masks = [];
@@ -11809,6 +12138,9 @@ function resetPhotoEditorAll() {
   photoEditorState.dragInitialBlur = null;
   photoEditorState.dragInitialMask = null;
   photoEditorState.dragInitialText = null;
+  photoEditorState.draftRulerGuide = null;
+  photoEditorState.dragInitialRulerGuide = null;
+  photoEditorState.snapGuide = null;
   photoEditorState.dragCurvePointIndex = null;
   photoEditorState.draftMask = null;
   photoEditorState.showOriginalPreview = false;
@@ -13255,6 +13587,226 @@ function getPhotoEditorCanvasDisplaySize() {
   };
 }
 
+function getPhotoEditorRulerGuideDragMode(point) {
+  if (!photoEditorState?.showRulers || !point || !photoEditorCanvas) {
+    return null;
+  }
+
+  const displaySize = getPhotoEditorCanvasDisplaySize();
+  const edge = getPhotoEditorRulerEdgeSize(displaySize.width, displaySize.height);
+  const inTopRuler = point.y >= 0 && point.y <= edge / displaySize.height;
+  const inLeftRuler = point.x >= 0 && point.x <= edge / displaySize.width;
+
+  if (inTopRuler && !inLeftRuler) {
+    return 'guide-y';
+  }
+
+  if (inLeftRuler && !inTopRuler) {
+    return 'guide-x';
+  }
+
+  return null;
+}
+
+function getPhotoEditorExistingRulerGuideDragInfo(point) {
+  if (!photoEditorState?.showRulers || !point || !photoEditorCanvas) {
+    return null;
+  }
+
+  const displaySize = getPhotoEditorCanvasDisplaySize();
+  const guides = normalizePhotoEditorRulerGuides(photoEditorState.rulerGuides);
+  const hitRadiusPx = Math.max(
+    8,
+    Math.min(displaySize.width, displaySize.height) * 0.012
+  );
+  let bestGuide = null;
+  let bestDistance = Infinity;
+
+  guides.x.forEach((position, index) => {
+    const distance = Math.abs(point.x - position) * displaySize.width;
+
+    if (distance <= hitRadiusPx && distance < bestDistance) {
+      bestDistance = distance;
+      bestGuide = {
+        axis: 'x',
+        index,
+        position,
+      };
+    }
+  });
+
+  guides.y.forEach((position, index) => {
+    const distance = Math.abs(point.y - position) * displaySize.height;
+
+    if (distance <= hitRadiusPx && distance < bestDistance) {
+      bestDistance = distance;
+      bestGuide = {
+        axis: 'y',
+        index,
+        position,
+      };
+    }
+  });
+
+  return bestGuide;
+}
+
+function getPhotoEditorRulerGuideAxisFromDragMode(dragMode) {
+  return dragMode === 'guide-x'
+    ? 'x'
+    : dragMode === 'guide-y'
+      ? 'y'
+      : '';
+}
+
+function getPhotoEditorRulerGuidePositionFromPoint(point, axis) {
+  return clampNumber(axis === 'x' ? point?.x : point?.y, 0, 1, 0.5);
+}
+
+function addPhotoEditorRulerGuide(axis, position) {
+  if (!photoEditorState || !['x', 'y'].includes(axis)) {
+    return false;
+  }
+
+  const normalizedGuides = normalizePhotoEditorRulerGuides(
+    photoEditorState.rulerGuides
+  );
+  const normalizedPosition = clampNumber(position, 0, 1, 0.5);
+  const nextGuides = normalizedGuides[axis].filter(
+    (guidePosition) => Math.abs(guidePosition - normalizedPosition) > 0.003
+  );
+
+  nextGuides.push(normalizedPosition);
+  photoEditorState.rulerGuides = normalizePhotoEditorRulerGuides({
+    ...normalizedGuides,
+    [axis]: nextGuides,
+  });
+
+  return true;
+}
+
+function updatePhotoEditorRulerGuideAtIndex(axis, index, position) {
+  if (!photoEditorState || !['x', 'y'].includes(axis)) {
+    return false;
+  }
+
+  const normalizedGuides = normalizePhotoEditorRulerGuides(
+    photoEditorState.rulerGuides
+  );
+  const guides = [...normalizedGuides[axis]];
+
+  if (index < 0 || index >= guides.length) {
+    return false;
+  }
+
+  guides[index] = clampNumber(position, 0, 1, guides[index]);
+  photoEditorState.rulerGuides = normalizePhotoEditorRulerGuides({
+    ...normalizedGuides,
+    [axis]: guides,
+  });
+
+  return true;
+}
+
+function beginPhotoEditorRulerGuideDrag(point, dragMode, existingGuide = null) {
+  const axis = getPhotoEditorRulerGuideAxisFromDragMode(dragMode);
+
+  if (!photoEditorState || !axis) {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.dragMode = dragMode;
+  photoEditorState.dragStart = point;
+  photoEditorState.draftRulerGuide = {
+    axis,
+    position: existingGuide
+      ? existingGuide.position
+      : getPhotoEditorRulerGuidePositionFromPoint(point, axis),
+  };
+  photoEditorState.dragInitialRulerGuide = existingGuide
+    ? {
+        axis: existingGuide.axis,
+        index: existingGuide.index,
+        position: existingGuide.position,
+        pointerOffset:
+          getPhotoEditorRulerGuidePositionFromPoint(point, axis) -
+          existingGuide.position,
+      }
+    : null;
+  photoEditorState.snapGuide = null;
+  photoEditorCanvas?.classList.add('is-panning');
+  if (!paintPhotoEditorPreviewOverlayOnly()) {
+    schedulePhotoEditorRender({ interactive: true });
+  }
+}
+
+function updatePhotoEditorRulerGuideDrag(point) {
+  const axis = getPhotoEditorRulerGuideAxisFromDragMode(
+    photoEditorState?.dragMode
+  );
+
+  if (!photoEditorState || !axis || !point) {
+    return;
+  }
+
+  const initialGuide = photoEditorState.dragInitialRulerGuide;
+
+  photoEditorState.draftRulerGuide = {
+    axis,
+    position: clampNumber(
+      getPhotoEditorRulerGuidePositionFromPoint(point, axis) -
+        (Number(initialGuide?.pointerOffset) || 0),
+      0,
+      1,
+      0.5
+    ),
+  };
+  if (!paintPhotoEditorPreviewOverlayOnly()) {
+    schedulePhotoEditorRender({ interactive: true });
+  }
+}
+
+function finishPhotoEditorRulerGuideDrag() {
+  const axis = getPhotoEditorRulerGuideAxisFromDragMode(
+    photoEditorState?.dragMode
+  );
+
+  if (!photoEditorState || !axis) {
+    return;
+  }
+
+  const guide = photoEditorState.draftRulerGuide;
+  const initialGuide = photoEditorState.dragInitialRulerGuide;
+  const displaySize = getPhotoEditorCanvasDisplaySize();
+  const movedPixels = axis === 'x'
+    ? Math.abs((guide?.position || 0) - (photoEditorState.dragStart?.x || 0)) *
+      displaySize.width
+    : Math.abs((guide?.position || 0) - (photoEditorState.dragStart?.y || 0)) *
+      displaySize.height;
+
+  if (guide && initialGuide) {
+    updatePhotoEditorRulerGuideAtIndex(
+      axis,
+      initialGuide.index,
+      guide.position
+    );
+  } else if (guide && movedPixels >= PHOTO_EDITOR_RULER_GUIDE_MIN_DRAG_PX) {
+    addPhotoEditorRulerGuide(axis, guide.position);
+  }
+
+  photoEditorState.dragMode = null;
+  photoEditorState.dragStart = null;
+  photoEditorState.draftRulerGuide = null;
+  photoEditorState.dragInitialRulerGuide = null;
+  photoEditorState.snapGuide = null;
+  photoEditorCanvas?.classList.remove('is-panning');
+  if (!paintPhotoEditorPreviewOverlayOnly()) {
+    schedulePhotoEditorRender();
+  }
+  commitPhotoEditorHistoryMutation();
+}
+
 function getPhotoEditorTextLocalPoint(point, metrics, width, height) {
   const pointX = clampNumber(point?.x, -2, 3, 0) * width;
   const pointY = clampNumber(point?.y, -2, 3, 0) * height;
@@ -13365,11 +13917,12 @@ function beginPhotoEditorTextDrag(point, dragInfo) {
   photoEditorState.activeTextId = initialText.id;
   photoEditorCanvas?.classList.add('is-panning');
   syncPhotoEditorTextControls();
-  paintPhotoEditorPreviewOverlayOnly();
-  schedulePhotoEditorRender({
-    debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
-    interactive: true,
-  });
+  if (!paintPhotoEditorPreviewOverlayOnly()) {
+    schedulePhotoEditorRender({
+      debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
+      interactive: true,
+    });
+  }
 }
 
 function updatePhotoEditorTextDrag(point) {
@@ -13386,6 +13939,7 @@ function updatePhotoEditorTextDrag(point) {
   let nextText = photoEditorState.dragInitialText;
 
   if (photoEditorState.dragMode === 'text-rotate') {
+    photoEditorState.snapGuide = null;
     const displaySize = getPhotoEditorCanvasDisplaySize();
     const centerX = photoEditorState.dragInitialText.x * displaySize.width;
     const centerY = photoEditorState.dragInitialText.y * displaySize.height;
@@ -13404,7 +13958,7 @@ function updatePhotoEditorTextDrag(point) {
   } else {
     const deltaX = point.x - photoEditorState.dragStart.x;
     const deltaY = point.y - photoEditorState.dragStart.y;
-    nextText = normalizePhotoEditorTextState({
+    nextText = snapPhotoEditorTextToGuides({
       ...photoEditorState.dragInitialText,
       x: photoEditorState.dragInitialText.x + deltaX,
       y: photoEditorState.dragInitialText.y + deltaY,
@@ -13417,11 +13971,13 @@ function updatePhotoEditorTextDrag(point) {
     ),
     nextText.id
   );
-  syncPhotoEditorTextControls();
-  schedulePhotoEditorRender({
-    debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
-    interactive: true,
-  });
+
+  if (!paintPhotoEditorPreviewOverlayOnly()) {
+    schedulePhotoEditorRender({
+      debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
+      interactive: true,
+    });
+  }
 }
 
 function finishPhotoEditorTextDrag() {
@@ -13435,10 +13991,90 @@ function finishPhotoEditorTextDrag() {
   photoEditorState.dragMode = null;
   photoEditorState.dragStart = null;
   photoEditorState.dragInitialText = null;
+  photoEditorState.snapGuide = null;
   photoEditorCanvas?.classList.remove('is-panning');
   syncPhotoEditorTextControls();
   finishPhotoEditorInteractivePreview();
   commitPhotoEditorHistoryMutation();
+}
+
+function snapPhotoEditorPointToGuides(
+  point,
+  { allowOutside = false, includeCenter = true, updateGuide = true } = {}
+) {
+  const bounds = getPhotoEditorMaskCoordinateBounds(allowOutside);
+  const fallbackX = Number(point?.x) || 0;
+  const fallbackY = Number(point?.y) || 0;
+  const snapX = getPhotoEditorAxisSnap(point?.x, 'x', { includeCenter });
+  const snapY = getPhotoEditorAxisSnap(point?.y, 'y', { includeCenter });
+  const snappedPoint = {
+    x: clampNumber(snapX.value, bounds.min, bounds.max, fallbackX),
+    y: clampNumber(snapY.value, bounds.min, bounds.max, fallbackY),
+  };
+
+  if (updateGuide) {
+    setPhotoEditorSnapGuideFromAxisSnaps(snapX, snapY);
+  }
+
+  return {
+    point: snappedPoint,
+    snapX,
+    snapY,
+  };
+}
+
+function getPhotoEditorBestAxisSnap(candidates, axis) {
+  let bestSnap = null;
+
+  for (const candidate of Array.isArray(candidates) ? candidates : []) {
+    const snap = getPhotoEditorAxisSnap(candidate, axis);
+
+    if (
+      snap.snapped &&
+      (!bestSnap || snap.distance < bestSnap.distance)
+    ) {
+      bestSnap = snap;
+    }
+  }
+
+  return bestSnap;
+}
+
+function snapPhotoEditorMaskToGuides(mask) {
+  if (!mask) {
+    return {
+      mask,
+      snapX: null,
+      snapY: null,
+    };
+  }
+
+  const rect = getPhotoEditorMaskNormalizedRect(mask);
+  const center = getPhotoEditorMaskRectCenter(rect);
+  const snapX = getPhotoEditorBestAxisSnap(
+    [center.x, rect.x, rect.x + rect.width],
+    'x'
+  );
+  const snapY = getPhotoEditorBestAxisSnap(
+    [center.y, rect.y, rect.y + rect.height],
+    'y'
+  );
+  const snappedMask =
+    snapX || snapY
+      ? translatePhotoEditorMask(
+          mask,
+          snapX ? snapX.value - snapX.originalValue : 0,
+          snapY ? snapY.value - snapY.originalValue : 0
+        )
+      : mask;
+
+  setPhotoEditorSnapGuideFromAxisSnaps(snapX, snapY);
+
+  return {
+    mask: snappedMask,
+    snapX,
+    snapY,
+  };
 }
 
 function getPhotoEditorRadialBlurDragMode(point) {
@@ -14250,6 +14886,7 @@ function cancelPhotoEditorPendingMask({ deactivateTool = true } = {}) {
     ? null
     : photoEditorState.dragInitialMask;
   photoEditorState.draftMask = null;
+  photoEditorState.snapGuide = null;
   photoEditorCanvas?.classList.remove('is-panning');
 
   if (deactivateTool) {
@@ -14368,6 +15005,15 @@ function beginPhotoEditorMaskDrag(event) {
     return;
   }
 
+  const rulerGuideDragMode = getPhotoEditorRulerGuideDragMode(point);
+
+  if (rulerGuideDragMode) {
+    event.preventDefault();
+    safelySetPointerCapture(photoEditorCanvas, event.pointerId);
+    beginPhotoEditorRulerGuideDrag(point, rulerGuideDragMode);
+    return;
+  }
+
   event.preventDefault();
   safelySetPointerCapture(photoEditorCanvas, event.pointerId);
 
@@ -14383,6 +15029,17 @@ function beginPhotoEditorMaskDrag(event) {
 
     if (textDragInfo) {
       beginPhotoEditorTextDrag(point, textDragInfo);
+      return;
+    }
+
+    const existingGuide = getPhotoEditorExistingRulerGuideDragInfo(point);
+
+    if (existingGuide) {
+      beginPhotoEditorRulerGuideDrag(
+        point,
+        `guide-${existingGuide.axis}`,
+        existingGuide
+      );
       return;
     }
 
@@ -14402,8 +15059,11 @@ function beginPhotoEditorMaskDrag(event) {
   }
 
   beginPhotoEditorHistoryMutation();
+  const snappedStart = snapPhotoEditorPointToGuides(point, {
+    allowOutside: canPhotoEditorMaskExtendOutside(photoEditorState.maskShape),
+  }).point;
   photoEditorState.dragMode = 'mask';
-  photoEditorState.dragStart = point;
+  photoEditorState.dragStart = snappedStart;
   photoEditorState.draftMask = {
     type: photoEditorState.maskTool,
     shape: photoEditorState.maskShape,
@@ -14412,10 +15072,10 @@ function beginPhotoEditorMaskDrag(event) {
     color: photoEditorState.fillColor,
     rotation: 0,
     allowOutside: canPhotoEditorMaskExtendOutside(photoEditorState.maskShape),
-    points: photoEditorState.maskShape === 'freehand' ? [point] : null,
+    points: photoEditorState.maskShape === 'freehand' ? [snappedStart] : null,
     rect: {
-      x: point.x,
-      y: point.y,
+      x: snappedStart.x,
+      y: snappedStart.y,
       width: 0,
       height: 0,
     },
@@ -14451,6 +15111,11 @@ function updatePhotoEditorMaskDrag(event) {
     return;
   }
 
+  if (String(photoEditorState.dragMode || '').startsWith('guide-')) {
+    updatePhotoEditorRulerGuideDrag(point);
+    return;
+  }
+
   if (String(photoEditorState.dragMode || '').startsWith('text-')) {
     updatePhotoEditorTextDrag(point);
     return;
@@ -14473,21 +15138,28 @@ function updatePhotoEditorMaskDrag(event) {
     }
 
     if (photoEditorState.dragMode === 'mask-resize') {
-      photoEditorState.draftMask = resizePhotoEditorMask(initialMask, point, {
+      const snappedPoint = snapPhotoEditorPointToGuides(point, {
+        allowOutside,
+      }).point;
+      photoEditorState.draftMask = resizePhotoEditorMask(initialMask, snappedPoint, {
         keepRatio: Boolean(event.shiftKey),
       });
     } else if (photoEditorState.dragMode === 'mask-rotate') {
+      photoEditorState.snapGuide = null;
       photoEditorState.draftMask = rotatePhotoEditorMask(
         initialMask,
         photoEditorState.dragStart,
         point
       );
     } else {
-      photoEditorState.draftMask = translatePhotoEditorMask(
+      const translatedMask = translatePhotoEditorMask(
         initialMask,
         point.x - photoEditorState.dragStart.x,
         point.y - photoEditorState.dragStart.y
       );
+      photoEditorState.draftMask = snapPhotoEditorMaskToGuides(
+        translatedMask
+      ).mask;
     }
 
     paintPhotoEditorPreviewOverlayOnly();
@@ -14503,23 +15175,30 @@ function updatePhotoEditorMaskDrag(event) {
   }
 
   if (photoEditorState.draftMask.shape === 'freehand') {
+    const snappedPoint = snapPhotoEditorPointToGuides(point, {
+      allowOutside,
+    }).point;
     const points = Array.isArray(photoEditorState.draftMask.points)
       ? photoEditorState.draftMask.points
       : [];
     const lastPoint = points[points.length - 1];
     const shouldAddPoint =
       !lastPoint ||
-      Math.hypot(point.x - lastPoint.x, point.y - lastPoint.y) > 0.006;
+      Math.hypot(snappedPoint.x - lastPoint.x, snappedPoint.y - lastPoint.y) >
+        0.006;
 
     photoEditorState.draftMask = {
       ...photoEditorState.draftMask,
-      points: shouldAddPoint ? [...points, point] : points,
-      rect: normalizePhotoEditorMaskRect(photoEditorState.dragStart, point),
+      points: shouldAddPoint ? [...points, snappedPoint] : points,
+      rect: normalizePhotoEditorMaskRect(photoEditorState.dragStart, snappedPoint),
     };
   } else {
+    const snappedPoint = snapPhotoEditorPointToGuides(point, {
+      allowOutside,
+    }).point;
     photoEditorState.draftMask = {
       ...photoEditorState.draftMask,
-      rect: normalizePhotoEditorMaskRect(photoEditorState.dragStart, point, {
+      rect: normalizePhotoEditorMaskRect(photoEditorState.dragStart, snappedPoint, {
         constrainSquare: Boolean(event.shiftKey),
         allowOutside,
       }),
@@ -14543,6 +15222,11 @@ function finishPhotoEditorMaskDrag(event) {
     return;
   }
 
+  if (String(photoEditorState.dragMode || '').startsWith('guide-')) {
+    finishPhotoEditorRulerGuideDrag();
+    return;
+  }
+
   if (String(photoEditorState.dragMode || '').startsWith('text-')) {
     finishPhotoEditorTextDrag();
     return;
@@ -14561,6 +15245,7 @@ function finishPhotoEditorMaskDrag(event) {
     photoEditorState.dragStart = null;
     photoEditorState.dragMode = null;
     photoEditorState.dragInitialMask = null;
+    photoEditorState.snapGuide = null;
     photoEditorCanvas?.classList.remove('is-panning');
     syncPhotoEditorMaskToolUi();
     finishPhotoEditorInteractivePreview();
@@ -14580,18 +15265,21 @@ function finishPhotoEditorMaskDrag(event) {
   const point =
     getPhotoEditorCanvasPointerPoint(event, { allowOutside }) ||
     photoEditorState.dragStart;
+  const snappedPoint = snapPhotoEditorPointToGuides(point, {
+    allowOutside,
+  }).point;
   const draftMask = photoEditorState.draftMask;
   const points =
     draftMask.shape === 'freehand'
       ? [
           ...(Array.isArray(draftMask.points) ? draftMask.points : []),
-          point,
+          snappedPoint,
         ]
       : null;
   const rect =
     draftMask.shape === 'freehand'
       ? getPhotoEditorPointsMaskRect(points)
-      : normalizePhotoEditorMaskRect(photoEditorState.dragStart, point, {
+      : normalizePhotoEditorMaskRect(photoEditorState.dragStart, snappedPoint, {
           constrainSquare: Boolean(event.shiftKey),
           allowOutside,
         });
@@ -14610,6 +15298,7 @@ function finishPhotoEditorMaskDrag(event) {
     photoEditorState.dragMode = null;
     photoEditorState.dragInitialMask = null;
     photoEditorState.draftMask = null;
+    photoEditorState.snapGuide = null;
     syncPhotoEditorMaskToolUi();
     finishPhotoEditorInteractivePreview();
     return;
@@ -14634,6 +15323,7 @@ function finishPhotoEditorMaskDrag(event) {
   photoEditorState.dragStart = null;
   photoEditorState.dragMode = null;
   photoEditorState.dragInitialMask = null;
+  photoEditorState.snapGuide = null;
   photoEditorCanvas?.classList.remove('is-panning');
   syncPhotoEditorMaskToolUi();
   finishPhotoEditorInteractivePreview();
@@ -14659,6 +15349,7 @@ function confirmPhotoEditorMask() {
   photoEditorState.maskTool = 'none';
   photoEditorState.dragMode = null;
   photoEditorState.dragStart = null;
+  photoEditorState.snapGuide = null;
   syncPhotoEditorMaskToolUi();
   finishPhotoEditorInteractivePreview();
   commitPhotoEditorHistoryMutation();
@@ -14883,51 +15574,6 @@ function getPhotoEditorExportQuality(exportSettings, formatMeta) {
     : undefined;
 }
 
-function getPhotoEditorTextScaleBaselineOutputSize() {
-  const overlayOutputSize = photoEditorPreviewOverlayMeta?.outputSize;
-
-  if (
-    overlayOutputSize &&
-    Number(overlayOutputSize.width) > 0 &&
-    Number(overlayOutputSize.height) > 0
-  ) {
-    return {
-      width: Number(overlayOutputSize.width),
-      height: Number(overlayOutputSize.height),
-    };
-  }
-
-  const canvasWidth = Number(photoEditorCanvas?.width);
-  const canvasHeight = Number(photoEditorCanvas?.height);
-
-  if (canvasWidth > 0 && canvasHeight > 0) {
-    return {
-      width: canvasWidth,
-      height: canvasHeight,
-    };
-  }
-
-  return null;
-}
-
-function getPhotoEditorTextScaleForOutputSize(outputSize) {
-  const baselineSize = getPhotoEditorTextScaleBaselineOutputSize();
-  const outputEdge = Math.max(
-    Number(outputSize?.width) || 0,
-    Number(outputSize?.height) || 0
-  );
-  const baselineEdge = Math.max(
-    Number(baselineSize?.width) || 0,
-    Number(baselineSize?.height) || 0
-  );
-
-  if (outputEdge <= 0 || baselineEdge <= 0) {
-    return 1;
-  }
-
-  return clampNumber(outputEdge / baselineEdge, 0.05, 32, 1);
-}
-
 function arrayBufferToBase64(buffer) {
   const bytes = new Uint8Array(buffer);
   const chunkSize = 0x8000;
@@ -14955,9 +15601,6 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
   const quality = getPhotoEditorExportQuality(exportSettings, formatMeta);
   const textOverlays = getPhotoEditorTextCollectionFromState().textOverlays;
   const hasTextOverlays = textOverlays.length > 0;
-  const textScale = hasTextOverlays
-    ? getPhotoEditorTextScaleForOutputSize(renderBase.outputSize)
-    : 1;
 
   try {
     const workerResult = await applyPhotoEditorEffectsWithWorker(
@@ -14987,8 +15630,7 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
         renderBase.ctx,
         renderBase.outputSize.width,
         renderBase.outputSize.height,
-        textOverlays,
-        { textScale }
+        textOverlays
       );
 
       return {
@@ -15010,7 +15652,6 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
       renderBase.sourceRect,
       {
         includeDraft: false,
-        textScale,
       }
     );
 
@@ -15026,7 +15667,6 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
     renderBase.sourceRect,
     {
       includeDraft: false,
-      textScale,
     }
   );
 
@@ -20723,6 +21363,10 @@ function bindPhotoAndEditModalControls() {
     }
 
     photoEditorState.showRulers = !photoEditorState.showRulers;
+    photoEditorState.snapGuide = null;
+    if (!photoEditorState.showRulers) {
+      photoEditorState.draftRulerGuide = null;
+    }
     syncPhotoEditorOverlayControls();
     if (!paintPhotoEditorPreviewOverlayOnly()) {
       schedulePhotoEditorRender();
