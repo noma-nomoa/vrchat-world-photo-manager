@@ -3,7 +3,9 @@
 }
 
 :root {
-  --app-font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+  --app-font-family: "Segoe UI", "Yu Gothic UI", "Malgun Gothic", sans-serif;
+  --app-font-size-adjust: none;
+  --app-line-height: normal;
   --bg-start: #091220;
   --bg-end: #060d18;
   --bg-glow-1: rgba(79, 140, 255, 0.18);
@@ -168,6 +170,8 @@ html:has(body[data-theme="light"]) {
 
 body {
   font-family: var(--app-font-family);
+  font-size-adjust: var(--app-font-size-adjust);
+  line-height: var(--app-line-height);
   --app-background-image: none;
   --app-background-opacity: 0.18;
   background:
@@ -198,23 +202,47 @@ body.has-custom-background::before {
 }
 
 body[data-font="standard"] {
-  --app-font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+  --app-font-family: "Segoe UI", "Yu Gothic UI", "Malgun Gothic", sans-serif;
 }
 
 body[data-font="zenmaru"] {
-  --app-font-family: "Zen Maru Gothic", "Segoe UI", "Yu Gothic UI", sans-serif;
+  --app-font-family: "Zen Maru Gothic", "Segoe UI", "Yu Gothic UI", "Malgun Gothic", sans-serif;
 }
 
 body[data-font="mplus"] {
-  --app-font-family: "M PLUS 1", "Segoe UI", "Yu Gothic UI", sans-serif;
+  --app-font-family: "M PLUS 1", "Segoe UI", "Yu Gothic UI", "Malgun Gothic", sans-serif;
 }
 
 body[data-font="kiwimaru"] {
-  --app-font-family: "Kiwi Maru", "Segoe UI", "Yu Gothic UI", sans-serif;
+  --app-font-family: "Kiwi Maru", "Segoe UI", "Yu Gothic UI", "Malgun Gothic", sans-serif;
 }
 
 body[data-font="sawarabimincho"] {
-  --app-font-family: "Sawarabi Mincho", "Yu Gothic UI", "Segoe UI", serif;
+  --app-font-family: "Sawarabi Mincho", "Yu Gothic UI", "Segoe UI", "Malgun Gothic", serif;
+}
+
+body[data-font="notoSansKr"] {
+  --app-font-family: "Noto Sans KR", "Segoe UI", "Yu Gothic UI", "Malgun Gothic", sans-serif;
+}
+
+body[data-font="ibmPlexSansKr"] {
+  --app-font-family: "IBM Plex Sans KR", "Segoe UI", "Yu Gothic UI", "Malgun Gothic", sans-serif;
+}
+
+body[data-font="dongle"] {
+  --app-font-family: "Dongle", "Noto Sans KR", "Segoe UI", "Malgun Gothic", sans-serif;
+  --app-font-size-adjust: 0.46;
+  --app-line-height: 1.18;
+}
+
+body[data-font="gaegu"] {
+  --app-font-family: "Gaegu", "Noto Sans KR", "Segoe UI", "Malgun Gothic", cursive;
+  --app-font-size-adjust: 0.46;
+  --app-line-height: 1.18;
+}
+
+body[data-font="gowunDodum"] {
+  --app-font-family: "Gowun Dodum", "Noto Sans KR", "Segoe UI", "Malgun Gothic", sans-serif;
 }
 
 html.image-modal-open,
@@ -230,6 +258,10 @@ button,
 input,
 select {
   font: inherit;
+}
+
+.material-symbols-outlined {
+  font-size-adjust: none;
 }
 
 a {
@@ -1572,6 +1604,7 @@ body[data-theme="light"] .primary-link-button {
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
+  text-align: center;
 }
 
 .small-action-button:hover {
@@ -2618,6 +2651,11 @@ body[data-theme="light"] .primary-link-button {
   background: color-mix(in srgb, var(--accent) 12%, var(--surface-card));
 }
 
+.photo-editor-select-field[for='photo-editor-text-stroke-type'] select {
+  width: min(100%, 156px);
+  justify-self: start;
+}
+
 .photo-editor-color-field,
 .photo-editor-checkbox-field {
   display: grid;
@@ -3166,10 +3204,25 @@ body[data-theme='light'] .world-name-editor-actions button.secondary:disabled {
   line-height: 1;
 }
 
+body[data-font="dongle"] .settings-overview-value,
+body[data-font="gaegu"] .settings-overview-value {
+  line-height: 1.18;
+}
+
+.settings-language-option-group,
 .settings-font-option-group {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
+}
+
+body:not([data-language="ko"])
+  .settings-font-option-button[data-korean-font-option="true"] {
+  display: none;
+}
+
+.settings-language-option-group {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .settings-background-meta {
@@ -3192,6 +3245,7 @@ body[data-theme='light'] .world-name-editor-actions button.secondary:disabled {
   min-width: 0;
 }
 
+.settings-language-option-button,
 .settings-font-option-button {
   min-width: 0;
   padding: 12px 14px;
@@ -3205,6 +3259,7 @@ body[data-theme='light'] .world-name-editor-actions button.secondary:disabled {
   line-height: 1.2;
   text-align: center;
   cursor: pointer;
+  overflow-wrap: anywhere;
   transition:
     border-color 0.24s cubic-bezier(0.22, 1, 0.36, 1),
     background-color 0.24s cubic-bezier(0.22, 1, 0.36, 1),
@@ -3212,6 +3267,7 @@ body[data-theme='light'] .world-name-editor-actions button.secondary:disabled {
     color 0.24s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.settings-language-option-button:hover,
 .settings-font-option-button:hover {
   background: var(--surface-soft-2);
   border-color: var(--line-strong);
@@ -3246,6 +3302,37 @@ body[data-theme='light'] .world-name-editor-actions button.secondary:disabled {
   line-height: 1.3;
 }
 
+.settings-font-option-button {
+  font-size-adjust: none;
+}
+
+.settings-font-option-button[data-font-option="notoSansKr"] {
+  font-family: "Noto Sans KR", "Segoe UI", "Malgun Gothic", sans-serif;
+}
+
+.settings-font-option-button[data-font-option="ibmPlexSansKr"] {
+  font-family: "IBM Plex Sans KR", "Segoe UI", "Malgun Gothic", sans-serif;
+}
+
+.settings-font-option-button[data-font-option="dongle"] {
+  font-family: "Dongle", "Noto Sans KR", "Segoe UI", "Malgun Gothic", sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 0.9;
+}
+
+.settings-font-option-button[data-font-option="gaegu"] {
+  font-family: "Gaegu", "Noto Sans KR", "Segoe UI", "Malgun Gothic", cursive;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.settings-font-option-button[data-font-option="gowunDodum"] {
+  font-family: "Gowun Dodum", "Noto Sans KR", "Segoe UI", "Malgun Gothic", sans-serif;
+}
+
+.settings-language-option-button.is-active,
 .settings-font-option-button.is-active {
   background: rgba(91, 141, 255, 0.16);
   border-color: rgba(91, 141, 255, 0.42);
@@ -3333,6 +3420,15 @@ body[data-theme='light'] .world-name-editor-actions button.secondary:disabled {
   font-weight: 600;
   color: var(--text-2);
   line-height: 1.5;
+}
+
+body[data-font="dongle"] .settings-section-meta,
+body[data-font="gaegu"] .settings-section-meta,
+body[data-font="dongle"] .settings-data-status,
+body[data-font="gaegu"] .settings-data-status,
+body[data-font="dongle"] .settings-maintenance-status,
+body[data-font="gaegu"] .settings-maintenance-status {
+  line-height: 1.28;
 }
 
 .settings-accordion-chevron {
@@ -4852,9 +4948,23 @@ body[data-theme='light'] .favorite-toggle-button.is-active {
 }
 
 .main-header.is-actions-stacked .main-header-actions {
+  display: flex;
+  flex-wrap: wrap;
   width: 100%;
   justify-content: flex-start;
   margin-left: 0;
+}
+
+body[data-language="en"] .header-filter-button,
+body[data-language="ko"] .header-filter-button,
+body[data-language="en"] .settings-data-button,
+body[data-language="ko"] .settings-data-button,
+body[data-language="en"] .settings-maintenance-button,
+body[data-language="ko"] .settings-maintenance-button,
+body[data-language="en"] .small-action-button,
+body[data-language="ko"] .small-action-button {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 1320px) {
@@ -6749,6 +6859,11 @@ body[data-theme='light'] .world-sidebar-item:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
+}
+
+body[data-font="dongle"] .settings-month-dropdown-label,
+body[data-font="gaegu"] .settings-month-dropdown-label {
+  line-height: 1.18;
 }
 
 .settings-month-dropdown-menu {

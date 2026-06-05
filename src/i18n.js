@@ -1,0 +1,1106 @@
+(() => {
+  const LANGUAGE_STORAGE_KEY = 'vrchat-world-photo-manager-language';
+  const SUPPORTED_LANGUAGES = Object.freeze({
+    ja: { label: '日本語', htmlLang: 'ja' },
+    en: { label: 'English', htmlLang: 'en' },
+    ko: { label: '한국어', htmlLang: 'ko' },
+  });
+
+  const DICTIONARIES = Object.freeze({
+    en: {
+      '設定を開く': 'Open settings',
+      'テーマを切り替える': 'Toggle theme',
+      '更新': 'Refresh',
+      'サムネイル再生成': 'Regenerate thumbnails',
+      'まだ取り込みはありません': 'No photos imported yet',
+      '処理を準備中...': 'Preparing...',
+      '処理準備中...': 'Preparing...',
+      '処理中...': 'Processing...',
+      '年月': 'Timeline',
+      '年を押すと年一覧、矢印で月を開閉します':
+        'Select a year to browse it, or use arrows to expand months.',
+      '写真一覧': 'Photo list',
+      'お気に入りのみ表示': 'Show favorites only',
+      'お気に入りのみ表示中': 'Showing favorites only',
+      '並び順: 新しい順': 'Sort: Newest first',
+      '並び順: 古い順': 'Sort: Oldest first',
+      '表示サイズ: 標準': 'Size: Standard',
+      '表示サイズ: コンパクト': 'Size: Compact',
+      '向き: すべて': 'Orientation: All',
+      '向き: 横長': 'Orientation: Landscape',
+      '向き: 縦長': 'Orientation: Portrait',
+      '向き: 正方形': 'Orientation: Square',
+      '向きフィルタ': 'Orientation filter',
+      '向きフィルタ: すべて': 'Orientation: All',
+      '向きフィルタ: 横長': 'Orientation: Landscape',
+      '向きフィルタ: 縦長': 'Orientation: Portrait',
+      '向きフィルタ: 正方形': 'Orientation: Square',
+      '向き': 'Orientation',
+      'すべて': 'All',
+      '横長': 'Landscape',
+      '縦長': 'Portrait',
+      '正方形': 'Square',
+      'ラベル: すべて': 'Labels: All',
+      'ラベルフィルタ: すべて': 'Labels: All',
+      'ラベルフィルタ': 'Label filter',
+      'ラベル': 'Labels',
+      '検索': 'Search',
+      '検索を実行': 'Run search',
+      '検索をクリア': 'Clear search',
+      'クリア': 'Clear',
+      'World名を入力': 'Enter world name',
+      'メモを入力': 'Enter memo',
+      'プリントのノートを入力': 'Enter print note',
+      '選択': 'Select',
+      'お気に入り': 'Favorite',
+      'お気に入り解除': 'Unfavorite',
+      '削除': 'Delete',
+      '画像/フォルダをここにドラッグ＆ドロップ':
+        'Drag photos or folders here',
+      'まだ写真がありません': 'No photos yet',
+      'まだ写真がありません。画像 / フォルダをドラッグ&ドロップするか、設定から取り込めます':
+        'No photos yet. Drag photos or folders here, or import them from Settings.',
+      '表示する年または月を選択してください':
+        'Select a year or month to view photos.',
+      'このワールドの写真はまだありません':
+        'No photos for this world yet.',
+      '該当する写真はありません': 'No matching photos.',
+      'この年の写真はまだありません': 'No photos for this year yet.',
+      'この月の写真はまだありません': 'No photos for this month yet.',
+      'お気に入り に一致する写真はありません':
+        'No photos match Favorites.',
+      '年月一覧': 'Timeline',
+      'ワールド一覧': 'Worlds',
+      'ワールド一覧を表示': 'Show world list',
+      '年月一覧へ戻る': 'Back to timeline',
+      '撮影枚数順': 'Photo count',
+      '名前順': 'Name',
+      'ワールド': 'Worlds',
+      'ワールド情報付きの写真はまだありません':
+        'No photos with world info yet.',
+      'まだ取り込みがありません': 'Nothing imported yet',
+      '日付不明': 'Unknown date',
+      '日時不明': 'Unknown date/time',
+      '時刻不明': 'Unknown time',
+      'サムネイル未生成': 'Thumbnail not generated',
+      'サムネイル要再生成': 'Thumbnail needs regeneration',
+
+      'VRChatで開く': 'Open in VRChat',
+      '元画像を開く': 'Open original image',
+      '画像を開く': 'Open image',
+      '保存先フォルダを開く': 'Open containing folder',
+      '保存先を開く': 'Open folder',
+      '画像を加工する': 'Edit image',
+      '撮影日時': 'Taken at',
+      '解像度': 'Resolution',
+      'ワールド名未取得': 'World name unavailable',
+      'ワールド名を取得できませんでした': 'Could not get world name',
+      'ファイル名': 'File name',
+      'ファイル名不明': 'Unknown file name',
+      '未取得': 'Unavailable',
+      '未設定': 'Not set',
+      'Description': 'Description',
+      'Tag': 'Tags',
+      'メモ': 'Memo',
+      '編集': 'Edit',
+      '保存': 'Save',
+      '自由にメモを残せます': 'Add a free memo',
+      '現在の表示名': 'Current display name',
+      'お気に入り切り替え': 'Toggle favorite',
+      'カードを編集': 'Edit card',
+      'この登録を削除': 'Delete this entry',
+      '前の画像': 'Previous image',
+      '次の画像': 'Next image',
+      'プリント': 'Print',
+      'プリントのノート': 'Print note',
+
+      '画像編集': 'Image Editor',
+      '元に戻す': 'Undo',
+      'やり直す': 'Redo',
+      '編集内容をリセット': 'Reset edits',
+      '編集前と比較': 'Compare with original',
+      '編集後の表示に戻す': 'Back to edited preview',
+      '比較': 'Compare',
+      '編集中': 'Editing',
+      '別名で保存': 'Save as',
+      '保存中...': 'Saving...',
+      '切り抜き': 'Crop',
+      'オリジナル': 'Original',
+      '回転': 'Rotate',
+      '自由回転': 'Free rotate',
+      '左右反転': 'Flip horizontal',
+      '上下反転': 'Flip vertical',
+      'ズーム': 'Zoom',
+      '左 右位置': 'Horizontal position',
+      '左右位置': 'Horizontal position',
+      '上下位置': 'Vertical position',
+      'VRCギャラリー': 'VRC Gallery',
+      '絵文字・ステッカー': 'Emoji / Sticker',
+      'プリセット': 'Presets',
+      '補正の強さ': 'Strength',
+      'プリセット名': 'Preset name',
+      'プリセット名を入力': 'Preset name',
+      'この設定を保存': 'Save preset',
+      '補正': 'Adjustments',
+      '明るさ': 'Brightness',
+      '露出': 'Exposure',
+      'コントラスト': 'Contrast',
+      'ハイライト': 'Highlights',
+      'シャドウ': 'Shadows',
+      'ホワイト': 'Whites',
+      'ブラック': 'Blacks',
+      'ガンマ': 'Gamma',
+      '色温度': 'Temperature',
+      '色合い': 'Tint',
+      '彩度': 'Saturation',
+      '自然な彩度': 'Vibrance',
+      '明瞭度': 'Clarity',
+      'テクスチャ': 'Texture',
+      'シャープ': 'Sharpen',
+      'ノイズ低減': 'Denoise',
+      'フェード': 'Fade',
+      '粒子': 'Grain',
+      'ビネット': 'Vignette',
+      'トーンカーブ': 'Tone Curve',
+      '全体': 'Overall',
+      'ぼかし': 'Blur',
+      'ぼかしをリセット': 'Reset blur',
+      'どこをぼかしにするか': 'Blur target',
+      '全体ぼかし': 'Full blur',
+      '放射ぼかし': 'Radial blur',
+      '放射': 'Radial',
+      '全体': 'Overall',
+      'ぼかし量': 'Blur amount',
+      '範囲': 'Area',
+      '四角で範囲選択': 'Select rectangle area',
+      '丸で範囲選択': 'Select ellipse area',
+      'フリーハンドで範囲選択': 'Select freehand area',
+      'ぼかしの濃さ': 'Blur strength',
+      'モザイクの濃さ': 'Mosaic strength',
+      '塗りつぶしの濃さ': 'Fill strength',
+      '色': 'Color',
+      '確定': 'Confirm',
+      '範囲を編集': 'Edit area',
+      '目隠し加工': 'Hide / Mask',
+      '目隠し加工をリセット': 'Reset hide / mask',
+      'モザイク': 'Mosaic',
+      '塗りつぶし': 'Fill',
+      'ひとつ戻す': 'Undo one',
+      '1つ戻す': 'Undo one',
+      '書き出し': 'Export',
+      '書き出し設定をリセット': 'Reset export settings',
+      '形式': 'Format',
+      'サイズ': 'Size',
+      '長辺 3840px': 'Long edge 3840px',
+      '長辺 2560px': 'Long edge 2560px',
+      '長辺 2048px': 'Long edge 2048px',
+      '長辺 1600px': 'Long edge 1600px',
+      '長辺 1200px': 'Long edge 1200px',
+      '長辺 1024px': 'Long edge 1024px',
+      '品質': 'Quality',
+      'テキスト追加': 'Add Text',
+      'テキスト': 'Text',
+      'テキストをリセット': 'Reset text',
+      'テキストを追加': 'Add text',
+      'テキストを削除': 'Delete text',
+      '追加': 'Add',
+      '文字': 'Text',
+      '内容': 'Content',
+      'テキストを入力': 'Enter text',
+      'フォント': 'Font',
+      '太さ': 'Weight',
+      '縁': 'Stroke',
+      '縁の色': 'Stroke color',
+      '縁の種類': 'Stroke type',
+      'なし': 'None',
+      '縁取り': 'Outline',
+      '影': 'Shadow',
+      '発光': 'Glow',
+      '縁内を透過': 'Transparent fill',
+      '文字サイズ': 'Text size',
+      '縁の太さ': 'Stroke width',
+      '文字間隔': 'Letter spacing',
+      '最近使用': 'Recent',
+      'システム': 'System',
+      '標準': 'Regular',
+      '中太': 'Medium',
+      'セミボールド': 'Semibold',
+      '太字': 'Bold',
+      '特太': 'Extra bold',
+      '極太': 'Black',
+      'ルーラー': 'Ruler',
+      '三分割グリッド': 'Rule of thirds',
+
+      '✨ 自動補正': '✨ Smart Auto',
+      '学習補正': 'Learned Auto',
+      '投稿クリア': 'Post Clear',
+      '自然クリア': 'Natural Clear',
+      '夜景強調': 'Night Boost',
+      'ネオン強調': 'Neon Boost',
+      'ふんわり1': 'Soft 1',
+      'ふんわり2': 'Soft 2',
+      'ふんわり3': 'Soft 3',
+      'フィルム風': 'Film Look',
+      '高コントラスト1': 'High Contrast 1',
+      '高コントラスト2': 'High Contrast 2',
+      'クールブルー1': 'Cool Blue 1',
+      'クールブルー2': 'Cool Blue 2',
+      'スイートピンク1': 'Sweet Pink 1',
+      'スイートピンク2': 'Sweet Pink 2',
+      'スイートピンク3': 'Sweet Pink 3',
+      '暗部クリア': 'Shadow Clear',
+      'サムネ強調': 'Thumbnail Pop',
+      'モノクロ': 'Monochrome',
+
+      '設定': 'Settings',
+      '設定モーダルを閉じる': 'Close settings',
+      '言語設定': 'Language',
+      '日本語': 'Japanese',
+      '英語': 'English',
+      '韓国語': 'Korean',
+      'フォント': 'Font',
+      '更新対象フォルダの設定': 'Tracked folders',
+      'フォルダ追加': 'Add folder',
+      'まだ登録されていません': 'Nothing registered yet',
+      'データ管理': 'Data management',
+      'ラベル、メモ、お気に入り、World情報を保存・書き出しできます':
+        'Back up and export labels, memos, favorites, and world information.',
+      'データ管理を開く': 'Open data management',
+      '操作メニュー': 'Actions',
+      'バックアップを作成': 'Create backup',
+      '状態チェック': 'Health check',
+      '元画像なしを表示': 'Show missing originals',
+      'サムネイルなしを表示': 'Show missing thumbnails',
+      'World情報未取得を表示': 'Show missing world info',
+      'World要確認を表示': 'Show world issues',
+      '欠損サムネイルを再生成': 'Regenerate missing thumbnails',
+      'World要確認を再取得': 'Refresh world issues',
+      'バックアップから復元': 'Restore from backup',
+      'CSVエクスポート': 'Export CSV',
+      'JSONエクスポート': 'Export JSON',
+      'メンテナンス': 'Maintenance',
+      '表示中の月を削除': 'Delete current month',
+      'サムネイルキャッシュを削除': 'Clear thumbnail cache',
+      '既存画像の情報を再取り込み': 'Reimport registered photos',
+      '全登録を削除': 'Delete all entries',
+      'DBを初期化': 'Reset database',
+      'アンインストール': 'Uninstall',
+      'アプリ本体を削除します。必要に応じて、保存済みデータも一緒に削除できます。':
+        'Remove the app. You can also delete saved data if needed.',
+      'データも削除してアンインストール': 'Uninstall and delete data',
+      '確認': 'Confirm',
+      'この操作を実行しますか？': 'Run this action?',
+      'キャンセル': 'Cancel',
+      '実行する': 'Run',
+      '閉じる': 'Close',
+      '概要': 'Overview',
+      '写真': 'Photos',
+      'フォルダ': 'Folders',
+      'ワールド数': 'Worlds',
+      '背景': 'Background',
+      '画像を選択': 'Choose image',
+      '一覧を表示': 'Show list',
+      '更新対象フォルダ一覧': 'Tracked folder list',
+      'サムネイル再生成の対象月': 'Month for thumbnail regeneration',
+      '情報再取り込みの対象月': 'Month for reimport',
+      '再生成する月を選択': 'Select month to regenerate',
+      '再取り込みする月を選択': 'Select month to reimport',
+      '対象月がありません': 'No target month',
+      'ラベルを設定': 'Set labels',
+      '既存ラベルを再利用したり、新しいラベルを色付きで追加して写真ごとに設定できます。':
+        'Reuse existing labels or create colored labels for each photo.',
+      '現在のラベル': 'Current labels',
+      'ラベルを設定する': 'Choose labels',
+      '既存ラベルを選択': 'Choose existing label',
+      'この月にはラベルがありません': 'No labels for this month',
+      'ラベルを作成する': 'Create label',
+      'ラベルの名前を入力してください': 'Enter a label name',
+      '色を選択': 'Choose color',
+      'この内容で追加': 'Add this label',
+      '追加できるラベルはありません': 'No labels available',
+      'ラベルはまだ設定されていません': 'No labels set yet',
+      '読み込み中...': 'Loading...',
+      'ワールド名を編集': 'Edit world name',
+      'ワールド名': 'World name',
+      '手動設定を解除': 'Clear manual setting',
+      '再度ワールド名を自動取得': 'Fetch world name again',
+      'World情報を再読み込み': 'Reload world info',
+      '特殊文字などで自動取得名が崩れる場合に、表示名を手動で上書きできます。':
+        'If the detected name breaks because of special characters, you can override it manually.',
+      'ここに画像またはフォルダをドロップ': 'Drop photos or folders here',
+      'png / jpg / jpeg / webp に対応': 'Supports png / jpg / jpeg / webp',
+    },
+    ko: {
+      '設定を開く': '설정 열기',
+      'テーマを切り替える': '테마 전환',
+      '更新': '새로고침',
+      'サムネイル再生成': '썸네일 다시 생성',
+      'まだ取り込みはありません': '아직 가져온 사진이 없습니다',
+      '処理を準備中...': '준비 중...',
+      '処理準備中...': '준비 중...',
+      '処理中...': '처리 중...',
+      '年月': '연월',
+      '年を押すと年一覧、矢印で月を開閉します':
+        '연도를 선택해 목록을 보고, 화살표로 월을 열고 닫습니다.',
+      '写真一覧': '사진 목록',
+      'お気に入りのみ表示': '즐겨찾기만 표시',
+      'お気に入りのみ表示中': '즐겨찾기만 표시 중',
+      '並び順: 新しい順': '정렬: 최신순',
+      '並び順: 古い順': '정렬: 오래된 순',
+      '表示サイズ: 標準': '표시 크기: 기본',
+      '表示サイズ: コンパクト': '표시 크기: 컴팩트',
+      '向き: すべて': '방향: 전체',
+      '向き: 横長': '방향: 가로',
+      '向き: 縦長': '방향: 세로',
+      '向き: 正方形': '방향: 정사각형',
+      '向きフィルタ': '방향 필터',
+      '向きフィルタ: すべて': '방향: 전체',
+      '向きフィルタ: 横長': '방향: 가로',
+      '向きフィルタ: 縦長': '방향: 세로',
+      '向きフィルタ: 正方形': '방향: 정사각형',
+      '向き': '방향',
+      'すべて': '전체',
+      '横長': '가로',
+      '縦長': '세로',
+      '正方形': '정사각형',
+      'ラベル: すべて': '라벨: 전체',
+      'ラベルフィルタ: すべて': '라벨: 전체',
+      'ラベルフィルタ': '라벨 필터',
+      'ラベル': '라벨',
+      '検索': '검색',
+      '検索を実行': '검색 실행',
+      '検索をクリア': '검색 지우기',
+      'クリア': '지우기',
+      'World名を入力': 'World 이름 입력',
+      'メモを入力': '메모 입력',
+      'プリントのノートを入力': '프린트 노트 입력',
+      '選択': '선택',
+      'お気に入り': '즐겨찾기',
+      'お気に入り解除': '즐겨찾기 해제',
+      '削除': '삭제',
+      '画像/フォルダをここにドラッグ＆ドロップ':
+        '사진 또는 폴더를 여기에 드래그 앤 드롭',
+      'まだ写真がありません': '아직 사진이 없습니다',
+      'まだ写真がありません。画像 / フォルダをドラッグ&ドロップするか、設定から取り込めます':
+        '아직 사진이 없습니다. 사진/폴더를 드래그 앤 드롭하거나 설정에서 가져올 수 있습니다.',
+      '表示する年または月を選択してください':
+        '표시할 연도 또는 월을 선택하세요.',
+      'このワールドの写真はまだありません':
+        '이 월드의 사진은 아직 없습니다.',
+      '該当する写真はありません': '일치하는 사진이 없습니다.',
+      'この年の写真はまだありません': '이 연도의 사진은 아직 없습니다.',
+      'この月の写真はまだありません': '이 월의 사진은 아직 없습니다.',
+      'お気に入り に一致する写真はありません':
+        '즐겨찾기에 일치하는 사진이 없습니다.',
+      '年月一覧': '연월 목록',
+      'ワールド一覧': '월드 목록',
+      'ワールド一覧を表示': '월드 목록 보기',
+      '年月一覧へ戻る': '연월 목록으로 돌아가기',
+      '撮影枚数順': '촬영 수순',
+      '名前順': '이름순',
+      'ワールド': '월드',
+      'ワールド情報付きの写真はまだありません':
+        '월드 정보가 있는 사진은 아직 없습니다.',
+      'まだ取り込みがありません': '아직 가져온 항목이 없습니다',
+      '日付不明': '날짜 알 수 없음',
+      '日時不明': '일시 알 수 없음',
+      '時刻不明': '시간 알 수 없음',
+      'サムネイル未生成': '썸네일 미생성',
+      'サムネイル要再生成': '썸네일 재생성 필요',
+
+      'VRChatで開く': 'VRChat에서 열기',
+      '元画像を開く': '원본 이미지 열기',
+      '画像を開く': '이미지 열기',
+      '保存先フォルダを開く': '저장 폴더 열기',
+      '保存先を開く': '폴더 열기',
+      '画像を加工する': '이미지 편집',
+      '撮影日時': '촬영 일시',
+      '解像度': '해상도',
+      'ワールド名未取得': '월드 이름 없음',
+      'ワールド名を取得できませんでした': '월드 이름을 가져올 수 없습니다',
+      'ファイル名': '파일명',
+      'ファイル名不明': '파일명 알 수 없음',
+      '未取得': '없음',
+      '未設定': '미설정',
+      'Description': '설명',
+      'Tag': '태그',
+      'メモ': '메모',
+      '編集': '편집',
+      '保存': '저장',
+      '自由にメモを残せます': '자유롭게 메모를 남길 수 있습니다',
+      '現在の表示名': '현재 표시 이름',
+      'お気に入り切り替え': '즐겨찾기 전환',
+      'カードを編集': '카드 편집',
+      'この登録を削除': '이 등록 삭제',
+      '前の画像': '이전 이미지',
+      '次の画像': '다음 이미지',
+      'プリント': '프린트',
+      'プリントのノート': '프린트 노트',
+
+      '画像編集': '이미지 편집',
+      '元に戻す': '실행 취소',
+      'やり直す': '다시 실행',
+      '編集内容をリセット': '편집 내용 초기화',
+      '編集前と比較': '원본과 비교',
+      '編集後の表示に戻す': '편집 미리보기로 돌아가기',
+      '比較': '비교',
+      '編集中': '편집 중',
+      '別名で保存': '다른 이름으로 저장',
+      '保存中...': '저장 중...',
+      '切り抜き': '자르기',
+      'オリジナル': '원본',
+      '回転': '회전',
+      '自由回転': '자유 회전',
+      '左右反転': '좌우 반전',
+      '上下反転': '상하 반전',
+      'ズーム': '확대',
+      '左 右位置': '좌우 위치',
+      '左右位置': '좌우 위치',
+      '上下位置': '상하 위치',
+      'VRCギャラリー': 'VRC 갤러리',
+      '絵文字・ステッカー': '이모지/스티커',
+      'プリセット': '프리셋',
+      '補正の強さ': '보정 강도',
+      'プリセット名': '프리셋 이름',
+      'プリセット名を入力': '프리셋 이름 입력',
+      'この設定を保存': '이 설정 저장',
+      '補正': '보정',
+      '明るさ': '밝기',
+      '露出': '노출',
+      'コントラスト': '대비',
+      'ハイライト': '하이라이트',
+      'シャドウ': '그림자',
+      'ホワイト': '화이트',
+      'ブラック': '블랙',
+      'ガンマ': '감마',
+      '色温度': '색온도',
+      '色合い': '색조',
+      '彩度': '채도',
+      '自然な彩度': '자연스러운 채도',
+      '明瞭度': '명료도',
+      'テクスチャ': '텍스처',
+      'シャープ': '선명도',
+      'ノイズ低減': '노이즈 감소',
+      'フェード': '페이드',
+      '粒子': '그레인',
+      'ビネット': '비네트',
+      'トーンカーブ': '톤 커브',
+      '全体': '전체',
+      'ぼかし': '블러',
+      'ぼかしをリセット': '블러 초기화',
+      'どこをぼかしにするか': '블러 대상',
+      '全体ぼかし': '전체 블러',
+      '放射ぼかし': '방사형 블러',
+      '放射': '방사형',
+      'ぼかし量': '블러 양',
+      '範囲': '범위',
+      '四角で範囲選択': '사각형 범위 선택',
+      '丸で範囲選択': '원형 범위 선택',
+      'フリーハンドで範囲選択': '프리핸드 범위 선택',
+      'ぼかしの濃さ': '블러 강도',
+      'モザイクの濃さ': '모자이크 강도',
+      '塗りつぶしの濃さ': '채우기 강도',
+      '色': '색상',
+      '確定': '확정',
+      '範囲を編集': '범위 편집',
+      '目隠し加工': '가림 처리',
+      '目隠し加工をリセット': '가림 처리 초기화',
+      'モザイク': '모자이크',
+      '塗りつぶし': '채우기',
+      'ひとつ戻す': '하나 되돌리기',
+      '1つ戻す': '하나 되돌리기',
+      '書き出し': '내보내기',
+      '書き出し設定をリセット': '내보내기 설정 초기화',
+      '形式': '형식',
+      'サイズ': '크기',
+      '長辺 3840px': '긴 변 3840px',
+      '長辺 2560px': '긴 변 2560px',
+      '長辺 2048px': '긴 변 2048px',
+      '長辺 1600px': '긴 변 1600px',
+      '長辺 1200px': '긴 변 1200px',
+      '長辺 1024px': '긴 변 1024px',
+      '品質': '품질',
+      'テキスト追加': '텍스트 추가',
+      'テキスト': '텍스트',
+      'テキストをリセット': '텍스트 초기화',
+      'テキストを追加': '텍스트 추가',
+      'テキストを削除': '텍스트 삭제',
+      '追加': '추가',
+      '文字': '글자',
+      '内容': '내용',
+      'テキストを入力': '텍스트 입력',
+      'フォント': '폰트',
+      '太さ': '굵기',
+      '縁': '테두리',
+      '縁の色': '테두리 색상',
+      '縁の種類': '테두리 종류',
+      'なし': '없음',
+      '縁取り': '외곽선',
+      '影': '그림자',
+      '発光': '발광',
+      '縁内を透過': '글자 내부 투명',
+      '文字サイズ': '글자 크기',
+      '縁の太さ': '테두리 두께',
+      '文字間隔': '자간',
+      '最近使用': '최근 사용',
+      'システム': '시스템',
+      '標準': '보통',
+      '中太': '중간',
+      'セミボールド': '세미볼드',
+      '太字': '굵게',
+      '特太': '아주 굵게',
+      '極太': '블랙',
+      'ルーラー': '눈금자',
+      '三分割グリッド': '삼분할 그리드',
+
+      '✨ 自動補正': '✨ 스마트 자동',
+      '学習補正': '학습 보정',
+      '投稿クリア': '게시용 선명',
+      '自然クリア': '자연 선명',
+      '夜景強調': '야경 강조',
+      'ネオン強調': '네온 강조',
+      'ふんわり1': '부드럽게 1',
+      'ふんわり2': '부드럽게 2',
+      'ふんわり3': '부드럽게 3',
+      'フィルム風': '필름풍',
+      '高コントラスト1': '고대비 1',
+      '高コントラスト2': '고대비 2',
+      'クールブルー1': '쿨 블루 1',
+      'クールブルー2': '쿨 블루 2',
+      'スイートピンク1': '스위트 핑크 1',
+      'スイートピンク2': '스위트 핑크 2',
+      'スイートピンク3': '스위트 핑크 3',
+      '暗部クリア': '어두운 부분 선명',
+      'サムネ強調': '썸네일 강조',
+      'モノクロ': '흑백',
+
+      '設定': '설정',
+      '設定モーダルを閉じる': '설정 닫기',
+      '言語設定': '언어 설정',
+      '日本語': '일본어',
+      '英語': '영어',
+      '韓国語': '한국어',
+      'フォント': '폰트',
+      '更新対象フォルダの設定': '갱신 대상 폴더 설정',
+      'フォルダ追加': '폴더 추가',
+      'まだ登録されていません': '아직 등록되지 않았습니다',
+      'データ管理': '데이터 관리',
+      'ラベル、メモ、お気に入り、World情報を保存・書き出しできます':
+        '라벨, 메모, 즐겨찾기, World 정보를 저장하고 내보낼 수 있습니다.',
+      'データ管理を開く': '데이터 관리 열기',
+      '操作メニュー': '작업 메뉴',
+      'バックアップを作成': '백업 만들기',
+      '状態チェック': '상태 확인',
+      '元画像なしを表示': '원본 없음 표시',
+      'サムネイルなしを表示': '썸네일 없음 표시',
+      'World情報未取得を表示': 'World 정보 없음 표시',
+      'World要確認を表示': 'World 확인 필요 표시',
+      '欠損サムネイルを再生成': '누락 썸네일 재생성',
+      'World要確認を再取得': 'World 확인 필요 재조회',
+      'バックアップから復元': '백업에서 복원',
+      'CSVエクスポート': 'CSV 내보내기',
+      'JSONエクスポート': 'JSON 내보내기',
+      'メンテナンス': '유지 관리',
+      '表示中の月を削除': '현재 월 삭제',
+      'サムネイルキャッシュを削除': '썸네일 캐시 삭제',
+      '既存画像の情報を再取り込み': '기존 사진 정보 다시 가져오기',
+      '全登録を削除': '전체 등록 삭제',
+      'DBを初期化': 'DB 초기화',
+      'アンインストール': '제거',
+      'アプリ本体を削除します。必要に応じて、保存済みデータも一緒に削除できます。':
+        '앱을 제거합니다. 필요하면 저장된 데이터도 함께 삭제할 수 있습니다.',
+      'データも削除してアンインストール': '데이터도 삭제하고 제거',
+      '確認': '확인',
+      'この操作を実行しますか？': '이 작업을 실행할까요?',
+      'キャンセル': '취소',
+      '実行する': '실행',
+      '閉じる': '닫기',
+      '概要': '개요',
+      '写真': '사진',
+      'フォルダ': '폴더',
+      'ワールド数': '월드 수',
+      '背景': '배경',
+      '画像を選択': '이미지 선택',
+      '一覧を表示': '목록 보기',
+      '更新対象フォルダ一覧': '갱신 대상 폴더 목록',
+      'サムネイル再生成の対象月': '썸네일 재생성 대상 월',
+      '情報再取り込みの対象月': '정보 재가져오기 대상 월',
+      '再生成する月を選択': '재생성할 월 선택',
+      '再取り込みする月を選択': '다시 가져올 월 선택',
+      '対象月がありません': '대상 월이 없습니다',
+      'ラベルを設定': '라벨 설정',
+      '既存ラベルを再利用したり、新しいラベルを色付きで追加して写真ごとに設定できます。':
+        '기존 라벨을 재사용하거나 색상이 있는 새 라벨을 만들어 사진별로 설정할 수 있습니다.',
+      '現在のラベル': '현재 라벨',
+      'ラベルを設定する': '라벨 선택',
+      '既存ラベルを選択': '기존 라벨 선택',
+      'この月にはラベルがありません': '이 월에는 라벨이 없습니다',
+      'ラベルを作成する': '라벨 만들기',
+      'ラベルの名前を入力してください': '라벨 이름을 입력하세요',
+      '色を選択': '색상 선택',
+      'この内容で追加': '이 내용으로 추가',
+      '追加できるラベルはありません': '추가할 수 있는 라벨이 없습니다',
+      'ラベルはまだ設定されていません': '아직 라벨이 설정되지 않았습니다',
+      '読み込み中...': '불러오는 중...',
+      'ワールド名を編集': '월드 이름 편집',
+      'ワールド名': '월드 이름',
+      '手動設定を解除': '수동 설정 해제',
+      '再度ワールド名を自動取得': '월드 이름 다시 자동 가져오기',
+      'World情報を再読み込み': 'World 정보 다시 읽기',
+      '特殊文字などで自動取得名が崩れる場合に、表示名を手動で上書きできます。':
+        '특수 문자 등으로 자동 이름이 깨질 때 표시 이름을 직접 덮어쓸 수 있습니다.',
+      'ここに画像またはフォルダをドロップ': '사진 또는 폴더를 여기에 놓기',
+      'png / jpg / jpeg / webp に対応': 'png / jpg / jpeg / webp 지원',
+    },
+  });
+
+  const ATTRIBUTES = ['aria-label', 'title', 'placeholder', 'label'];
+  const textOriginals = new WeakMap();
+  const textLastApplied = new WeakMap();
+  const attrOriginals = new WeakMap();
+  const attrLastApplied = new WeakMap();
+  let currentLanguage = 'ja';
+  let observer = null;
+  let isApplying = false;
+
+  function getStoredLanguage() {
+    try {
+      const savedLanguage = window.localStorage?.getItem(LANGUAGE_STORAGE_KEY);
+      return SUPPORTED_LANGUAGES[savedLanguage] ? savedLanguage : 'ja';
+    } catch {
+      return 'ja';
+    }
+  }
+
+  function storeLanguage(language) {
+    try {
+      window.localStorage?.setItem(LANGUAGE_STORAGE_KEY, language);
+    } catch {
+      // Local storage can be unavailable in restricted contexts.
+    }
+  }
+
+  function getDictionary(language = currentLanguage) {
+    return DICTIONARIES[language] || {};
+  }
+
+  function preserveOuterWhitespace(original, translated) {
+    const match = String(original).match(/^(\s*)([\s\S]*?)(\s*)$/);
+    if (!match) {
+      return translated;
+    }
+
+    return `${match[1]}${translated}${match[3]}`;
+  }
+
+  function formatNumber(value, language = currentLanguage) {
+    const locale =
+      language === 'ko' ? 'ko-KR' : language === 'en' ? 'en-US' : 'ja-JP';
+    return new Intl.NumberFormat(locale).format(Number(value) || 0);
+  }
+
+  function formatMonth(year, month, language = currentLanguage) {
+    if (language === 'en') {
+      const date = new Date(Number(year), Number(month) - 1, 1);
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        year: 'numeric',
+      }).format(date);
+    }
+
+    if (language === 'ko') {
+      return `${year}년 ${Number(month)}월`;
+    }
+
+    return `${year}年${month}月`;
+  }
+
+  function translatePattern(core, language) {
+    if (language === 'ja') {
+      return core;
+    }
+
+    let match = core.match(/^(\d+)枚$/);
+    if (match) {
+      return language === 'ko'
+        ? `${formatNumber(match[1], language)}장`
+        : `${formatNumber(match[1], language)} photos`;
+    }
+
+    match = core.match(/^全(\d+)枚$/);
+    if (match) {
+      return language === 'ko'
+        ? `전체 ${formatNumber(match[1], language)}장`
+        : `All ${formatNumber(match[1], language)} photos`;
+    }
+
+    match = core.match(/^(\d+)件$/);
+    if (match) {
+      return language === 'ko'
+        ? `${formatNumber(match[1], language)}건`
+        : `${formatNumber(match[1], language)} items`;
+    }
+
+    match = core.match(/^(\d+)件選択中$/);
+    if (match) {
+      return language === 'ko'
+        ? `${formatNumber(match[1], language)}건 선택됨`
+        : `${formatNumber(match[1], language)} selected`;
+    }
+
+    match = core.match(/^登録済み (\d+)件$/);
+    if (match) {
+      return language === 'ko'
+        ? `등록됨 ${formatNumber(match[1], language)}건`
+        : `${formatNumber(match[1], language)} registered`;
+    }
+
+    match = core.match(/^(\d{4})年(\d{1,2})月$/);
+    if (match) {
+      return formatMonth(match[1], match[2], language);
+    }
+
+    match = core.match(/^(\d{4})年(\d{1,2})月 \((\d+)枚\)$/);
+    if (match) {
+      const monthText = formatMonth(match[1], match[2], language);
+      const countText =
+        language === 'ko'
+          ? `${formatNumber(match[3], language)}장`
+          : `${formatNumber(match[3], language)} photos`;
+      return `${monthText} (${countText})`;
+    }
+
+    match = core.match(/^(\d{4})年(\d{1,2})月 (.+)$/);
+    if (match) {
+      const monthText = formatMonth(match[1], match[2], language);
+      const actionText = translateText(match[3], language);
+      return `${monthText} ${actionText}`;
+    }
+
+    match = core.match(/^(\d{4})年$/);
+    if (match) {
+      return language === 'ko' ? `${match[1]}년` : match[1];
+    }
+
+    match = core.match(/^(\d+)日$/);
+    if (match) {
+      return language === 'ko'
+        ? `${Number(match[1])}일`
+        : `Day ${Number(match[1])}`;
+    }
+
+    match = core.match(/^(.+)をリセット$/);
+    if (match) {
+      const target = translateText(match[1], language);
+      return language === 'ko' ? `${target} 초기화` : `Reset ${target}`;
+    }
+
+    match = core.match(/^(.+)を削除$/);
+    if (match) {
+      const target = translateText(match[1], language);
+      return language === 'ko' ? `${target} 삭제` : `Delete ${target}`;
+    }
+
+    match = core.match(/^プリセットを保存しました: (.+)$/);
+    if (match) {
+      return language === 'ko'
+        ? `프리셋 저장 완료: ${match[1]}`
+        : `Preset saved: ${match[1]}`;
+    }
+
+    match = core.match(/^プリセットを削除しました: (.+)$/);
+    if (match) {
+      return language === 'ko'
+        ? `프리셋 삭제 완료: ${match[1]}`
+        : `Preset deleted: ${match[1]}`;
+    }
+
+    match = core.match(/^プリセットを適用しました: (.+)$/);
+    if (match) {
+      return language === 'ko'
+        ? `프리셋 적용 완료: ${translateText(match[1], language)}`
+        : `Preset applied: ${translateText(match[1], language)}`;
+    }
+
+    match = core.match(/^出力: (.+)$/);
+    if (match) {
+      let body = match[1]
+        .replace(/目隠し/g, language === 'ko' ? '가림' : 'masks')
+        .replace(/未確定/g, language === 'ko' ? '미확정' : 'draft')
+        .replace(/黒つぶれ/g, language === 'ko' ? '블랙 클리핑' : 'black clipping')
+        .replace(/白飛び/g, language === 'ko' ? '화이트 클리핑' : 'white clipping')
+        .replace(/比較中/g, language === 'ko' ? '비교 중' : 'comparing')
+        .replace(/件/g, language === 'ko' ? '건' : '');
+      return language === 'ko' ? `출력: ${body}` : `Output: ${body}`;
+    }
+
+    match = core.match(/^保存しました（登録は未反映）: (.*)$/);
+    if (match) {
+      return language === 'ko'
+        ? `저장 완료(등록에는 반영되지 않음): ${match[1]}`
+        : `Saved (not added to catalog): ${match[1]}`;
+    }
+
+    match = core.match(/^編集済み画像を保存しました: (.*)$/);
+    if (match) {
+      return language === 'ko'
+        ? `편집한 이미지를 저장했습니다: ${match[1]}`
+        : `Edited image saved: ${match[1]}`;
+    }
+
+    match = core.match(/^保存に失敗しました: (.*)$/);
+    if (match) {
+      return language === 'ko'
+        ? `저장 실패: ${match[1]}`
+        : `Save failed: ${match[1]}`;
+    }
+
+    match = core.match(/^(.+): (\d+)件失敗しました$/);
+    if (match) {
+      const label = translateText(match[1], language);
+      return language === 'ko'
+        ? `${label}: ${formatNumber(match[2], language)}건 실패`
+        : `${label}: ${formatNumber(match[2], language)} failed`;
+    }
+
+    return core;
+  }
+
+  function translateText(value, language = currentLanguage) {
+    const text = String(value ?? '');
+    if (language === 'ja') {
+      return text;
+    }
+
+    const core = text.trim().replace(/\s+/g, ' ');
+    if (!core) {
+      return text;
+    }
+
+    const dictionary = getDictionary(language);
+    const translated = dictionary[core] || translatePattern(core, language);
+    return preserveOuterWhitespace(text, translated);
+  }
+
+  function shouldSkipTextNode(node) {
+    const parent = node?.parentElement;
+    if (!parent) {
+      return true;
+    }
+
+    if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA'].includes(parent.tagName)) {
+      return true;
+    }
+
+    if (
+      parent.tagName === 'OPTION' &&
+      parent.closest('.settings-month-select')
+    ) {
+      return true;
+    }
+
+    return Boolean(
+      parent.closest(
+        '[data-i18n-ignore], .material-symbols-outlined, #photo-editor-text-list'
+      )
+    );
+  }
+
+  function localizeTextNode(node) {
+    if (shouldSkipTextNode(node)) {
+      return;
+    }
+
+    const value = node.nodeValue || '';
+    if (!value.trim()) {
+      return;
+    }
+
+    const lastApplied = textLastApplied.get(node);
+    let original = textOriginals.get(node);
+    if (original === undefined || (!isApplying && value !== lastApplied)) {
+      original = value;
+      textOriginals.set(node, original);
+    }
+
+    const translated = translateText(original);
+    if (value !== translated) {
+      isApplying = true;
+      node.nodeValue = translated;
+      isApplying = false;
+    }
+    textLastApplied.set(node, translated);
+  }
+
+  function getElementAttrMap(store, element) {
+    let map = store.get(element);
+    if (!map) {
+      map = new Map();
+      store.set(element, map);
+    }
+    return map;
+  }
+
+  function localizeElementAttributes(element) {
+    if (!(element instanceof Element) || element.matches('[data-i18n-ignore]')) {
+      return;
+    }
+
+    const originals = getElementAttrMap(attrOriginals, element);
+    const lastAppliedValues = getElementAttrMap(attrLastApplied, element);
+
+    ATTRIBUTES.forEach((attributeName) => {
+      if (!element.hasAttribute(attributeName)) {
+        return;
+      }
+
+      const value = element.getAttribute(attributeName) || '';
+      if (!value.trim()) {
+        return;
+      }
+
+      const lastApplied = lastAppliedValues.get(attributeName);
+      let original = originals.get(attributeName);
+      if (original === undefined || (!isApplying && value !== lastApplied)) {
+        original = value;
+        originals.set(attributeName, original);
+      }
+
+      const translated = translateText(original);
+      if (value !== translated) {
+        isApplying = true;
+        element.setAttribute(attributeName, translated);
+        isApplying = false;
+      }
+      lastAppliedValues.set(attributeName, translated);
+    });
+  }
+
+  function localizeNode(node) {
+    if (!node) {
+      return;
+    }
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      localizeTextNode(node);
+      return;
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return;
+    }
+
+    localizeElementAttributes(node);
+
+    const walker = document.createTreeWalker(
+      node,
+      NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT
+    );
+
+    while (walker.nextNode()) {
+      const currentNode = walker.currentNode;
+      if (currentNode.nodeType === Node.TEXT_NODE) {
+        localizeTextNode(currentNode);
+      } else {
+        localizeElementAttributes(currentNode);
+      }
+    }
+  }
+
+  function syncLanguageOptionButtons() {
+    document.querySelectorAll('[data-language-option]').forEach((button) => {
+      const isActive = button.dataset.languageOption === currentLanguage;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      button.setAttribute('role', 'radio');
+      button.setAttribute('aria-checked', isActive ? 'true' : 'false');
+    });
+  }
+
+  function applyLanguage(language, { notify = true } = {}) {
+    const nextLanguage = SUPPORTED_LANGUAGES[language] ? language : 'ja';
+    currentLanguage = nextLanguage;
+    storeLanguage(nextLanguage);
+
+    document.documentElement.lang =
+      SUPPORTED_LANGUAGES[nextLanguage].htmlLang || nextLanguage;
+    document.body?.setAttribute('data-language', nextLanguage);
+
+    localizeNode(document.body);
+    syncLanguageOptionButtons();
+
+    if (notify) {
+      window.dispatchEvent(
+        new CustomEvent('worldshot:languagechange', {
+          detail: { language: nextLanguage },
+        })
+      );
+      window.dispatchEvent(new Event('resize'));
+    }
+  }
+
+  function handleMutations(mutations) {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'characterData') {
+        localizeTextNode(mutation.target);
+        return;
+      }
+
+      if (mutation.type === 'attributes') {
+        localizeElementAttributes(mutation.target);
+        return;
+      }
+
+      mutation.addedNodes.forEach((node) => {
+        localizeNode(node);
+      });
+    });
+  }
+
+  function initializeObserver() {
+    if (observer || !document.body) {
+      return;
+    }
+
+    observer = new MutationObserver(handleMutations);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ATTRIBUTES,
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-language-option]');
+    if (!button) {
+      return;
+    }
+
+    applyLanguage(button.dataset.languageOption || 'ja');
+  });
+
+  window.WorldShotI18n = {
+    getLanguage: () => currentLanguage,
+    setLanguage: (language) => applyLanguage(language),
+    t: (text) => translateText(text),
+    localize: () => localizeNode(document.body),
+    languages: SUPPORTED_LANGUAGES,
+  };
+
+  currentLanguage = getStoredLanguage();
+  if (document.body) {
+    applyLanguage(currentLanguage, { notify: false });
+    initializeObserver();
+  } else {
+    document.addEventListener(
+      'DOMContentLoaded',
+      () => {
+        applyLanguage(currentLanguage, { notify: false });
+        initializeObserver();
+      },
+      { once: true }
+    );
+  }
+})();

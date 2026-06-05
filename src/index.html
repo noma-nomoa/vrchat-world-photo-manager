@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>WorldShot Log v2.1.0</title>
+    <title>WorldShot Log v2.2.0</title>
     <link rel="stylesheet" href="./index.css" />
     <link
       rel="stylesheet"
@@ -10,7 +10,7 @@
     />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Hachi+Maru+Pop&family=Kaisei+Decol:wght@400;500;700&family=Kaisei+Opti:wght@400;500;700&family=Kiwi+Maru:wght@400;500;700&family=Lobster&family=M+PLUS+1:wght@400;500;700&family=Monomaniac+One&family=Rampart+One&family=RocknRoll+One&family=Sacramento&family=Sawarabi+Mincho&family=Walter+Turncoat&family=Zen+Maru+Gothic:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bodoni+Moda:wght@400;500;700;900&family=Dela+Gothic+One&family=DM+Serif+Display&family=Do+Hyeon&family=Dongle:wght@300;400;700&family=DotGothic16&family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Gaegu:wght@300;400;700&family=Gowun+Dodum&family=Hachi+Maru+Pop&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Jua&family=Kaisei+Decol:wght@400;500;700&family=Kaisei+Opti:wght@400;500;700&family=Kiwi+Maru:wght@400;500;700&family=Klee+One:wght@400;600&family=Lobster&family=M+PLUS+1:wght@400;500;700&family=Monomaniac+One&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+JP:wght@400;500;700;900&family=Rampart+One&family=RocknRoll+One&family=Sacramento&family=Shippori+Mincho:wght@400;500;700&family=Single+Day&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@400;500;700;800&family=Tsukimi+Rounded:wght@400;500;700&family=Unbounded:wght@400;500;700;900&family=Walter+Turncoat&family=Zen+Maru+Gothic:wght@400;500;700&display=swap"
     />
   </head>
   <body>
@@ -1401,6 +1401,42 @@
         <div class="sub-modal-body">
           <h3>設定</h3>
 
+          <!-- Language switch -->
+          <div class="settings-section settings-language-section">
+            <div>
+              <p class="settings-section-title">言語設定</p>
+            </div>
+
+            <div
+              id="language-option-group"
+              class="settings-language-option-group"
+              role="radiogroup"
+              aria-label="言語設定"
+            >
+              <button
+                type="button"
+                class="settings-language-option-button"
+                data-language-option="ja"
+              >
+                日本語
+              </button>
+              <button
+                type="button"
+                class="settings-language-option-button"
+                data-language-option="en"
+              >
+                英語
+              </button>
+              <button
+                type="button"
+                class="settings-language-option-button"
+                data-language-option="ko"
+              >
+                韓国語
+              </button>
+            </div>
+          </div>
+
           <!-- Font switch -->
           <div class="settings-section settings-font-section">
             <div>
@@ -1442,6 +1478,46 @@
                 data-font-option="sawarabimincho"
               >
                 Sawarabi Mincho
+              </button>
+              <button
+                type="button"
+                class="settings-font-option-button"
+                data-font-option="notoSansKr"
+                data-korean-font-option="true"
+              >
+                Noto Sans KR
+              </button>
+              <button
+                type="button"
+                class="settings-font-option-button"
+                data-font-option="ibmPlexSansKr"
+                data-korean-font-option="true"
+              >
+                IBM Plex Sans KR
+              </button>
+              <button
+                type="button"
+                class="settings-font-option-button"
+                data-font-option="dongle"
+                data-korean-font-option="true"
+              >
+                Dongle
+              </button>
+              <button
+                type="button"
+                class="settings-font-option-button"
+                data-font-option="gaegu"
+                data-korean-font-option="true"
+              >
+                Gaegu
+              </button>
+              <button
+                type="button"
+                class="settings-font-option-button"
+                data-font-option="gowunDodum"
+                data-korean-font-option="true"
+              >
+                Gowun Dodum
               </button>
             </div>
           </div>
@@ -1732,6 +1808,7 @@
     </div>
     <div id="toast" class="toast hidden"></div>
 
+    <script src="./i18n.js"></script>
     <script src="./renderer.js"></script>
   </body>
 </html>

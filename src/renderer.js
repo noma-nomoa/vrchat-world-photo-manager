@@ -886,53 +886,74 @@ const PHOTO_EDITOR_RULER_GUIDE_LIMIT = 40;
 const PHOTO_EDITOR_RULER_GUIDE_MIN_DRAG_PX = 8;
 const PHOTO_EDITOR_TEXT_FONT_OPTIONS = Object.freeze([
   {
-    key: 'system',
-    label: 'システム',
-    family: '"Segoe UI", "Yu Gothic UI", sans-serif',
-    weights: ['400', '600', '700'],
-    defaultWeight: '700',
-  },
-  {
-    key: 'zenmaru',
-    label: 'Zen Maru Gothic',
-    family: '"Zen Maru Gothic", "Segoe UI", "Yu Gothic UI", sans-serif',
-    weights: ['400', '500', '700'],
-    defaultWeight: '700',
-  },
-  {
-    key: 'mplus',
-    label: 'M PLUS 1',
-    family: '"M PLUS 1", "Segoe UI", "Yu Gothic UI", sans-serif',
-    weights: ['400', '500', '700'],
-    defaultWeight: '700',
-  },
-  {
-    key: 'kiwimaru',
-    label: 'Kiwi Maru',
-    family: '"Kiwi Maru", "Segoe UI", "Yu Gothic UI", sans-serif',
-    weights: ['400', '500', '700'],
-    defaultWeight: '700',
-  },
-  {
-    key: 'sawarabimincho',
-    label: 'Sawarabi Mincho',
-    family: '"Sawarabi Mincho", "Yu Gothic UI", "Segoe UI", serif',
+    key: 'bebasNeue',
+    label: 'Bebas Neue',
+    family: '"Bebas Neue", "Segoe UI", sans-serif',
     weights: ['400'],
     defaultWeight: '400',
   },
   {
-    key: 'kaiseiOpti',
-    label: 'Kaisei Opti',
-    family: '"Kaisei Opti", "Yu Gothic UI", "Segoe UI", serif',
-    weights: ['400', '500', '700'],
+    key: 'bodoniModa',
+    label: 'Bodoni Moda',
+    family: '"Bodoni Moda", Georgia, serif',
+    weights: ['400', '500', '700', '900'],
     defaultWeight: '700',
   },
   {
-    key: 'kaiseiDecol',
-    label: 'Kaisei Decol',
-    family: '"Kaisei Decol", "Yu Gothic UI", "Segoe UI", serif',
-    weights: ['400', '500', '700'],
+    key: 'delaGothicOne',
+    label: 'Dela Gothic One',
+    family: '"Dela Gothic One", "Yu Gothic UI", "Segoe UI", sans-serif',
+    weights: ['400'],
+    defaultWeight: '400',
+  },
+  {
+    key: 'dmSerifDisplay',
+    label: 'DM Serif Display',
+    family: '"DM Serif Display", Georgia, serif',
+    weights: ['400'],
+    defaultWeight: '400',
+  },
+  {
+    key: 'doHyeon',
+    label: 'Do Hyeon',
+    family: '"Do Hyeon", "Noto Sans KR", "Malgun Gothic", sans-serif',
+    weights: ['400'],
+    defaultWeight: '400',
+  },
+  {
+    key: 'dongle',
+    label: 'Dongle',
+    family: '"Dongle", "Noto Sans KR", "Malgun Gothic", sans-serif',
+    weights: ['300', '400', '700'],
     defaultWeight: '700',
+  },
+  {
+    key: 'dotGothic16',
+    label: 'DotGothic16',
+    family: '"DotGothic16", "Yu Gothic UI", "Segoe UI", monospace',
+    weights: ['400'],
+    defaultWeight: '400',
+  },
+  {
+    key: 'fraunces',
+    label: 'Fraunces',
+    family: '"Fraunces", Georgia, serif',
+    weights: ['400', '700', '900'],
+    defaultWeight: '700',
+  },
+  {
+    key: 'gaegu',
+    label: 'Gaegu',
+    family: '"Gaegu", "Noto Sans KR", "Malgun Gothic", cursive',
+    weights: ['300', '400', '700'],
+    defaultWeight: '700',
+  },
+  {
+    key: 'gowunDodum',
+    label: 'Gowun Dodum',
+    family: '"Gowun Dodum", "Noto Sans KR", "Malgun Gothic", sans-serif',
+    weights: ['400'],
+    defaultWeight: '400',
   },
   {
     key: 'hachiMaruPop',
@@ -942,11 +963,81 @@ const PHOTO_EDITOR_TEXT_FONT_OPTIONS = Object.freeze([
     defaultWeight: '400',
   },
   {
-    key: 'delaGothicOne',
-    label: 'Dela Gothic One',
-    family: '"Dela Gothic One", "Yu Gothic UI", "Segoe UI", sans-serif',
+    key: 'ibmPlexSansKr',
+    label: 'IBM Plex Sans KR',
+    family: '"IBM Plex Sans KR", "Noto Sans KR", "Malgun Gothic", sans-serif',
+    weights: ['400', '500', '700'],
+    defaultWeight: '700',
+  },
+  {
+    key: 'jua',
+    label: 'Jua',
+    family: '"Jua", "Noto Sans KR", "Malgun Gothic", sans-serif',
     weights: ['400'],
     defaultWeight: '400',
+  },
+  {
+    key: 'kaiseiDecol',
+    label: 'Kaisei Decol',
+    family: '"Kaisei Decol", "Yu Gothic UI", "Segoe UI", serif',
+    weights: ['400', '500', '700'],
+    defaultWeight: '700',
+  },
+  {
+    key: 'kaiseiOpti',
+    label: 'Kaisei Opti',
+    family: '"Kaisei Opti", "Yu Gothic UI", "Segoe UI", serif',
+    weights: ['400', '500', '700'],
+    defaultWeight: '700',
+  },
+  {
+    key: 'kleeOne',
+    label: 'Klee One',
+    family: '"Klee One", "Yu Gothic UI", "Segoe UI", cursive',
+    weights: ['400', '600'],
+    defaultWeight: '600',
+  },
+  {
+    key: 'kiwimaru',
+    label: 'Kiwi Maru',
+    family: '"Kiwi Maru", "Segoe UI", "Yu Gothic UI", sans-serif',
+    weights: ['400', '500', '700'],
+    defaultWeight: '700',
+  },
+  {
+    key: 'lobster',
+    label: 'Lobster',
+    family: '"Lobster", "Segoe UI", cursive',
+    weights: ['400'],
+    defaultWeight: '400',
+  },
+  {
+    key: 'mplus',
+    label: 'M PLUS 1',
+    family: '"M PLUS 1", "Segoe UI", "Yu Gothic UI", sans-serif',
+    weights: ['400', '500', '700'],
+    defaultWeight: '700',
+  },
+  {
+    key: 'monomaniacOne',
+    label: 'Monomaniac One',
+    family: '"Monomaniac One", "Yu Gothic UI", "Segoe UI", sans-serif',
+    weights: ['400'],
+    defaultWeight: '400',
+  },
+  {
+    key: 'notoSansKr',
+    label: 'Noto Sans KR',
+    family: '"Noto Sans KR", "Malgun Gothic", "Segoe UI", sans-serif',
+    weights: ['400', '500', '700'],
+    defaultWeight: '700',
+  },
+  {
+    key: 'notoSerifJp',
+    label: 'Noto Serif JP',
+    family: '"Noto Serif JP", "Yu Mincho", "Yu Gothic UI", serif',
+    weights: ['400', '500', '700', '900'],
+    defaultWeight: '700',
   },
   {
     key: 'rampartOne',
@@ -963,27 +1054,6 @@ const PHOTO_EDITOR_TEXT_FONT_OPTIONS = Object.freeze([
     defaultWeight: '400',
   },
   {
-    key: 'dotGothic16',
-    label: 'DotGothic16',
-    family: '"DotGothic16", "Yu Gothic UI", "Segoe UI", monospace',
-    weights: ['400'],
-    defaultWeight: '400',
-  },
-  {
-    key: 'monomaniacOne',
-    label: 'Monomaniac One',
-    family: '"Monomaniac One", "Yu Gothic UI", "Segoe UI", sans-serif',
-    weights: ['400'],
-    defaultWeight: '400',
-  },
-  {
-    key: 'lobster',
-    label: 'Lobster',
-    family: '"Lobster", "Segoe UI", cursive',
-    weights: ['400'],
-    defaultWeight: '400',
-  },
-  {
     key: 'sacramento',
     label: 'Sacramento',
     family: '"Sacramento", "Segoe UI", cursive',
@@ -991,11 +1061,74 @@ const PHOTO_EDITOR_TEXT_FONT_OPTIONS = Object.freeze([
     defaultWeight: '400',
   },
   {
+    key: 'sawarabimincho',
+    label: 'Sawarabi Mincho',
+    family: '"Sawarabi Mincho", "Yu Gothic UI", "Segoe UI", serif',
+    weights: ['400'],
+    defaultWeight: '400',
+  },
+  {
+    key: 'shipporiMincho',
+    label: 'Shippori Mincho',
+    family: '"Shippori Mincho", "Yu Mincho", "Yu Gothic UI", serif',
+    weights: ['400', '500', '700'],
+    defaultWeight: '700',
+  },
+  {
+    key: 'singleDay',
+    label: 'Single Day',
+    family: '"Single Day", "Noto Sans KR", "Malgun Gothic", cursive',
+    weights: ['400'],
+    defaultWeight: '400',
+  },
+  {
+    key: 'spaceGrotesk',
+    label: 'Space Grotesk',
+    family: '"Space Grotesk", "Segoe UI", sans-serif',
+    weights: ['400', '500', '700'],
+    defaultWeight: '700',
+  },
+  {
+    key: 'syne',
+    label: 'Syne',
+    family: '"Syne", "Segoe UI", sans-serif',
+    weights: ['400', '500', '700', '800'],
+    defaultWeight: '700',
+  },
+  {
+    key: 'system',
+    label: 'システム',
+    family: '"Segoe UI", "Yu Gothic UI", "Malgun Gothic", sans-serif',
+    weights: ['400', '600', '700'],
+    defaultWeight: '700',
+  },
+  {
+    key: 'tsukimiRounded',
+    label: 'Tsukimi Rounded',
+    family: '"Tsukimi Rounded", "Yu Gothic UI", "Segoe UI", sans-serif',
+    weights: ['400', '500', '700'],
+    defaultWeight: '700',
+  },
+  {
+    key: 'unbounded',
+    label: 'Unbounded',
+    family: '"Unbounded", "Segoe UI", sans-serif',
+    weights: ['400', '500', '700', '900'],
+    defaultWeight: '700',
+  },
+  {
     key: 'walterTurncoat',
     label: 'Walter Turncoat',
     family: '"Walter Turncoat", "Segoe UI", cursive',
     weights: ['400'],
     defaultWeight: '400',
+  },
+  {
+    key: 'zenmaru',
+    label: 'Zen Maru Gothic',
+    family: '"Zen Maru Gothic", "Segoe UI", "Yu Gothic UI", sans-serif',
+    weights: ['400', '500', '700'],
+    defaultWeight: '700',
   },
 ]);
 const PHOTO_EDITOR_TEXT_STROKE_TYPES = Object.freeze([
@@ -1840,6 +1973,12 @@ function setText(el, value, fallback = '未取得') {
   el.textContent = value || fallback;
 }
 
+function translateUiText(text) {
+  return window.WorldShotI18n?.t
+    ? window.WorldShotI18n.t(text)
+    : String(text);
+}
+
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -2004,10 +2143,36 @@ function initializeTheme() {
 
 function syncFontOptionButtons(fontName) {
   fontOptionButtons.forEach((button) => {
-    const isActive = button.dataset.fontOption === fontName;
+    const optionName = button.dataset.fontOption || 'standard';
+    const isAvailable = isAppFontAvailableForCurrentLanguage(optionName);
+    const isActive = isAvailable && optionName === fontName;
+    button.hidden = !isAvailable;
+    button.disabled = !isAvailable;
+    button.setAttribute('aria-hidden', isAvailable ? 'false' : 'true');
     button.classList.toggle('is-active', isActive);
     button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
   });
+}
+
+const KOREAN_ONLY_APP_FONT_OPTIONS = new Set([
+  'notoSansKr',
+  'ibmPlexSansKr',
+  'dongle',
+  'gaegu',
+  'gowunDodum',
+]);
+
+function getCurrentLanguagePreference() {
+  return window.WorldShotI18n?.getLanguage
+    ? window.WorldShotI18n.getLanguage()
+    : document.body.dataset.language || 'ja';
+}
+
+function isAppFontAvailableForCurrentLanguage(fontName) {
+  return (
+    !KOREAN_ONLY_APP_FONT_OPTIONS.has(fontName) ||
+    getCurrentLanguagePreference() === 'ko'
+  );
 }
 
 function applyFontPreference(fontName) {
@@ -2017,15 +2182,32 @@ function applyFontPreference(fontName) {
     'mplus',
     'kiwimaru',
     'sawarabimincho',
+    'notoSansKr',
+    'ibmPlexSansKr',
+    'dongle',
+    'gaegu',
+    'gowunDodum',
   ]);
   const nextFont =
-    typeof fontName === 'string' && allowedFonts.has(fontName)
+    typeof fontName === 'string' &&
+    allowedFonts.has(fontName) &&
+    isAppFontAvailableForCurrentLanguage(fontName)
       ? fontName
       : 'standard';
 
   document.body.setAttribute('data-font', nextFont);
   localStorage.setItem(FONT_STORAGE_KEY, nextFont);
   syncFontOptionButtons(nextFont);
+}
+
+function syncFontPreferenceForLanguage() {
+  const currentFont = document.body.getAttribute('data-font') || 'standard';
+  if (!isAppFontAvailableForCurrentLanguage(currentFont)) {
+    applyFontPreference('standard');
+    return;
+  }
+
+  syncFontOptionButtons(currentFont);
 }
 
 function initializeFontPreference() {
@@ -2036,7 +2218,12 @@ function initializeFontPreference() {
     savedFont === 'zenmaru' ||
     savedFont === 'mplus' ||
     savedFont === 'kiwimaru' ||
-    savedFont === 'sawarabimincho'
+    savedFont === 'sawarabimincho' ||
+    savedFont === 'notoSansKr' ||
+    savedFont === 'ibmPlexSansKr' ||
+    savedFont === 'dongle' ||
+    savedFont === 'gaegu' ||
+    savedFont === 'gowunDodum'
   ) {
     applyFontPreference(savedFont);
     return;
@@ -8183,8 +8370,11 @@ function renderPhotoEditorTextFontOptions() {
 
   const fontGroup = document.createElement('optgroup');
   fontGroup.label = 'フォント';
+  const sortedFonts = [...PHOTO_EDITOR_TEXT_FONT_OPTIONS].sort((left, right) =>
+    left.label.localeCompare(right.label, 'en', { sensitivity: 'base' })
+  );
 
-  for (const font of PHOTO_EDITOR_TEXT_FONT_OPTIONS) {
+  for (const font of sortedFonts) {
     if (appendedKeys.has(font.key)) {
       continue;
     }
@@ -8236,7 +8426,9 @@ function renderPhotoEditorTextWeightOptions(fontKey, selectedWeight) {
 
 function getPhotoEditorTextListLabel(textOverlay, index) {
   const text = String(textOverlay?.text || '').trim();
-  return text ? text.slice(0, 24) : `テキスト ${index + 1}`;
+  return text
+    ? text.slice(0, 24)
+    : `${translateUiText('テキスト')} ${index + 1}`;
 }
 
 function renderPhotoEditorTextList(textOverlays, activeTextId) {
@@ -8447,7 +8639,7 @@ function addPhotoEditorTextOverlay(overrides = {}) {
   const nextText = normalizePhotoEditorTextState(
     getDefaultPhotoEditorTextState({
       enabled: true,
-      text: 'テキスト',
+      text: translateUiText('テキスト'),
       y: clampNumber(0.5 + collection.textOverlays.length * 0.06, 0.12, 0.88, 0.5),
       ...overrides,
     })
@@ -21985,6 +22177,10 @@ function bindAppearanceControls() {
     button.addEventListener('click', () => {
       applyFontPreference(button.dataset.fontOption || 'standard');
     });
+  });
+
+  window.addEventListener('worldshot:languagechange', () => {
+    syncFontPreferenceForLanguage();
   });
 }
 
