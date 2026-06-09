@@ -34,10 +34,13 @@ const APP_TITLE = `${APP_DISPLAY_NAME} v${app.getVersion()}`;
 const UNKNOWN_WORLD_DISPLAY_NAME = 'ワールド名を取得できませんでした';
 const APP_WINDOW_ICON_ICO_PATH = path.join(__dirname, '..', 'img', 'logo.ico');
 const APP_WINDOW_ICON_PNG_PATH = path.join(__dirname, '..', 'img', 'logo.png');
-const APP_ROAMING_DATA_ROOT = app.getPath('appData');
+const APP_ROAMING_DATA_ROOT =
+  process.env.WORLDSHOT_APPDATA_ROOT || app.getPath('appData');
 const APP_USER_DATA_PATH = path.join(APP_ROAMING_DATA_ROOT, APP_DISPLAY_NAME);
 const APP_LOCAL_DATA_ROOT =
-  process.env.LOCALAPPDATA || path.join(app.getPath('appData'), '..', 'Local');
+  process.env.WORLDSHOT_LOCALAPPDATA_ROOT ||
+  process.env.LOCALAPPDATA ||
+  path.join(app.getPath('appData'), '..', 'Local');
 const APP_DEV_SESSION_DATA_ROOT = path.join(
   os.tmpdir(),
   `${APP_DISPLAY_NAME}-DevSessionData`

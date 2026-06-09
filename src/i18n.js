@@ -255,9 +255,9 @@
       '設定': 'Settings',
       '設定モーダルを閉じる': 'Close settings',
       '言語設定': 'Language',
-      '日本語': 'Japanese',
+      '日本語': '日本語',
       '英語': 'English',
-      '韓国語': 'Korean',
+      '韓国語': '한국어',
       'フォント': 'Font',
       '更新対象フォルダの設定': 'Tracked folders',
       'フォルダ追加': 'Add folder',
@@ -329,6 +329,164 @@
         'If the detected name breaks because of special characters, you can override it manually.',
       'ここに画像またはフォルダをドロップ': 'Drop photos or folders here',
       'png / jpg / jpeg / webp に対応': 'Supports png / jpg / jpeg / webp',
+      '/ 比較中': '/ Comparing',
+      '/ 未確定: 1件': '/ Uncommitted: 1',
+      'World: すべて': 'World: All',
+      'Worldフィルタ: すべて': 'World filter: All',
+      'Worldメタデータ要確認の該当分だけを再取得':
+        'Re-fetch only photos needing World metadata review',
+      'Worldメタデータ要確認の写真だけを表示':
+        'Show only photos needing World metadata review',
+      'World情報の自動同期を開始できませんでした':
+        'Could not start automatic World info sync',
+      'World情報未取得の写真だけを表示':
+        'Show only photos without World info',
+      'World設定を保存しました': 'World settings saved',
+      'World名フィルタ': 'World name filter',
+      'アップデートがあります': 'Update available',
+      'アップデートの準備ができました': 'Update ready',
+      'アップデートは準備済みです。あとで再起動して適用できます':
+        'The update is ready. Restart later to apply it.',
+      'アップデートは保留しました': 'Update postponed',
+      'アップデートを開始できませんでした': 'Could not start update',
+      'アップデートを適用できませんでした': 'Could not apply update',
+      'アプリデータをJSONでバックアップ': 'Back up app data as JSON',
+      'アンインストールの確認を開く': 'Open uninstall confirmation',
+      'アンインストールモーダルを閉じる': 'Close uninstall dialog',
+      'アンインストールを開始します': 'Starting uninstall',
+      'アンインストールを開始できませんでした': 'Could not start uninstall',
+      'お気に入りを切り替え': 'Toggle favorite',
+      'このフォルダを削除': 'Delete this folder',
+      'サムネイルなしの写真だけを表示':
+        'Show only photos without thumbnails',
+      'サムネイルを再生成しています...': 'Regenerating thumbnails...',
+      'サムネイルを再生成する月を選択':
+        'Choose the month to regenerate thumbnails',
+      'サムネイル再生成が完了しました':
+        'Thumbnail regeneration complete',
+      'すべての登録を削除': 'Delete all entries',
+      'データ管理を閉じる': 'Close data management',
+      'データ削除とアンインストールを開始します':
+        'Starting data deletion and uninstall',
+      'ドロップされた項目に対応画像がありませんでした':
+        'No supported photos were found in the dropped items',
+      'バックアップJSONから復元': 'Restore from backup JSON',
+      'フォルダ内に対応画像がありませんでした':
+        'No supported photos were found in the folder',
+      'プリセットを保存できませんでした': 'Could not save preset',
+      'プリセット名を入力してください': 'Enter a preset name',
+      'プレビュー補助': 'Preview guides',
+      'メモを保存しました': 'Memo saved',
+      'ラベルの保存に失敗しました': 'Could not save label',
+      'ラベルを読み込み中...': 'Loading labels...',
+      'ラベルを保存しました': 'Label saved',
+      'ラベル名を確認してください': 'Check the label name',
+      'ラベル名を入力してください': 'Enter a label name',
+      'ワールド名を手動修正': 'Edit world name manually',
+      '右に90度回転': 'Rotate 90 degrees right',
+      '画像パスを再検出して更新しました':
+        'Image paths were rediscovered and updated',
+      '画像を読み込めませんでした': 'Could not load image',
+      '画像処理Workerがタイムアウトしました':
+        'Image processing worker timed out',
+      '画像処理Workerで失敗しました': 'Image processing worker failed',
+      '画像処理Workerを起動できませんでした':
+        'Could not start image processing worker',
+      '画像処理Workerを利用できません':
+        'Image processing worker is unavailable',
+      '画像処理プレビューを更新しました':
+        'Image processing preview updated',
+      '画像読み込みがキャンセルされました': 'Image loading canceled',
+      '画像編集モーダルを閉じました': 'Image editor closed',
+      '画像編集モーダルを閉じる': 'Close image editor',
+      '拡大画像': 'Enlarged photo',
+      '確認モーダルを閉じる': 'Close confirmation dialog',
+      '学習補正を適用しました': 'Learning correction applied',
+      '管理サムネイルとサムネイル参照を削除':
+        'Delete managed thumbnails and thumbnail references',
+      '欠損しているサムネイルだけを再生成':
+        'Regenerate only missing thumbnails',
+      '月を選択すると利用できます': 'Select a month to use this',
+      '検索対象を切り替え': 'Switch search target',
+      '元画像なしの写真だけを表示':
+        'Show only photos without original files',
+      '現在の絞り込みでは、この日の写真は表示されていません':
+        'No photos from this day are shown with the current filters',
+      '更新に失敗しました': 'Update failed',
+      '更新はキャンセルされました': 'Update canceled',
+      '更新確認: 新規0件': 'Update check: 0 new',
+      '更新対象のフォルダがまだ登録されていません':
+        'No folders are registered for updates yet',
+      '更新対象フォルダがまだありません': 'No tracked folders yet',
+      '更新対象フォルダを追加': 'Add tracked folder',
+      '更新対象フォルダ一覧を表示': 'Show tracked folder list',
+      '更新対象フォルダ一覧を閉じる': 'Close tracked folder list',
+      '今すぐ更新': 'Update now',
+      '左に90度回転': 'Rotate 90 degrees left',
+      '再起動して更新': 'Restart to update',
+      '再取り込みできる月がありません': 'No month can be reimported',
+      '再生成できる月がありません':
+        'No month can regenerate thumbnails',
+      '最新バージョン': 'Latest version',
+      '削除してアンインストール': 'Delete and uninstall',
+      '削除するサムネイルがありません': 'No thumbnails to delete',
+      '削除する登録がありません': 'No entries to delete',
+      '自動同期中は再読み込みできません':
+        'Cannot reload during automatic sync',
+      '自動補正を解除しました': 'Auto correction cleared',
+      '自動補正を適用しました': 'Auto correction applied',
+      '写真を選択すると利用できます': 'Select a photo to use this',
+      '写真一覧をCSVで書き出し': 'Export photo list as CSV',
+      '写真一覧をJSONで書き出し': 'Export photo list as JSON',
+      '取り込み中です。処理が終わってから次の取り込みを開始してください':
+        'Import is running. Start the next import after it finishes.',
+      '処理中はアンインストールを開始できません':
+        'Cannot start uninstall while processing',
+      '処理中はエクスポートできません':
+        'Cannot export while processing',
+      '処理中はバックアップできません':
+        'Cannot back up while processing',
+      '処理中はフォルダを削除できません':
+        'Cannot delete folders while processing',
+      '処理中はフォルダを追加できません':
+        'Cannot add folders while processing',
+      '処理中は再取得できません': 'Cannot re-fetch while processing',
+      '処理中は再生成できません':
+        'Cannot regenerate thumbnails while processing',
+      '処理中は状態チェックできません':
+        'Cannot check status while processing',
+      '処理中は抽出できません': 'Cannot extract while processing',
+      '処理中は復元できません': 'Cannot restore while processing',
+      '初期化するデータがありません': 'No data to reset',
+      '情報を再取り込みする月を選択':
+        'Choose the month to reimport information',
+      '選択を切り替え': 'Toggle selection',
+      '選択中の月のサムネイルを再生成':
+        'Regenerate thumbnails for the selected month',
+      '選択中の月の登録画像を現在の解析ロジックで再取り込み':
+        'Reimport registered photos in the selected month with the current parser',
+      '全期間': 'All time',
+      '追跡フォルダを確認しました': 'Tracked folders checked',
+      '追跡フォルダを更新しました': 'Tracked folders updated',
+      '追跡フォルダを更新中...': 'Updating tracked folders...',
+      '登録・キャッシュ・更新対象フォルダを初期化':
+        'Reset entries, cache, and tracked folders',
+      '登録されたフォルダがありません': 'No registered folders',
+      '登録データの状態をチェック': 'Check registered data status',
+      '濃さ': 'Strength',
+      '背景画像をクリアしました': 'Background image cleared',
+      '背景画像を更新しました': 'Background image updated',
+      '編集結果を描画できませんでした':
+        'Could not render edited result',
+      '保存しました': 'Saved',
+      '保存に失敗しました': 'Save failed',
+      '保存をキャンセルしました': 'Save canceled',
+      '保存機能を利用できません': 'Save is unavailable',
+      '保存済みプリセットがないためスマート自動補正を適用しました':
+        'No saved presets found, so smart auto correction was applied',
+      '本当に削除しますか？': 'Are you sure you want to delete?',
+      '例: Waiting / 待ち': 'Example: Waiting / Break',
+      '時刻不明': 'Unknown time',
     },
     ko: {
       '設定を開く': '설정 열기',
@@ -339,7 +497,7 @@
       '処理を準備中...': '준비 중...',
       '処理準備中...': '준비 중...',
       '処理中...': '처리 중...',
-      '年月': '연월',
+      '年月': '날짜',
       '年を押すと年一覧、矢印で月を開閉します':
         '연도를 선택해 목록을 보고, 화살표로 월을 열고 닫습니다.',
       '写真一覧': '사진 목록',
@@ -392,11 +550,11 @@
       'この月の写真はまだありません': '이 월의 사진은 아직 없습니다.',
       'お気に入り に一致する写真はありません':
         '즐겨찾기에 일치하는 사진이 없습니다.',
-      '年月一覧': '연월 목록',
+      '年月一覧': '날짜 목록',
       'ワールド一覧': '월드 목록',
       'ワールド一覧を表示': '월드 목록 보기',
-      '年月一覧へ戻る': '연월 목록으로 돌아가기',
-      '撮影枚数順': '촬영 수순',
+      '年月一覧へ戻る': '날짜 목록으로 돌아가기',
+      '撮影枚数順': '사진 수 기준',
       '名前順': '이름순',
       'ワールド': '월드',
       'ワールド情報付きの写真はまだありません':
@@ -577,8 +735,8 @@
       '設定': '설정',
       '設定モーダルを閉じる': '설정 닫기',
       '言語設定': '언어 설정',
-      '日本語': '일본어',
-      '英語': '영어',
+      '日本語': '日本語',
+      '英語': 'English',
       '韓国語': '한국어',
       'フォント': '폰트',
       '更新対象フォルダの設定': '갱신 대상 폴더 설정',
@@ -651,6 +809,146 @@
         '특수 문자 등으로 자동 이름이 깨질 때 표시 이름을 직접 덮어쓸 수 있습니다.',
       'ここに画像またはフォルダをドロップ': '사진 또는 폴더를 여기에 놓기',
       'png / jpg / jpeg / webp に対応': 'png / jpg / jpeg / webp 지원',
+      '/ 比較中': '/ 비교 중',
+      '/ 未確定: 1件': '/ 미확정: 1건',
+      'World: すべて': 'World: 전체',
+      'Worldフィルタ: すべて': 'World 필터: 전체',
+      'Worldメタデータ要確認の該当分だけを再取得':
+        'World 메타데이터 확인 필요 항목만 다시 가져오기',
+      'Worldメタデータ要確認の写真だけを表示':
+        'World 메타데이터 확인 필요 사진만 표시',
+      'World情報の自動同期を開始できませんでした':
+        'World 정보 자동 동기화를 시작할 수 없습니다',
+      'World情報未取得の写真だけを表示':
+        'World 정보가 없는 사진만 표시',
+      'World設定を保存しました': 'World 설정을 저장했습니다',
+      'World名フィルタ': 'World 이름 필터',
+      'アップデートがあります': '업데이트가 있습니다',
+      'アップデートの準備ができました': '업데이트 준비가 완료되었습니다',
+      'アップデートは準備済みです。あとで再起動して適用できます':
+        '업데이트가 준비되었습니다. 나중에 다시 시작해 적용할 수 있습니다.',
+      'アップデートは保留しました': '업데이트를 보류했습니다',
+      'アップデートを開始できませんでした': '업데이트를 시작할 수 없었습니다',
+      'アップデートを適用できませんでした': '업데이트를 적용할 수 없었습니다',
+      'アプリデータをJSONでバックアップ': '앱 데이터를 JSON으로 백업',
+      'アンインストールの確認を開く': '제거 확인 열기',
+      'アンインストールモーダルを閉じる': '제거 대화상자 닫기',
+      'アンインストールを開始します': '제거를 시작합니다',
+      'アンインストールを開始できませんでした': '제거를 시작할 수 없었습니다',
+      'お気に入りを切り替え': '즐겨찾기 전환',
+      'このフォルダを削除': '이 폴더 삭제',
+      'サムネイルなしの写真だけを表示': '썸네일이 없는 사진만 표시',
+      'サムネイルを再生成しています...': '썸네일을 다시 생성하는 중...',
+      'サムネイルを再生成する月を選択': '썸네일을 다시 생성할 월 선택',
+      'サムネイル再生成が完了しました': '썸네일 재생성이 완료되었습니다',
+      'すべての登録を削除': '모든 등록 삭제',
+      'データ管理を閉じる': '데이터 관리 닫기',
+      'データ削除とアンインストールを開始します':
+        '데이터 삭제와 제거를 시작합니다',
+      'ドロップされた項目に対応画像がありませんでした':
+        '놓은 항목에서 지원되는 사진을 찾을 수 없었습니다',
+      'バックアップJSONから復元': '백업 JSON에서 복원',
+      'フォルダ内に対応画像がありませんでした':
+        '폴더에서 지원되는 사진을 찾을 수 없었습니다',
+      'プリセットを保存できませんでした': '프리셋을 저장할 수 없었습니다',
+      'プリセット名を入力してください': '프리셋 이름을 입력하세요',
+      'プレビュー補助': '미리보기 보조',
+      'メモを保存しました': '메모를 저장했습니다',
+      'ラベルの保存に失敗しました': '라벨 저장에 실패했습니다',
+      'ラベルを読み込み中...': '라벨을 불러오는 중...',
+      'ラベルを保存しました': '라벨을 저장했습니다',
+      'ラベル名を確認してください': '라벨 이름을 확인하세요',
+      'ラベル名を入力してください': '라벨 이름을 입력하세요',
+      'ワールド名を手動修正': '월드 이름 수동 수정',
+      '右に90度回転': '오른쪽으로 90도 회전',
+      '画像パスを再検出して更新しました':
+        '이미지 경로를 다시 찾아 업데이트했습니다',
+      '画像を読み込めませんでした': '이미지를 불러올 수 없었습니다',
+      '画像処理Workerがタイムアウトしました':
+        '이미지 처리 Worker가 시간 초과되었습니다',
+      '画像処理Workerで失敗しました': '이미지 처리 Worker에서 실패했습니다',
+      '画像処理Workerを起動できませんでした':
+        '이미지 처리 Worker를 시작할 수 없었습니다',
+      '画像処理Workerを利用できません': '이미지 처리 Worker를 사용할 수 없습니다',
+      '画像処理プレビューを更新しました': '이미지 처리 미리보기를 업데이트했습니다',
+      '画像読み込みがキャンセルされました': '이미지 불러오기가 취소되었습니다',
+      '画像編集モーダルを閉じました': '이미지 편집기를 닫았습니다',
+      '画像編集モーダルを閉じる': '이미지 편집기 닫기',
+      '拡大画像': '확대 이미지',
+      '確認モーダルを閉じる': '확인 대화상자 닫기',
+      '学習補正を適用しました': '학습 보정을 적용했습니다',
+      '管理サムネイルとサムネイル参照を削除':
+        '관리 썸네일과 썸네일 참조 삭제',
+      '欠損しているサムネイルだけを再生成': '누락된 썸네일만 다시 생성',
+      '月を選択すると利用できます': '월을 선택하면 사용할 수 있습니다',
+      '検索対象を切り替え': '검색 대상 전환',
+      '元画像なしの写真だけを表示': '원본 이미지가 없는 사진만 표시',
+      '現在の絞り込みでは、この日の写真は表示されていません':
+        '현재 필터에서는 이 날짜의 사진이 표시되지 않습니다',
+      '更新に失敗しました': '업데이트에 실패했습니다',
+      '更新はキャンセルされました': '업데이트가 취소되었습니다',
+      '更新確認: 新規0件': '업데이트 확인: 신규 0건',
+      '更新対象のフォルダがまだ登録されていません':
+        '아직 업데이트 대상 폴더가 등록되지 않았습니다',
+      '更新対象フォルダがまだありません': '아직 추적 폴더가 없습니다',
+      '更新対象フォルダを追加': '추적 폴더 추가',
+      '更新対象フォルダ一覧を表示': '추적 폴더 목록 표시',
+      '更新対象フォルダ一覧を閉じる': '추적 폴더 목록 닫기',
+      '今すぐ更新': '지금 업데이트',
+      '左に90度回転': '왼쪽으로 90도 회전',
+      '再起動して更新': '다시 시작해 업데이트',
+      '再取り込みできる月がありません': '다시 가져올 수 있는 월이 없습니다',
+      '再生成できる月がありません': '다시 생성할 수 있는 월이 없습니다',
+      '最新バージョン': '최신 버전',
+      '削除してアンインストール': '삭제하고 제거',
+      '削除するサムネイルがありません': '삭제할 썸네일이 없습니다',
+      '削除する登録がありません': '삭제할 등록이 없습니다',
+      '自動同期中は再読み込みできません': '자동 동기화 중에는 다시 읽을 수 없습니다',
+      '自動補正を解除しました': '자동 보정을 해제했습니다',
+      '自動補正を適用しました': '자동 보정을 적용했습니다',
+      '写真を選択すると利用できます': '사진을 선택하면 사용할 수 있습니다',
+      '写真一覧をCSVで書き出し': '사진 목록을 CSV로 내보내기',
+      '写真一覧をJSONで書き出し': '사진 목록을 JSON으로 내보내기',
+      '取り込み中です。処理が終わってから次の取り込みを開始してください':
+        '가져오는 중입니다. 처리가 끝난 뒤 다음 가져오기를 시작하세요.',
+      '処理中はアンインストールを開始できません':
+        '처리 중에는 제거를 시작할 수 없습니다',
+      '処理中はエクスポートできません': '처리 중에는 내보낼 수 없습니다',
+      '処理中はバックアップできません': '처리 중에는 백업할 수 없습니다',
+      '処理中はフォルダを削除できません': '처리 중에는 폴더를 삭제할 수 없습니다',
+      '処理中はフォルダを追加できません': '처리 중에는 폴더를 추가할 수 없습니다',
+      '処理中は再取得できません': '처리 중에는 다시 가져올 수 없습니다',
+      '処理中は再生成できません': '처리 중에는 다시 생성할 수 없습니다',
+      '処理中は状態チェックできません': '처리 중에는 상태를 확인할 수 없습니다',
+      '処理中は抽出できません': '처리 중에는 추출할 수 없습니다',
+      '処理中は復元できません': '처리 중에는 복원할 수 없습니다',
+      '初期化するデータがありません': '초기화할 데이터가 없습니다',
+      '情報を再取り込みする月を選択': '정보를 다시 가져올 월 선택',
+      '選択を切り替え': '선택 전환',
+      '選択中の月のサムネイルを再生成': '선택한 월의 썸네일 다시 생성',
+      '選択中の月の登録画像を現在の解析ロジックで再取り込み':
+        '선택한 월의 등록 사진을 현재 분석 로직으로 다시 가져오기',
+      '全期間': '전체 기간',
+      '追跡フォルダを確認しました': '추적 폴더를 확인했습니다',
+      '追跡フォルダを更新しました': '추적 폴더를 업데이트했습니다',
+      '追跡フォルダを更新中...': '추적 폴더 업데이트 중...',
+      '登録・キャッシュ・更新対象フォルダを初期化':
+        '등록, 캐시, 추적 폴더 초기화',
+      '登録されたフォルダがありません': '등록된 폴더가 없습니다',
+      '登録データの状態をチェック': '등록 데이터 상태 확인',
+      '濃さ': '강도',
+      '背景画像をクリアしました': '배경 이미지를 지웠습니다',
+      '背景画像を更新しました': '배경 이미지를 업데이트했습니다',
+      '編集結果を描画できませんでした': '편집 결과를 그릴 수 없었습니다',
+      '保存しました': '저장했습니다',
+      '保存に失敗しました': '저장에 실패했습니다',
+      '保存をキャンセルしました': '저장을 취소했습니다',
+      '保存機能を利用できません': '저장 기능을 사용할 수 없습니다',
+      '保存済みプリセットがないためスマート自動補正を適用しました':
+        '저장된 프리셋이 없어 스마트 자동 보정을 적용했습니다',
+      '本当に削除しますか？': '정말 삭제할까요?',
+      '例: Waiting / 待ち': '예: Waiting / 대기',
+      '時刻不明': '알 수 없는 시간',
     },
   });
 
@@ -715,6 +1013,12 @@
     return `${year}年${month}月`;
   }
 
+  function formatEnglishCount(value, singular, plural = `${singular}s`) {
+    const count = Number(value) || 0;
+    const label = count === 1 ? singular : plural;
+    return `${formatNumber(count, 'en')} ${label}`;
+  }
+
   function translatePattern(core, language) {
     if (language === 'ja') {
       return core;
@@ -724,21 +1028,21 @@
     if (match) {
       return language === 'ko'
         ? `${formatNumber(match[1], language)}장`
-        : `${formatNumber(match[1], language)} photos`;
+        : formatEnglishCount(match[1], 'photo');
     }
 
     match = core.match(/^全(\d+)枚$/);
     if (match) {
       return language === 'ko'
         ? `전체 ${formatNumber(match[1], language)}장`
-        : `All ${formatNumber(match[1], language)} photos`;
+        : `All ${formatEnglishCount(match[1], 'photo')}`;
     }
 
     match = core.match(/^(\d+)件$/);
     if (match) {
       return language === 'ko'
         ? `${formatNumber(match[1], language)}건`
-        : `${formatNumber(match[1], language)} items`;
+        : formatEnglishCount(match[1], 'item');
     }
 
     match = core.match(/^(\d+)件選択中$/);
@@ -766,7 +1070,7 @@
       const countText =
         language === 'ko'
           ? `${formatNumber(match[3], language)}장`
-          : `${formatNumber(match[3], language)} photos`;
+          : formatEnglishCount(match[3], 'photo');
       return `${monthText} (${countText})`;
     }
 

@@ -198,6 +198,62 @@ function initDatabase(dbPath) {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS tracked_folders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      folder_path TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      last_imported_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS world_metadata_cache (
+      world_id TEXT PRIMARY KEY,
+      source_url TEXT,
+      world_name_official TEXT,
+      world_description TEXT,
+      world_tags_json TEXT,
+      author_id TEXT,
+      author_name TEXT,
+      release_status TEXT,
+      image_url TEXT,
+      thumbnail_image_url TEXT,
+      fetch_status TEXT NOT NULL,
+      fetch_error TEXT,
+      fetched_at TEXT,
+      last_attempted_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      normalized_name TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS photo_tags (
+      photo_id INTEGER NOT NULL,
+      tag_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (photo_id, tag_id),
+      FOREIGN KEY(photo_id) REFERENCES photos(id) ON DELETE CASCADE,
+      FOREIGN KEY(tag_id) REFERENCES tags(id) ON DELETE CASCADE
+    );
+  `);
+
+  ensureColumn(db, 'photos', 'world_name_manual TEXT');
+  ensureColumn(db, 'photos', 'is_favorite INTEGER NOT NULL DEFAULT 0');
+  ensureColumn(db, 'photos', 'image_width INTEGER');
+  ensureColumn(db, 'photos', 'image_height INTEGER');
+  ensureColumn(db, 'photos', 'resolution_tier TEXT');
+  ensureColumn(db, 'photos', 'orientation_tier TEXT');
+  ensureColumn(db, 'photos', 'print_note_text TEXT');
+  ensureColumn(db, 'photos', 'memo_text TEXT');
+  ensureColumn(db, 'tags', 'color_hex TEXT');
+
+  db.exec(`
     CREATE INDEX IF NOT EXISTS idx_photos_year_month
       ON photos (year DESC, month DESC);
 
@@ -222,72 +278,19 @@ function initDatabase(dbPath) {
     CREATE INDEX IF NOT EXISTS idx_photos_taken_at_timestamp
       ON photos (taken_at_timestamp DESC);
 
-    CREATE TABLE IF NOT EXISTS tracked_folders (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      folder_path TEXT NOT NULL UNIQUE,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      last_imported_at TEXT NOT NULL
-    );
-
     CREATE INDEX IF NOT EXISTS idx_tracked_folders_last_imported_at
       ON tracked_folders (last_imported_at DESC);
-
-    CREATE TABLE IF NOT EXISTS world_metadata_cache (
-      world_id TEXT PRIMARY KEY,
-      source_url TEXT,
-      world_name_official TEXT,
-      world_description TEXT,
-      world_tags_json TEXT,
-      author_id TEXT,
-      author_name TEXT,
-      release_status TEXT,
-      image_url TEXT,
-      thumbnail_image_url TEXT,
-      fetch_status TEXT NOT NULL,
-      fetch_error TEXT,
-      fetched_at TEXT,
-      last_attempted_at TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
 
     CREATE INDEX IF NOT EXISTS idx_world_metadata_cache_last_attempted_at
       ON world_metadata_cache (last_attempted_at DESC);
 
-    CREATE TABLE IF NOT EXISTS tags (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      normalized_name TEXT NOT NULL UNIQUE,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-
     CREATE INDEX IF NOT EXISTS idx_tags_name
       ON tags (name COLLATE NOCASE ASC);
-
-    CREATE TABLE IF NOT EXISTS photo_tags (
-      photo_id INTEGER NOT NULL,
-      tag_id INTEGER NOT NULL,
-      created_at TEXT NOT NULL,
-      PRIMARY KEY (photo_id, tag_id),
-      FOREIGN KEY(photo_id) REFERENCES photos(id) ON DELETE CASCADE,
-      FOREIGN KEY(tag_id) REFERENCES tags(id) ON DELETE CASCADE
-    );
 
     CREATE INDEX IF NOT EXISTS idx_photo_tags_tag_id
       ON photo_tags (tag_id, photo_id);
   `);
 
-  ensureColumn(db, 'photos', 'world_name_manual TEXT');
-  ensureColumn(db, 'photos', 'is_favorite INTEGER NOT NULL DEFAULT 0');
-  ensureColumn(db, 'photos', 'image_width INTEGER');
-  ensureColumn(db, 'photos', 'image_height INTEGER');
-  ensureColumn(db, 'photos', 'resolution_tier TEXT');
-  ensureColumn(db, 'photos', 'orientation_tier TEXT');
-  ensureColumn(db, 'photos', 'print_note_text TEXT');
-  ensureColumn(db, 'photos', 'memo_text TEXT');
-  ensureColumn(db, 'tags', 'color_hex TEXT');
   db.exec(`
     UPDATE photos
     SET orientation_tier = CASE

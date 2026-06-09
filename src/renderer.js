@@ -879,7 +879,7 @@ const PHOTO_EDITOR_USER_PRESETS_STORAGE_KEY =
   'vrchat-world-photo-manager-photo-editor-user-presets';
 const PHOTO_EDITOR_TEXT_RECENT_FONTS_STORAGE_KEY =
   'vrchat-world-photo-manager-photo-editor-recent-text-fonts';
-const PHOTO_EDITOR_TEXT_RECENT_FONT_LIMIT = 10;
+const PHOTO_EDITOR_TEXT_RECENT_FONT_LIMIT = 5;
 const PHOTO_EDITOR_TEXT_REFERENCE_EDGE = 900;
 const PHOTO_EDITOR_TEXT_CENTER_SNAP_THRESHOLD = 0.006;
 const PHOTO_EDITOR_RULER_GUIDE_LIMIT = 40;
@@ -17997,7 +17997,7 @@ function createPhotoCard(item, photoIndex = 0) {
 
   const timeInline = document.createElement('p');
   timeInline.className = 'photo-card-time-sub';
-  timeInline.textContent = timeText || '譎ょ綾荳肴・';
+  timeInline.textContent = timeText || '時刻不明';
   const time = timeInline;
   metaRow.appendChild(time);
 

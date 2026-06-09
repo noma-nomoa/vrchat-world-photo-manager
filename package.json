@@ -1,7 +1,7 @@
 {
   "name": "worldshot-log",
   "productName": "WorldShot Log",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "My Electron application description",
   "main": "src/index.js",
   "private": true,
@@ -15,6 +15,10 @@
     "make:win": "npm run patch:electron-winstaller && electron-forge make --platform win32",
     "publish": "electron-forge publish",
     "publish:win": "electron-forge publish --platform win32",
+    "audit:i18n": "node scripts/audit-i18n.js",
+    "capture:ui": "electron scripts/capture-ui-screenshots.js",
+    "smoke:data": "electron scripts/smoke-data-compat.js",
+    "smoke:packaged": "node scripts/smoke-packaged-app.js",
     "lint": "echo \"No linting configured\""
   },
   "keywords": [],
