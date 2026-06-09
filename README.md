@@ -101,6 +101,8 @@ WorldShot Log は、VRChat の写真を整理し、見返し、投稿しやす�
 最新版は GitHub Releases からダウンロードできます。
 
 - [Releases](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases)
+- [v2.2.1 リリースノート](./release-notes/v2.2.1.md)
+- [v2.2.0 リリースノート](./release-notes/v2.2.0.md)
 - [v2.1.0 リリースノート](./release-notes/v2.1.0.md)
 - [v2.0.0 リリースノート](./release-notes/v2.0.0.md)
 

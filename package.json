@@ -2,9 +2,17 @@
   "name": "worldshot-log",
   "productName": "WorldShot Log",
   "version": "2.2.1",
-  "description": "My Electron application description",
+  "description": "VRChatで撮影した写真を整理し、見返し、投稿しやすく整えるWindows向けデスクトップアプリです。",
   "main": "src/index.js",
   "private": true,
+  "homepage": "https://noma-nomoa.github.io/worldshotlog/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/noma-nomoa/vrchat-world-photo-manager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/noma-nomoa/vrchat-world-photo-manager/issues"
+  },
   "scripts": {
     "start": "electron-forge start",
     "patch:electron-winstaller": "node scripts/patch-electron-winstaller.js",
