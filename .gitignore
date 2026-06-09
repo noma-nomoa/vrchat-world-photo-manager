@@ -94,3 +94,19 @@ out/
 # App artifacts
 thumbnails/
 src/renderer.js.bak-corrupt
+
+# Local-only handoff and maintenance drafts
+AI_MAINTENANCE_GUIDE.md
+HANDOFF*.md
+
+# Local landing page copy; canonical repo is ../worldshotlog-pages
+/index.html
+/assets/
+/img/app_view/
+/img/booth_logo_icon.svg
+/img/editingtools/
+/img/notuse.png
+/img/usecase/
+
+# Local VRChat photo fixtures
+/test_pic/
