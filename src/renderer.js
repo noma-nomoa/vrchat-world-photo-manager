@@ -410,6 +410,39 @@ const photoEditorTextLetterSpacingInput = document.getElementById(
 const photoEditorTextLetterSpacingValue = document.getElementById(
   'photo-editor-text-letter-spacing-value'
 );
+const photoEditorImageOverlayResetButton = document.getElementById(
+  'photo-editor-image-overlay-reset-btn'
+);
+const photoEditorImageOverlayAddButton = document.getElementById(
+  'photo-editor-image-overlay-add-btn'
+);
+const photoEditorImageOverlayLibrary = document.getElementById(
+  'photo-editor-image-overlay-library'
+);
+const photoEditorImageOverlayList = document.getElementById(
+  'photo-editor-image-overlay-list'
+);
+const photoEditorImageOverlayControls = document.getElementById(
+  'photo-editor-image-overlay-controls'
+);
+const photoEditorImageOverlayOpacityInput = document.getElementById(
+  'photo-editor-image-overlay-opacity'
+);
+const photoEditorImageOverlayOpacityValue = document.getElementById(
+  'photo-editor-image-overlay-opacity-value'
+);
+const photoEditorImageOverlayBlendModeSelect = document.getElementById(
+  'photo-editor-image-overlay-blend-mode'
+);
+const photoEditorImageOverlayForwardButton = document.getElementById(
+  'photo-editor-image-overlay-forward-btn'
+);
+const photoEditorImageOverlayBackwardButton = document.getElementById(
+  'photo-editor-image-overlay-backward-btn'
+);
+const photoEditorImageOverlayDeleteButton = document.getElementById(
+  'photo-editor-image-overlay-delete-btn'
+);
 const photoEditorBlurResetButton = document.getElementById(
   'photo-editor-blur-reset-btn'
 );
@@ -663,6 +696,8 @@ let photoEditorWorkerRequestId = 0;
 let photoEditorWorkerUnavailable = false;
 const photoEditorWorkerRequests = new Map();
 let photoEditorTextRecentFonts = [];
+let photoEditorOverlayAssets = [];
+const photoEditorOverlayImageCache = new Map();
 let photoCardDensityAnimationTimer = null;
 let modalShellRestoreTimer = null;
 let modalWorldMetadataRequestId = 0;
@@ -882,6 +917,20 @@ const PHOTO_EDITOR_TEXT_RECENT_FONTS_STORAGE_KEY =
 const PHOTO_EDITOR_TEXT_RECENT_FONT_LIMIT = 5;
 const PHOTO_EDITOR_TEXT_REFERENCE_EDGE = 900;
 const PHOTO_EDITOR_TEXT_CENTER_SNAP_THRESHOLD = 0.006;
+const PHOTO_EDITOR_IMAGE_OVERLAY_LIMIT = 24;
+const PHOTO_EDITOR_IMAGE_OVERLAY_MIN_SIZE = 0.018;
+const PHOTO_EDITOR_IMAGE_OVERLAY_DEFAULT_EDGE = 0.28;
+const PHOTO_EDITOR_IMAGE_OVERLAY_HANDLE_HIT_RADIUS = 24;
+const PHOTO_EDITOR_IMAGE_OVERLAY_BLEND_MODES = Object.freeze([
+  'source-over',
+  'multiply',
+  'screen',
+  'overlay',
+  'soft-light',
+  'hard-light',
+  'darken',
+  'lighten',
+]);
 const PHOTO_EDITOR_RULER_GUIDE_LIMIT = 40;
 const PHOTO_EDITOR_RULER_GUIDE_MIN_DRAG_PX = 8;
 const PHOTO_EDITOR_TEXT_FONT_OPTIONS = Object.freeze([
@@ -7057,6 +7106,239 @@ function getPhotoEditorActiveTextOverlay() {
   );
 }
 
+function createPhotoEditorImageOverlayId() {
+  return `image-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+}
+
+function normalizePhotoEditorOverlayAsset(rawAsset = {}) {
+  const id =
+    typeof rawAsset?.id === 'string' && rawAsset.id.trim()
+      ? rawAsset.id.trim()
+      : '';
+  const fileUrl =
+    typeof rawAsset?.fileUrl === 'string' && rawAsset.fileUrl.trim()
+      ? rawAsset.fileUrl.trim()
+      : '';
+
+  if (!id || !fileUrl) {
+    return null;
+  }
+
+  return {
+    id,
+    fileName:
+      typeof rawAsset?.fileName === 'string' && rawAsset.fileName.trim()
+        ? rawAsset.fileName.trim()
+        : id,
+    fileUrl,
+    width: Math.max(0, Number(rawAsset?.width) || 0),
+    height: Math.max(0, Number(rawAsset?.height) || 0),
+    sizeBytes: Math.max(0, Number(rawAsset?.sizeBytes) || 0),
+    updatedAt: Math.max(0, Number(rawAsset?.updatedAt) || 0),
+  };
+}
+
+function normalizePhotoEditorOverlayAssets(assets = []) {
+  return (Array.isArray(assets) ? assets : [])
+    .map(normalizePhotoEditorOverlayAsset)
+    .filter(Boolean);
+}
+
+function getPhotoEditorImageOverlayAspectRatio(overlay = {}) {
+  const width = Number(overlay?.naturalWidth || overlay?.width || overlay?.assetWidth);
+  const height = Number(overlay?.naturalHeight || overlay?.height || overlay?.assetHeight);
+  return width > 0 && height > 0 ? width / height : 1;
+}
+
+function normalizePhotoEditorImageOverlayBlendMode(value) {
+  return PHOTO_EDITOR_IMAGE_OVERLAY_BLEND_MODES.includes(value)
+    ? value
+    : 'source-over';
+}
+
+function getDefaultPhotoEditorImageOverlayState(asset = {}, overrides = {}) {
+  const normalizedAsset = normalizePhotoEditorOverlayAsset(asset) || {};
+  const aspectRatio = getPhotoEditorImageOverlayAspectRatio({
+    width: normalizedAsset.width,
+    height: normalizedAsset.height,
+  });
+  let defaultWidth = PHOTO_EDITOR_IMAGE_OVERLAY_DEFAULT_EDGE;
+  let defaultHeight = defaultWidth / Math.max(0.05, aspectRatio);
+
+  if (defaultHeight > 0.72) {
+    defaultHeight = 0.72;
+    defaultWidth = defaultHeight * aspectRatio;
+  }
+
+  return {
+    id: createPhotoEditorImageOverlayId(),
+    assetId: normalizedAsset.id || '',
+    fileName: normalizedAsset.fileName || 'overlay',
+    fileUrl: normalizedAsset.fileUrl || '',
+    x: 0.5,
+    y: 0.5,
+    width: clampNumber(defaultWidth, 0.08, 0.72, PHOTO_EDITOR_IMAGE_OVERLAY_DEFAULT_EDGE),
+    height: clampNumber(defaultHeight, 0.08, 0.72, defaultWidth),
+    opacity: 1,
+    blendMode: 'source-over',
+    naturalWidth: normalizedAsset.width || 0,
+    naturalHeight: normalizedAsset.height || 0,
+    ...overrides,
+  };
+}
+
+function normalizePhotoEditorImageOverlayState(overlay = {}) {
+  const defaults = getDefaultPhotoEditorImageOverlayState();
+  const id =
+    typeof overlay?.id === 'string' && overlay.id.trim()
+      ? overlay.id.trim()
+      : defaults.id;
+  const fileUrl =
+    typeof overlay?.fileUrl === 'string' && overlay.fileUrl.trim()
+      ? overlay.fileUrl.trim()
+      : '';
+  const naturalWidth = Math.max(0, Number(overlay?.naturalWidth) || 0);
+  const naturalHeight = Math.max(0, Number(overlay?.naturalHeight) || 0);
+
+  return {
+    id,
+    assetId:
+      typeof overlay?.assetId === 'string' && overlay.assetId.trim()
+        ? overlay.assetId.trim()
+        : '',
+    fileName:
+      typeof overlay?.fileName === 'string' && overlay.fileName.trim()
+        ? overlay.fileName.trim()
+        : 'overlay',
+    fileUrl,
+    x: clampNumber(overlay?.x, -0.5, 1.5, defaults.x),
+    y: clampNumber(overlay?.y, -0.5, 1.5, defaults.y),
+    width: clampNumber(
+      overlay?.width,
+      PHOTO_EDITOR_IMAGE_OVERLAY_MIN_SIZE,
+      2,
+      defaults.width
+    ),
+    height: clampNumber(
+      overlay?.height,
+      PHOTO_EDITOR_IMAGE_OVERLAY_MIN_SIZE,
+      2,
+      defaults.height
+    ),
+    opacity: clampNumber(overlay?.opacity, 0, 1, defaults.opacity),
+    blendMode: normalizePhotoEditorImageOverlayBlendMode(
+      overlay?.blendMode || defaults.blendMode
+    ),
+    naturalWidth,
+    naturalHeight,
+  };
+}
+
+function normalizePhotoEditorImageOverlays(imageOverlays = []) {
+  return (Array.isArray(imageOverlays) ? imageOverlays : [])
+    .map(normalizePhotoEditorImageOverlayState)
+    .filter((overlay) => Boolean(overlay.fileUrl))
+    .slice(0, PHOTO_EDITOR_IMAGE_OVERLAY_LIMIT);
+}
+
+function getPhotoEditorImageOverlayCollectionFromState(state = photoEditorState) {
+  const imageOverlays = normalizePhotoEditorImageOverlays(state?.imageOverlays);
+  const activeImageOverlayId =
+    state?.activeImageOverlayId &&
+    imageOverlays.some((overlay) => overlay.id === state.activeImageOverlayId)
+      ? state.activeImageOverlayId
+      : '';
+
+  return {
+    imageOverlays,
+    activeImageOverlayId,
+  };
+}
+
+function setPhotoEditorImageOverlayCollection(
+  imageOverlays,
+  activeImageOverlayId = ''
+) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const normalizedOverlays = normalizePhotoEditorImageOverlays(imageOverlays);
+  photoEditorState.imageOverlays = normalizedOverlays;
+  photoEditorState.activeImageOverlayId =
+    activeImageOverlayId &&
+    normalizedOverlays.some((overlay) => overlay.id === activeImageOverlayId)
+      ? activeImageOverlayId
+      : '';
+}
+
+function getPhotoEditorActiveImageOverlay() {
+  const collection = getPhotoEditorImageOverlayCollectionFromState();
+  return (
+    collection.imageOverlays.find(
+      (overlay) => overlay.id === collection.activeImageOverlayId
+    ) || null
+  );
+}
+
+function getPhotoEditorOverlayImageCacheEntry(overlay) {
+  const normalizedOverlay = normalizePhotoEditorImageOverlayState(overlay);
+  const cacheKey = normalizedOverlay.fileUrl;
+
+  if (!cacheKey) {
+    return null;
+  }
+
+  const cachedEntry = photoEditorOverlayImageCache.get(cacheKey);
+
+  if (cachedEntry) {
+    return cachedEntry;
+  }
+
+  const image = new Image();
+  let resolveLoad = null;
+  const entry = {
+    image,
+    loaded: false,
+    failed: false,
+    loadPromise: new Promise((resolve) => {
+      resolveLoad = resolve;
+    }),
+  };
+
+  image.onload = () => {
+    entry.loaded = true;
+    entry.failed = false;
+    resolveLoad?.(entry);
+    if (photoEditorState) {
+      schedulePhotoEditorRender();
+    }
+  };
+  image.onerror = () => {
+    entry.failed = true;
+    resolveLoad?.(entry);
+  };
+  image.decoding = 'async';
+  image.src = normalizedOverlay.fileUrl;
+  photoEditorOverlayImageCache.set(cacheKey, entry);
+
+  return entry;
+}
+
+async function waitForPhotoEditorImageOverlaysToLoad(imageOverlays = []) {
+  const loadPromises = normalizePhotoEditorImageOverlays(imageOverlays)
+    .map((overlay) => getPhotoEditorOverlayImageCacheEntry(overlay)?.loadPromise)
+    .filter(Boolean);
+
+  if (loadPromises.length === 0) {
+    return;
+  }
+
+  await Promise.all(loadPromises);
+}
+
 function loadPhotoEditorRecentTextFonts() {
   try {
     const parsed = JSON.parse(
@@ -7283,6 +7565,8 @@ function createPhotoEditorState(photo) {
     textOverlay: getDefaultPhotoEditorTextState(),
     textOverlays: [],
     activeTextId: '',
+    imageOverlays: [],
+    activeImageOverlayId: '',
     rulerGuides: normalizePhotoEditorRulerGuides(),
     draftRulerGuide: null,
     dragInitialRulerGuide: null,
@@ -7301,6 +7585,7 @@ function createPhotoEditorState(photo) {
     dragInitialBlur: null,
     dragInitialMask: null,
     dragInitialText: null,
+    dragInitialImageOverlay: null,
     dragCurvePointIndex: null,
     draftMask: null,
     showOriginalPreview: false,
@@ -7330,6 +7615,7 @@ function capturePhotoEditorHistorySnapshot() {
   }
 
   const textCollection = getPhotoEditorTextCollectionFromState();
+  const imageOverlayCollection = getPhotoEditorImageOverlayCollectionFromState();
 
   return {
     values: clonePhotoEditValues(photoEditorState.values),
@@ -7341,6 +7627,10 @@ function capturePhotoEditorHistorySnapshot() {
     ),
     textOverlays: clonePhotoEditorHistoryData(textCollection.textOverlays),
     activeTextId: textCollection.activeTextId,
+    imageOverlays: clonePhotoEditorHistoryData(
+      imageOverlayCollection.imageOverlays
+    ),
+    activeImageOverlayId: imageOverlayCollection.activeImageOverlayId,
     rulerGuides: normalizePhotoEditorRulerGuides(photoEditorState.rulerGuides),
     exportSettings: normalizePhotoEditorExportSettings(
       photoEditorState.exportSettings
@@ -7461,6 +7751,10 @@ function applyPhotoEditorHistorySnapshot(snapshot) {
         : [],
     snapshot.activeTextId || ''
   );
+  setPhotoEditorImageOverlayCollection(
+    snapshot.imageOverlays || [],
+    snapshot.activeImageOverlayId || ''
+  );
   photoEditorState.rulerGuides = normalizePhotoEditorRulerGuides(
     snapshot.rulerGuides
   );
@@ -7488,6 +7782,7 @@ function applyPhotoEditorHistorySnapshot(snapshot) {
   photoEditorState.dragInitialBlur = null;
   photoEditorState.dragInitialMask = null;
   photoEditorState.dragInitialText = null;
+  photoEditorState.dragInitialImageOverlay = null;
   photoEditorState.draftRulerGuide = null;
   photoEditorState.dragInitialRulerGuide = null;
   photoEditorState.snapGuide = null;
@@ -7498,7 +7793,8 @@ function applyPhotoEditorHistorySnapshot(snapshot) {
   photoEditorCanvas?.classList.remove(
     'is-panning',
     'is-mask-draft-active',
-    'is-text-tool-active'
+    'is-text-tool-active',
+    'is-image-overlay-tool-active'
   );
   clearPhotoEditorAdjustmentLivePreview();
   syncPhotoEditorUi();
@@ -8606,7 +8902,9 @@ function selectPhotoEditorTextOverlay(textId) {
   }
 
   photoEditorState.activeTextId = textId;
+  photoEditorState.activeImageOverlayId = '';
   syncPhotoEditorTextControls();
+  syncPhotoEditorImageOverlayControls();
   if (!paintPhotoEditorPreviewOverlayOnly()) {
     schedulePhotoEditorRender();
   }
@@ -8646,11 +8944,13 @@ function addPhotoEditorTextOverlay(overrides = {}) {
   );
 
   beginPhotoEditorHistoryMutation();
+  photoEditorState.activeImageOverlayId = '';
   setPhotoEditorTextCollection(
     [...collection.textOverlays, nextText],
     nextText.id
   );
   syncPhotoEditorTextControls();
+  syncPhotoEditorImageOverlayControls();
   schedulePhotoEditorRender();
   commitPhotoEditorHistoryMutation();
   return nextText;
@@ -8712,6 +9012,7 @@ function updatePhotoEditorTextOverlay(nextText = {}, { interactive = true } = {}
   });
 
   beginPhotoEditorHistoryMutation();
+  photoEditorState.activeImageOverlayId = '';
   setPhotoEditorTextCollection(
     collection.textOverlays.map((textOverlay) =>
       textOverlay.id === activeText.id ? nextState : textOverlay
@@ -8733,6 +9034,7 @@ function updatePhotoEditorTextOverlay(nextText = {}, { interactive = true } = {}
   }
 
   syncPhotoEditorTextControls();
+  syncPhotoEditorImageOverlayControls();
   schedulePhotoEditorRender({
     debounceMs: interactive ? PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS : 0,
     interactive,
@@ -8752,6 +9054,448 @@ function resetPhotoEditorTextOverlay() {
   syncPhotoEditorTextControls();
   schedulePhotoEditorRender();
   commitPhotoEditorHistoryMutation();
+}
+
+function getPhotoEditorImageOverlayLabel(overlay, index) {
+  const fileName = String(overlay?.fileName || '').trim();
+  return fileName || `画像 ${index + 1}`;
+}
+
+function renderPhotoEditorImageOverlayLibrary() {
+  if (!photoEditorImageOverlayLibrary) {
+    return;
+  }
+
+  photoEditorImageOverlayLibrary.innerHTML = '';
+
+  for (const asset of photoEditorOverlayAssets) {
+    const item = document.createElement('div');
+    item.className = 'photo-editor-image-overlay-library-item';
+
+    const thumbnail = document.createElement('img');
+    thumbnail.className = 'photo-editor-image-overlay-library-thumb';
+    thumbnail.src = asset.fileUrl;
+    thumbnail.alt = asset.fileName;
+    thumbnail.loading = 'lazy';
+    thumbnail.decoding = 'async';
+    item.appendChild(thumbnail);
+
+    const addButton = document.createElement('button');
+    addButton.type = 'button';
+    addButton.className = 'photo-editor-image-overlay-library-add';
+    addButton.textContent = asset.fileName;
+    addButton.title = asset.fileName;
+    addButton.addEventListener('click', () => {
+      addPhotoEditorImageOverlayFromAsset(asset);
+    });
+    item.appendChild(addButton);
+
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.className = 'photo-editor-image-overlay-library-delete';
+    deleteButton.setAttribute('aria-label', `${asset.fileName}を管理素材から削除`);
+    deleteButton.title = '管理素材から削除';
+    deleteButton.innerHTML =
+      '<span class="material-symbols-outlined">delete</span>';
+    deleteButton.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      await deletePhotoEditorManagedOverlayAsset(asset);
+    });
+    item.appendChild(deleteButton);
+
+    photoEditorImageOverlayLibrary.appendChild(item);
+  }
+}
+
+function renderPhotoEditorImageOverlayList(imageOverlays, activeImageOverlayId) {
+  if (!photoEditorImageOverlayList) {
+    return;
+  }
+
+  photoEditorImageOverlayList.innerHTML = '';
+
+  imageOverlays
+    .map((overlay, index) => ({ overlay, index }))
+    .reverse()
+    .forEach(({ overlay, index }) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'photo-editor-image-overlay-item';
+      button.dataset.photoEditorImageOverlayId = overlay.id;
+      button.textContent = getPhotoEditorImageOverlayLabel(overlay, index);
+      button.title = overlay.fileName || '';
+      button.classList.toggle('is-active', overlay.id === activeImageOverlayId);
+      button.setAttribute(
+        'aria-pressed',
+        overlay.id === activeImageOverlayId ? 'true' : 'false'
+      );
+      button.addEventListener('click', () => {
+        selectPhotoEditorImageOverlay(overlay.id);
+      });
+      photoEditorImageOverlayList.appendChild(button);
+    });
+}
+
+function syncPhotoEditorImageOverlayControls() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const collection = getPhotoEditorImageOverlayCollectionFromState();
+  setPhotoEditorImageOverlayCollection(
+    collection.imageOverlays,
+    collection.activeImageOverlayId
+  );
+  const activeOverlay = getPhotoEditorActiveImageOverlay();
+  const activeIndex = collection.imageOverlays.findIndex(
+    (overlay) => overlay.id === collection.activeImageOverlayId
+  );
+
+  renderPhotoEditorImageOverlayList(
+    collection.imageOverlays,
+    collection.activeImageOverlayId
+  );
+  renderPhotoEditorImageOverlayLibrary();
+
+  if (photoEditorImageOverlayControls) {
+    photoEditorImageOverlayControls.hidden = !activeOverlay;
+  }
+
+  if (photoEditorImageOverlayOpacityInput) {
+    photoEditorImageOverlayOpacityInput.disabled = !activeOverlay;
+    photoEditorImageOverlayOpacityInput.value = String(
+      Math.round((activeOverlay?.opacity ?? 1) * 100)
+    );
+  }
+
+  if (photoEditorImageOverlayOpacityValue) {
+    photoEditorImageOverlayOpacityValue.textContent =
+      `${Math.round((activeOverlay?.opacity ?? 1) * 100)}%`;
+  }
+
+  if (photoEditorImageOverlayBlendModeSelect) {
+    photoEditorImageOverlayBlendModeSelect.disabled = !activeOverlay;
+    photoEditorImageOverlayBlendModeSelect.value =
+      activeOverlay?.blendMode || 'source-over';
+  }
+
+  if (photoEditorImageOverlayForwardButton) {
+    photoEditorImageOverlayForwardButton.disabled =
+      !activeOverlay || activeIndex >= collection.imageOverlays.length - 1;
+  }
+
+  if (photoEditorImageOverlayBackwardButton) {
+    photoEditorImageOverlayBackwardButton.disabled =
+      !activeOverlay || activeIndex <= 0;
+  }
+
+  if (photoEditorImageOverlayDeleteButton) {
+    photoEditorImageOverlayDeleteButton.disabled = !activeOverlay;
+  }
+
+  if (photoEditorImageOverlayResetButton) {
+    photoEditorImageOverlayResetButton.disabled =
+      collection.imageOverlays.length === 0;
+  }
+
+  photoEditorCanvas?.classList.toggle(
+    'is-image-overlay-tool-active',
+    Boolean(activeOverlay) &&
+      isPhotoEditorAccordionOpen('imageOverlay') &&
+      photoEditorState.maskTool === 'none' &&
+      !photoEditorState.draftMask
+  );
+}
+
+async function refreshPhotoEditorOverlayAssets({ silent = false } = {}) {
+  if (!window.electronAPI.getPhotoEditorOverlayAssets) {
+    return;
+  }
+
+  try {
+    const result = await window.electronAPI.getPhotoEditorOverlayAssets();
+
+    if (!result?.ok) {
+      throw new Error(result?.message || '画像オーバーレイ素材を読み込めませんでした');
+    }
+
+    photoEditorOverlayAssets = normalizePhotoEditorOverlayAssets(result.assets);
+    renderPhotoEditorImageOverlayLibrary();
+  } catch (error) {
+    if (!silent) {
+      setPhotoEditorStatus(error.message);
+    }
+  }
+}
+
+function addPhotoEditorImageOverlayFromAsset(asset) {
+  if (!photoEditorState) {
+    return null;
+  }
+
+  const normalizedAsset = normalizePhotoEditorOverlayAsset(asset);
+
+  if (!normalizedAsset) {
+    setPhotoEditorStatus('画像オーバーレイ素材を読み込めませんでした');
+    return null;
+  }
+
+  if (photoEditorState.draftMask || photoEditorState.maskTool !== 'none') {
+    cancelPhotoEditorPendingMask();
+  }
+
+  const collection = getPhotoEditorImageOverlayCollectionFromState();
+
+  if (collection.imageOverlays.length >= PHOTO_EDITOR_IMAGE_OVERLAY_LIMIT) {
+    setPhotoEditorStatus(`画像オーバーレイは${PHOTO_EDITOR_IMAGE_OVERLAY_LIMIT}件までです`);
+    return null;
+  }
+
+  const offset = Math.min(collection.imageOverlays.length * 0.045, 0.22);
+  const nextOverlay = normalizePhotoEditorImageOverlayState(
+    getDefaultPhotoEditorImageOverlayState(normalizedAsset, {
+      x: clampNumber(0.5 + offset, 0.12, 0.88, 0.5),
+      y: clampNumber(0.5 + offset, 0.12, 0.88, 0.5),
+    })
+  );
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.activeTextId = '';
+  setPhotoEditorImageOverlayCollection(
+    [...collection.imageOverlays, nextOverlay],
+    nextOverlay.id
+  );
+  syncPhotoEditorTextControls();
+  getPhotoEditorOverlayImageCacheEntry(nextOverlay);
+  syncPhotoEditorImageOverlayControls();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+  return nextOverlay;
+}
+
+async function selectPhotoEditorOverlayImages() {
+  if (!window.electronAPI.selectPhotoEditorOverlayImages) {
+    setPhotoEditorStatus('画像オーバーレイ素材の追加機能を利用できません');
+    return;
+  }
+
+  try {
+    const result = await window.electronAPI.selectPhotoEditorOverlayImages();
+
+    if (result?.assets) {
+      photoEditorOverlayAssets = normalizePhotoEditorOverlayAssets(result.assets);
+      renderPhotoEditorImageOverlayLibrary();
+    }
+
+    if (result?.canceled) {
+      return;
+    }
+
+    if (!result?.ok && result?.message) {
+      setPhotoEditorStatus(result.message);
+    }
+
+    const importedAssets = normalizePhotoEditorOverlayAssets(
+      result?.importedAssets
+    );
+
+    for (const asset of importedAssets) {
+      addPhotoEditorImageOverlayFromAsset(asset);
+    }
+
+    if (importedAssets.length > 0) {
+      setPhotoEditorStatus(`画像オーバーレイを追加しました: ${importedAssets.length}件`);
+    }
+  } catch (error) {
+    setPhotoEditorStatus(`画像オーバーレイの追加に失敗しました: ${error.message}`);
+  }
+}
+
+function selectPhotoEditorImageOverlay(overlayId) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const collection = getPhotoEditorImageOverlayCollectionFromState();
+
+  if (!collection.imageOverlays.some((overlay) => overlay.id === overlayId)) {
+    return;
+  }
+
+  photoEditorState.activeImageOverlayId = overlayId;
+  photoEditorState.activeTextId = '';
+  syncPhotoEditorTextControls();
+  syncPhotoEditorImageOverlayControls();
+  if (!paintPhotoEditorPreviewOverlayOnly()) {
+    schedulePhotoEditorRender();
+  }
+}
+
+function clearPhotoEditorImageOverlaySelection() {
+  if (!photoEditorState?.activeImageOverlayId) {
+    return false;
+  }
+
+  photoEditorState.activeImageOverlayId = '';
+  syncPhotoEditorImageOverlayControls();
+  if (!paintPhotoEditorPreviewOverlayOnly()) {
+    schedulePhotoEditorRender();
+  }
+  return true;
+}
+
+function updatePhotoEditorActiveImageOverlay(nextValues = {}, { interactive = true } = {}) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const collection = getPhotoEditorImageOverlayCollectionFromState();
+  const activeOverlay = getPhotoEditorActiveImageOverlay();
+
+  if (!activeOverlay) {
+    return;
+  }
+
+  const nextOverlay = normalizePhotoEditorImageOverlayState({
+    ...activeOverlay,
+    ...nextValues,
+  });
+
+  beginPhotoEditorHistoryMutation();
+  setPhotoEditorImageOverlayCollection(
+    collection.imageOverlays.map((overlay) =>
+      overlay.id === activeOverlay.id ? nextOverlay : overlay
+    ),
+    nextOverlay.id
+  );
+  syncPhotoEditorImageOverlayControls();
+  schedulePhotoEditorRender({
+    debounceMs: interactive ? PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS : 0,
+    interactive,
+  });
+  schedulePhotoEditorHistoryCommit();
+}
+
+function movePhotoEditorActiveImageOverlay(delta) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const collection = getPhotoEditorImageOverlayCollectionFromState();
+  const currentIndex = collection.imageOverlays.findIndex(
+    (overlay) => overlay.id === collection.activeImageOverlayId
+  );
+
+  if (currentIndex < 0) {
+    return;
+  }
+
+  const nextIndex = clampNumber(
+    currentIndex + delta,
+    0,
+    collection.imageOverlays.length - 1,
+    currentIndex
+  );
+
+  if (nextIndex === currentIndex) {
+    return;
+  }
+
+  const nextOverlays = [...collection.imageOverlays];
+  const [movedOverlay] = nextOverlays.splice(currentIndex, 1);
+  nextOverlays.splice(nextIndex, 0, movedOverlay);
+
+  beginPhotoEditorHistoryMutation();
+  setPhotoEditorImageOverlayCollection(nextOverlays, movedOverlay.id);
+  syncPhotoEditorImageOverlayControls();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+function deletePhotoEditorActiveImageOverlay() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const collection = getPhotoEditorImageOverlayCollectionFromState();
+  const activeIndex = collection.imageOverlays.findIndex(
+    (overlay) => overlay.id === collection.activeImageOverlayId
+  );
+
+  if (activeIndex < 0) {
+    return;
+  }
+
+  const nextOverlays = collection.imageOverlays.filter(
+    (overlay) => overlay.id !== collection.activeImageOverlayId
+  );
+  const nextActiveId =
+    nextOverlays[Math.min(activeIndex, nextOverlays.length - 1)]?.id || '';
+
+  beginPhotoEditorHistoryMutation();
+  setPhotoEditorImageOverlayCollection(nextOverlays, nextActiveId);
+  syncPhotoEditorImageOverlayControls();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+function resetPhotoEditorImageOverlays() {
+  if (!photoEditorState) {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  setPhotoEditorImageOverlayCollection([], '');
+  photoEditorState.dragInitialImageOverlay = null;
+  photoEditorState.snapGuide = null;
+  syncPhotoEditorImageOverlayControls();
+  schedulePhotoEditorRender();
+  commitPhotoEditorHistoryMutation();
+}
+
+async function deletePhotoEditorManagedOverlayAsset(asset) {
+  const normalizedAsset = normalizePhotoEditorOverlayAsset(asset);
+
+  if (!normalizedAsset || !window.electronAPI.deletePhotoEditorOverlayAsset) {
+    return;
+  }
+
+  const confirmed = await openConfirmModal({
+    title: '管理素材を削除',
+    message: `${normalizedAsset.fileName} を管理素材から削除します。現在の編集で使っている同じ画像レイヤーも外します。`,
+    confirmText: '削除する',
+  });
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const result = await window.electronAPI.deletePhotoEditorOverlayAsset(
+      normalizedAsset.id
+    );
+
+    if (!result?.ok) {
+      throw new Error(result?.message || '管理素材を削除できませんでした');
+    }
+
+    const collection = getPhotoEditorImageOverlayCollectionFromState();
+    const nextOverlays = collection.imageOverlays.filter(
+      (overlay) => overlay.assetId !== normalizedAsset.id
+    );
+
+    if (nextOverlays.length !== collection.imageOverlays.length) {
+      setPhotoEditorImageOverlayCollection(nextOverlays, '');
+    }
+
+    photoEditorOverlayAssets = normalizePhotoEditorOverlayAssets(result.assets);
+    photoEditorOverlayImageCache.delete(normalizedAsset.fileUrl);
+    syncPhotoEditorImageOverlayControls();
+    schedulePhotoEditorRender();
+    showToast('管理素材を削除しました');
+  } catch (error) {
+    setPhotoEditorStatus(`管理素材の削除に失敗しました: ${error.message}`);
+  }
 }
 
 function syncPhotoEditorExportControls() {
@@ -8833,6 +9577,7 @@ function syncPhotoEditorUi() {
   syncPhotoEditorAutoEnhanceControls();
   syncPhotoEditorCropControls();
   syncPhotoEditorTextControls();
+  syncPhotoEditorImageOverlayControls();
   syncPhotoEditorExportControls();
   syncPhotoEditorBlurControls();
   syncPhotoEditorCurveControls();
@@ -9319,6 +10064,11 @@ function drawPhotoEditorPreviewOverlays(ctx, outputSize, sourceRect) {
     outputSize.width,
     outputSize.height
   );
+  drawPhotoEditorImageOverlayControls(
+    ctx,
+    outputSize.width,
+    outputSize.height
+  );
   drawPhotoEditorTextControls(ctx, outputSize.width, outputSize.height);
 }
 
@@ -9327,6 +10077,12 @@ function drawPhotoEditorPreviewTextAndOverlays(ctx, outputSize, sourceRect) {
     return;
   }
 
+  applyPhotoEditorImageOverlayToCanvas(
+    ctx,
+    outputSize.width,
+    outputSize.height,
+    photoEditorState.imageOverlays
+  );
   applyPhotoEditorTextOverlayToCanvas(
     ctx,
     outputSize.width,
@@ -11108,6 +11864,145 @@ function applyPhotoEditorTextOverlayToCanvas(
   }
 }
 
+function drawPhotoEditorSingleImageOverlay(ctx, width, height, overlay) {
+  const imageOverlay = normalizePhotoEditorImageOverlayState(overlay);
+  const cacheEntry = getPhotoEditorOverlayImageCacheEntry(imageOverlay);
+
+  if (!cacheEntry?.loaded || cacheEntry.failed) {
+    return false;
+  }
+
+  const image = cacheEntry.image;
+  const centerX = imageOverlay.x * width;
+  const centerY = imageOverlay.y * height;
+  const drawWidth = Math.max(
+    1,
+    Math.abs(imageOverlay.width) * width
+  );
+  const drawHeight = Math.max(
+    1,
+    Math.abs(imageOverlay.height) * height
+  );
+
+  ctx.save();
+  ctx.globalAlpha = clampNumber(imageOverlay.opacity, 0, 1, 1);
+  ctx.globalCompositeOperation = normalizePhotoEditorImageOverlayBlendMode(
+    imageOverlay.blendMode
+  );
+  ctx.drawImage(
+    image,
+    centerX - drawWidth / 2,
+    centerY - drawHeight / 2,
+    drawWidth,
+    drawHeight
+  );
+  ctx.restore();
+  return true;
+}
+
+function applyPhotoEditorImageOverlayToCanvas(ctx, width, height, imageOverlays) {
+  const overlays = normalizePhotoEditorImageOverlays(imageOverlays);
+
+  for (const overlay of overlays) {
+    drawPhotoEditorSingleImageOverlay(ctx, width, height, overlay);
+  }
+}
+
+function getPhotoEditorImageOverlayCanvasMetrics(width, height, overlay) {
+  const imageOverlay = normalizePhotoEditorImageOverlayState(overlay);
+
+  if (!imageOverlay.fileUrl) {
+    return null;
+  }
+
+  return {
+    overlay: imageOverlay,
+    centerX: imageOverlay.x * width,
+    centerY: imageOverlay.y * height,
+    width: Math.max(1, imageOverlay.width * width),
+    height: Math.max(1, imageOverlay.height * height),
+  };
+}
+
+function getPhotoEditorImageOverlayHandles(metrics) {
+  if (!metrics) {
+    return null;
+  }
+
+  return {
+    resize: {
+      x: metrics.centerX + metrics.width / 2,
+      y: metrics.centerY + metrics.height / 2,
+    },
+  };
+}
+
+function drawPhotoEditorImageOverlayControls(ctx, width, height) {
+  if (
+    !photoEditorState ||
+    !isPhotoEditorAccordionOpen('imageOverlay') ||
+    photoEditorState.maskTool !== 'none' ||
+    photoEditorState.draftMask
+  ) {
+    return;
+  }
+
+  const activeOverlay = getPhotoEditorActiveImageOverlay();
+  const metrics = getPhotoEditorImageOverlayCanvasMetrics(
+    width,
+    height,
+    activeOverlay
+  );
+
+  if (!metrics) {
+    return;
+  }
+
+  const handles = getPhotoEditorImageOverlayHandles(metrics);
+  const handleSize = Math.max(
+    12,
+    Math.min(24, Math.min(metrics.width, metrics.height) * 0.18)
+  );
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(79, 140, 255, 0.08)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.94)';
+  ctx.lineWidth = Math.max(2, Math.round(Math.max(width, height) / 950));
+  ctx.setLineDash([8, 6]);
+  ctx.fillRect(
+    metrics.centerX - metrics.width / 2,
+    metrics.centerY - metrics.height / 2,
+    metrics.width,
+    metrics.height
+  );
+  ctx.strokeRect(
+    metrics.centerX - metrics.width / 2,
+    metrics.centerY - metrics.height / 2,
+    metrics.width,
+    metrics.height
+  );
+  ctx.setLineDash([]);
+
+  if (handles?.resize) {
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.42)';
+    ctx.shadowBlur = Math.max(4, handleSize * 0.45);
+    ctx.shadowOffsetY = Math.max(1, handleSize * 0.16);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+    ctx.strokeStyle = 'rgba(79, 140, 255, 0.96)';
+    ctx.beginPath();
+    ctx.rect(
+      handles.resize.x - handleSize / 2,
+      handles.resize.y - handleSize / 2,
+      handleSize,
+      handleSize
+    );
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 function getPhotoEditorTextCanvasMetrics(ctx, width, height, textOverlay) {
   const textState = getPhotoEditorTextRenderState(textOverlay, {
     textScale: getPhotoEditorTextCanvasRenderScale(width, height),
@@ -11186,6 +12081,10 @@ function getPhotoEditorTextHandles(metrics) {
 function getPhotoEditorSnapTargets(axis, { includeCenter = true } = {}) {
   const targets = includeCenter ? [0.5] : [];
   const guides = normalizePhotoEditorRulerGuides(photoEditorState?.rulerGuides);
+
+  if (photoEditorState?.showRuleOfThirdsGrid && (axis === 'x' || axis === 'y')) {
+    targets.push(1 / 3, 2 / 3);
+  }
 
   if (photoEditorState?.showRulers && (axis === 'x' || axis === 'y')) {
     targets.push(...guides[axis]);
@@ -11784,6 +12683,7 @@ function applyPhotoEditorEffectsToCanvas(
     isInteractivePreview = false,
     textScale = 1,
     drawTextOverlay = true,
+    drawImageOverlay = true,
   } = {}
 ) {
   applyPhotoEditorAdjustmentsToCanvas(
@@ -11819,6 +12719,15 @@ function applyPhotoEditorEffectsToCanvas(
       sourceRect,
       photoEditorState.sourceImage,
       { isInteractivePreview }
+    );
+  }
+
+  if (drawImageOverlay) {
+    applyPhotoEditorImageOverlayToCanvas(
+      ctx,
+      outputSize.width,
+      outputSize.height,
+      photoEditorState.imageOverlays
     );
   }
 
@@ -12087,6 +12996,7 @@ async function renderPhotoEditorPreview() {
         drawOverlays: false,
         isInteractivePreview,
         drawTextOverlay: false,
+        drawImageOverlay: false,
       });
     }
   }
@@ -12113,6 +13023,10 @@ async function renderPhotoEditorPreview() {
   }
 
   const pendingMaskText = photoEditorState.draftMask ? ' / 未確定: 1件' : '';
+  const imageOverlayCount =
+    getPhotoEditorImageOverlayCollectionFromState().imageOverlays.length;
+  const imageOverlayText =
+    imageOverlayCount > 0 ? ` / 画像: ${imageOverlayCount}件` : '';
   const clipInfo = photoEditorState.lastClipInfo;
   const clipText = clipInfo
     ? ` / 黒つぶれ: ${formatPhotoEditorPercent(clipInfo.shadows)} / 白飛び: ${formatPhotoEditorPercent(clipInfo.highlights)}`
@@ -12120,7 +13034,7 @@ async function renderPhotoEditorPreview() {
   const compareText = photoEditorState.showOriginalPreview ? ' / 比較中' : '';
   setPhotoEditorStatus(
     `出力: ${outputSize.fullWidth} x ${outputSize.fullHeight} / ` +
-      `目隠し: ${photoEditorState.masks.length}件${pendingMaskText}${clipText}${compareText}`
+      `目隠し: ${photoEditorState.masks.length}件${pendingMaskText}${imageOverlayText}${clipText}${compareText}`
   );
   syncPhotoEditorBlurControls();
   syncPhotoEditorMaskToolUi();
@@ -12312,6 +13226,7 @@ function resetPhotoEditorAll() {
   photoEditorState.crop = getDefaultPhotoEditorCropState();
   photoEditorState.exportSettings = getDefaultPhotoEditorExportSettings();
   setPhotoEditorTextCollection([], '');
+  setPhotoEditorImageOverlayCollection([], '');
   photoEditorState.rulerGuides = normalizePhotoEditorRulerGuides();
   photoEditorState.draftRulerGuide = null;
   photoEditorState.dragInitialRulerGuide = null;
@@ -12330,6 +13245,7 @@ function resetPhotoEditorAll() {
   photoEditorState.dragInitialBlur = null;
   photoEditorState.dragInitialMask = null;
   photoEditorState.dragInitialText = null;
+  photoEditorState.dragInitialImageOverlay = null;
   photoEditorState.draftRulerGuide = null;
   photoEditorState.dragInitialRulerGuide = null;
   photoEditorState.snapGuide = null;
@@ -12342,7 +13258,8 @@ function resetPhotoEditorAll() {
   photoEditorCanvas?.classList.remove(
     'is-panning',
     'is-mask-draft-active',
-    'is-text-tool-active'
+    'is-text-tool-active',
+    'is-image-overlay-tool-active'
   );
   clearPhotoEditorAdjustmentLivePreview();
   syncPhotoEditorUi();
@@ -13770,6 +14687,293 @@ function canPhotoEditorDragTextOverlay() {
   );
 }
 
+function canPhotoEditorDragImageOverlay() {
+  return (
+    getPhotoEditorImageOverlayCollectionFromState().imageOverlays.length > 0 &&
+    photoEditorState?.maskTool === 'none' &&
+    !photoEditorState?.draftMask &&
+    isPhotoEditorAccordionOpen('imageOverlay')
+  );
+}
+
+function getPhotoEditorImageOverlayDisplayMetrics(overlay) {
+  const displaySize = getPhotoEditorCanvasDisplaySize();
+  return getPhotoEditorImageOverlayCanvasMetrics(
+    displaySize.width,
+    displaySize.height,
+    overlay
+  );
+}
+
+function getPhotoEditorImageOverlayLocalPoint(point, metrics) {
+  const displaySize = getPhotoEditorCanvasDisplaySize();
+  const pointX = clampNumber(point?.x, -2, 3, 0) * displaySize.width;
+  const pointY = clampNumber(point?.y, -2, 3, 0) * displaySize.height;
+
+  return {
+    x: pointX - metrics.centerX,
+    y: pointY - metrics.centerY,
+    canvasX: pointX,
+    canvasY: pointY,
+  };
+}
+
+function getPhotoEditorImageOverlayDragInfo(point) {
+  if (!canPhotoEditorDragImageOverlay()) {
+    return null;
+  }
+
+  const collection = getPhotoEditorImageOverlayCollectionFromState();
+  const activeOverlay = collection.imageOverlays.find(
+    (overlay) => overlay.id === collection.activeImageOverlayId
+  );
+  const orderedOverlays = [
+    ...(activeOverlay ? [activeOverlay] : []),
+    ...collection.imageOverlays
+      .filter((overlay) => overlay.id !== activeOverlay?.id)
+      .reverse(),
+  ];
+
+  for (const overlay of orderedOverlays) {
+    const metrics = getPhotoEditorImageOverlayDisplayMetrics(overlay);
+
+    if (!metrics) {
+      continue;
+    }
+
+    const handles = getPhotoEditorImageOverlayHandles(metrics);
+    const localPoint = getPhotoEditorImageOverlayLocalPoint(point, metrics);
+
+    if (
+      handles?.resize &&
+      Math.hypot(localPoint.canvasX - handles.resize.x, localPoint.canvasY - handles.resize.y) <=
+        PHOTO_EDITOR_IMAGE_OVERLAY_HANDLE_HIT_RADIUS
+    ) {
+      return {
+        mode: 'image-overlay-resize',
+        overlayId: overlay.id,
+        metrics,
+      };
+    }
+
+    if (
+      Math.abs(localPoint.x) <= metrics.width / 2 &&
+      Math.abs(localPoint.y) <= metrics.height / 2
+    ) {
+      return {
+        mode: 'image-overlay-move',
+        overlayId: overlay.id,
+        metrics,
+      };
+    }
+  }
+
+  return null;
+}
+
+function translatePhotoEditorImageOverlay(overlay, deltaX, deltaY) {
+  if (!overlay) {
+    return null;
+  }
+
+  return normalizePhotoEditorImageOverlayState({
+    ...overlay,
+    x: overlay.x + deltaX,
+    y: overlay.y + deltaY,
+  });
+}
+
+function snapPhotoEditorImageOverlayToGuides(overlay) {
+  if (!overlay) {
+    return {
+      overlay,
+      snapX: null,
+      snapY: null,
+    };
+  }
+
+  const normalizedOverlay = normalizePhotoEditorImageOverlayState(overlay);
+  const halfWidth = normalizedOverlay.width / 2;
+  const halfHeight = normalizedOverlay.height / 2;
+  const snapX = getPhotoEditorBestAxisSnap(
+    [
+      normalizedOverlay.x,
+      normalizedOverlay.x - halfWidth,
+      normalizedOverlay.x + halfWidth,
+    ],
+    'x'
+  );
+  const snapY = getPhotoEditorBestAxisSnap(
+    [
+      normalizedOverlay.y,
+      normalizedOverlay.y - halfHeight,
+      normalizedOverlay.y + halfHeight,
+    ],
+    'y'
+  );
+  const snappedOverlay =
+    snapX || snapY
+      ? translatePhotoEditorImageOverlay(
+          normalizedOverlay,
+          snapX ? snapX.value - snapX.originalValue : 0,
+          snapY ? snapY.value - snapY.originalValue : 0
+        )
+      : normalizedOverlay;
+
+  setPhotoEditorSnapGuideFromAxisSnaps(snapX, snapY);
+
+  return {
+    overlay: snappedOverlay,
+    snapX,
+    snapY,
+  };
+}
+
+function resizePhotoEditorImageOverlay(
+  overlay,
+  point,
+  { keepRatio = false } = {}
+) {
+  if (!overlay) {
+    return null;
+  }
+
+  const normalizedOverlay = normalizePhotoEditorImageOverlayState(overlay);
+  const metrics = getPhotoEditorImageOverlayDisplayMetrics(normalizedOverlay);
+
+  if (!metrics) {
+    return normalizedOverlay;
+  }
+
+  const displaySize = getPhotoEditorCanvasDisplaySize();
+  const localPoint = getPhotoEditorImageOverlayLocalPoint(point, metrics);
+  let nextWidth = Math.max(
+    PHOTO_EDITOR_IMAGE_OVERLAY_MIN_SIZE,
+    Math.abs(localPoint.x) * 2 / displaySize.width
+  );
+  let nextHeight = Math.max(
+    PHOTO_EDITOR_IMAGE_OVERLAY_MIN_SIZE,
+    Math.abs(localPoint.y) * 2 / displaySize.height
+  );
+
+  if (keepRatio) {
+    const currentRatio =
+      normalizedOverlay.height > 0
+        ? normalizedOverlay.width / normalizedOverlay.height
+        : getPhotoEditorImageOverlayAspectRatio(normalizedOverlay);
+
+    if (Math.abs(localPoint.x) >= Math.abs(localPoint.y) * currentRatio) {
+      nextHeight = nextWidth / Math.max(0.01, currentRatio);
+    } else {
+      nextWidth = nextHeight * currentRatio;
+    }
+  }
+
+  return normalizePhotoEditorImageOverlayState({
+    ...normalizedOverlay,
+    width: clampNumber(nextWidth, PHOTO_EDITOR_IMAGE_OVERLAY_MIN_SIZE, 2, normalizedOverlay.width),
+    height: clampNumber(nextHeight, PHOTO_EDITOR_IMAGE_OVERLAY_MIN_SIZE, 2, normalizedOverlay.height),
+  });
+}
+
+function beginPhotoEditorImageOverlayDrag(point, dragInfo) {
+  if (!photoEditorState || !point || !dragInfo?.overlayId) {
+    return;
+  }
+
+  const collection = getPhotoEditorImageOverlayCollectionFromState();
+  const initialOverlay = collection.imageOverlays.find(
+    (overlay) => overlay.id === dragInfo.overlayId
+  );
+
+  if (!initialOverlay) {
+    return;
+  }
+
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.dragMode = dragInfo.mode || 'image-overlay-move';
+  photoEditorState.dragStart = point;
+  photoEditorState.dragInitialImageOverlay = initialOverlay;
+  photoEditorState.activeImageOverlayId = initialOverlay.id;
+  photoEditorState.activeTextId = '';
+  photoEditorCanvas?.classList.add('is-panning');
+  syncPhotoEditorTextControls();
+  syncPhotoEditorImageOverlayControls();
+  if (!paintPhotoEditorPreviewOverlayOnly()) {
+    schedulePhotoEditorRender({
+      debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
+      interactive: true,
+    });
+  }
+}
+
+function updatePhotoEditorImageOverlayDrag(point, event = null) {
+  if (
+    !photoEditorState ||
+    !String(photoEditorState.dragMode || '').startsWith('image-overlay-') ||
+    !photoEditorState.dragStart ||
+    !photoEditorState.dragInitialImageOverlay
+  ) {
+    return;
+  }
+
+  const collection = getPhotoEditorImageOverlayCollectionFromState();
+  let nextOverlay = photoEditorState.dragInitialImageOverlay;
+
+  if (photoEditorState.dragMode === 'image-overlay-resize') {
+    nextOverlay = snapPhotoEditorImageOverlayToGuides(
+      resizePhotoEditorImageOverlay(photoEditorState.dragInitialImageOverlay, point, {
+        keepRatio: Boolean(event?.shiftKey),
+      })
+    ).overlay;
+  } else {
+    const deltaX = point.x - photoEditorState.dragStart.x;
+    const deltaY = point.y - photoEditorState.dragStart.y;
+    nextOverlay = snapPhotoEditorImageOverlayToGuides(
+      translatePhotoEditorImageOverlay(
+        photoEditorState.dragInitialImageOverlay,
+        deltaX,
+        deltaY
+      )
+    ).overlay;
+  }
+
+  setPhotoEditorImageOverlayCollection(
+    collection.imageOverlays.map((overlay) =>
+      overlay.id === photoEditorState.dragInitialImageOverlay.id
+        ? nextOverlay
+        : overlay
+    ),
+    nextOverlay.id
+  );
+
+  syncPhotoEditorImageOverlayControls();
+  if (!paintPhotoEditorPreviewOverlayOnly()) {
+    schedulePhotoEditorRender({
+      debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
+      interactive: true,
+    });
+  }
+}
+
+function finishPhotoEditorImageOverlayDrag() {
+  if (
+    !photoEditorState ||
+    !String(photoEditorState.dragMode || '').startsWith('image-overlay-')
+  ) {
+    return;
+  }
+
+  photoEditorState.dragMode = null;
+  photoEditorState.dragStart = null;
+  photoEditorState.dragInitialImageOverlay = null;
+  photoEditorState.snapGuide = null;
+  photoEditorCanvas?.classList.remove('is-panning');
+  syncPhotoEditorImageOverlayControls();
+  finishPhotoEditorInteractivePreview();
+  commitPhotoEditorHistoryMutation();
+}
+
 function getPhotoEditorCanvasDisplaySize() {
   const bounds = photoEditorCanvas?.getBoundingClientRect();
 
@@ -14107,8 +15311,10 @@ function beginPhotoEditorTextDrag(point, dragInfo) {
   photoEditorState.dragStart = point;
   photoEditorState.dragInitialText = initialText;
   photoEditorState.activeTextId = initialText.id;
+  photoEditorState.activeImageOverlayId = '';
   photoEditorCanvas?.classList.add('is-panning');
   syncPhotoEditorTextControls();
+  syncPhotoEditorImageOverlayControls();
   if (!paintPhotoEditorPreviewOverlayOnly()) {
     schedulePhotoEditorRender({
       debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
@@ -15217,6 +16423,13 @@ function beginPhotoEditorMaskDrag(event) {
   }
 
   if (photoEditorState.maskTool === 'none') {
+    const imageOverlayDragInfo = getPhotoEditorImageOverlayDragInfo(point);
+
+    if (imageOverlayDragInfo) {
+      beginPhotoEditorImageOverlayDrag(point, imageOverlayDragInfo);
+      return;
+    }
+
     const textDragInfo = getPhotoEditorTextDragInfo(point);
 
     if (textDragInfo) {
@@ -15232,6 +16445,13 @@ function beginPhotoEditorMaskDrag(event) {
         `guide-${existingGuide.axis}`,
         existingGuide
       );
+      return;
+    }
+
+    if (
+      isPhotoEditorAccordionOpen('imageOverlay') &&
+      clearPhotoEditorImageOverlaySelection()
+    ) {
       return;
     }
 
@@ -15310,6 +16530,11 @@ function updatePhotoEditorMaskDrag(event) {
 
   if (String(photoEditorState.dragMode || '').startsWith('text-')) {
     updatePhotoEditorTextDrag(point);
+    return;
+  }
+
+  if (String(photoEditorState.dragMode || '').startsWith('image-overlay-')) {
+    updatePhotoEditorImageOverlayDrag(point, event);
     return;
   }
 
@@ -15421,6 +16646,11 @@ function finishPhotoEditorMaskDrag(event) {
 
   if (String(photoEditorState.dragMode || '').startsWith('text-')) {
     finishPhotoEditorTextDrag();
+    return;
+  }
+
+  if (String(photoEditorState.dragMode || '').startsWith('image-overlay-')) {
+    finishPhotoEditorImageOverlayDrag();
     return;
   }
 
@@ -15641,7 +16871,8 @@ function closePhotoEditorModal() {
           'is-mask-tool-active',
           'is-mask-draft-active',
           'is-panning',
-          'is-text-tool-active'
+          'is-text-tool-active',
+          'is-image-overlay-tool-active'
         );
       }
       if (photoEditorPreviewWorkCanvas) {
@@ -15792,7 +17023,14 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
   const formatMeta = getPhotoEditorExportFormatMeta(exportSettings);
   const quality = getPhotoEditorExportQuality(exportSettings, formatMeta);
   const textOverlays = getPhotoEditorTextCollectionFromState().textOverlays;
+  const imageOverlays = getPhotoEditorImageOverlayCollectionFromState().imageOverlays;
   const hasTextOverlays = textOverlays.length > 0;
+  const hasImageOverlays = imageOverlays.length > 0;
+  const needsMainOverlayPass = hasTextOverlays || hasImageOverlays;
+
+  if (hasImageOverlays) {
+    await waitForPhotoEditorImageOverlaysToLoad(imageOverlays);
+  }
 
   try {
     const workerResult = await applyPhotoEditorEffectsWithWorker(
@@ -15800,7 +17038,7 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
       renderBase,
       {
         includeDraft: false,
-        responseType: hasTextOverlays ? 'bitmap' : 'blob',
+        responseType: needsMainOverlayPass ? 'bitmap' : 'blob',
         exportSettings: {
           mimeType: formatMeta.mimeType,
           quality,
@@ -15809,7 +17047,7 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
       }
     );
 
-    if (hasTextOverlays && workerResult?.bitmap) {
+    if (needsMainOverlayPass && workerResult?.bitmap) {
       renderBase.ctx.clearRect(
         0,
         0,
@@ -15818,6 +17056,12 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
       );
       renderBase.ctx.drawImage(workerResult.bitmap, 0, 0);
       workerResult.bitmap.close?.();
+      applyPhotoEditorImageOverlayToCanvas(
+        renderBase.ctx,
+        renderBase.outputSize.width,
+        renderBase.outputSize.height,
+        imageOverlays
+      );
       applyPhotoEditorTextOverlayToCanvas(
         renderBase.ctx,
         renderBase.outputSize.width,
@@ -17106,6 +18350,7 @@ function initializePhotoEditorUi() {
   photoEditorTextRecentFonts = loadPhotoEditorRecentTextFonts();
   renderPhotoEditorTextFontOptions();
   renderPhotoEditorPresetButtons();
+  void refreshPhotoEditorOverlayAssets({ silent: true });
 
   if (photoEditorCropPresetList && !photoEditorCropPresetList.dataset.initialized) {
     photoEditorCropPresetList.innerHTML = '';
@@ -21509,6 +22754,47 @@ function bindPhotoAndEditModalControls() {
     finishPhotoEditorInteractivePreview();
   });
 
+  photoEditorImageOverlayResetButton?.addEventListener('click', () => {
+    resetPhotoEditorImageOverlays();
+  });
+
+  photoEditorImageOverlayAddButton?.addEventListener('click', async () => {
+    await selectPhotoEditorOverlayImages();
+  });
+
+  photoEditorImageOverlayOpacityInput?.addEventListener('input', () => {
+    updatePhotoEditorActiveImageOverlay({
+      opacity:
+        clampNumber(photoEditorImageOverlayOpacityInput.value, 0, 100, 100) / 100,
+    });
+  });
+
+  photoEditorImageOverlayOpacityInput?.addEventListener('change', () => {
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorImageOverlayBlendModeSelect?.addEventListener('change', () => {
+    updatePhotoEditorActiveImageOverlay(
+      {
+        blendMode: photoEditorImageOverlayBlendModeSelect.value,
+      },
+      { interactive: false }
+    );
+    finishPhotoEditorInteractivePreview();
+  });
+
+  photoEditorImageOverlayForwardButton?.addEventListener('click', () => {
+    movePhotoEditorActiveImageOverlay(1);
+  });
+
+  photoEditorImageOverlayBackwardButton?.addEventListener('click', () => {
+    movePhotoEditorActiveImageOverlay(-1);
+  });
+
+  photoEditorImageOverlayDeleteButton?.addEventListener('click', () => {
+    deletePhotoEditorActiveImageOverlay();
+  });
+
   photoEditorExportResetButton?.addEventListener('click', () => {
     resetPhotoEditorExportSettings();
   });
@@ -21592,6 +22878,13 @@ function bindPhotoAndEditModalControls() {
       if (key === 'text') {
         syncPhotoEditorTextControls();
       }
+
+      if (key === 'imageOverlay') {
+        syncPhotoEditorImageOverlayControls();
+        if (!paintPhotoEditorPreviewOverlayOnly()) {
+          schedulePhotoEditorRender();
+        }
+      }
     });
   }
 
@@ -21631,6 +22924,15 @@ function bindPhotoAndEditModalControls() {
     photoEditorTextStrokeColorInput,
     photoEditorTextFillTransparentInput,
     photoEditorTextLetterSpacingInput,
+    photoEditorImageOverlayResetButton,
+    photoEditorImageOverlayAddButton,
+    photoEditorImageOverlayLibrary,
+    photoEditorImageOverlayList,
+    photoEditorImageOverlayOpacityInput,
+    photoEditorImageOverlayBlendModeSelect,
+    photoEditorImageOverlayForwardButton,
+    photoEditorImageOverlayBackwardButton,
+    photoEditorImageOverlayDeleteButton,
     photoEditorExportResetButton,
     photoEditorExportFormatSelect,
     photoEditorExportMaxEdgeSelect,

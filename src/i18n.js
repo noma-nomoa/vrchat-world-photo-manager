@@ -55,6 +55,7 @@
       'お気に入り': 'Favorite',
       'お気に入り解除': 'Unfavorite',
       '削除': 'Delete',
+      '削除する': 'Delete',
       '画像/フォルダをここにドラッグ＆ドロップ':
         'Drag photos or folders here',
       'まだ写真がありません': 'No photos yet',
@@ -220,6 +221,31 @@
       '文字サイズ': 'Text size',
       '縁の太さ': 'Stroke width',
       '文字間隔': 'Letter spacing',
+      '画像オーバーレイ': 'Image Overlay',
+      '画像オーバーレイをリセット': 'Reset image overlay',
+      '画像オーバーレイ素材を読み込めませんでした':
+        'Could not load image overlay asset',
+      '画像オーバーレイ素材の追加機能を利用できません':
+        'Image overlay import is unavailable',
+      '画像を追加': 'Add image',
+      '管理素材': 'Managed assets',
+      '管理素材から削除': 'Delete from managed assets',
+      '管理素材を削除': 'Delete managed asset',
+      '管理素材を削除できませんでした': 'Could not delete managed asset',
+      '管理素材を削除しました': 'Managed asset deleted',
+      'レイヤー': 'Layers',
+      '手前へ': 'Forward',
+      '奥へ': 'Backward',
+      '透明度': 'Opacity',
+      '合成方法': 'Blend mode',
+      '標準合成': 'Normal',
+      '乗算': 'Multiply',
+      'スクリーン': 'Screen',
+      'オーバーレイ': 'Overlay',
+      'ソフトライト': 'Soft Light',
+      'ハードライト': 'Hard Light',
+      '比較(暗)': 'Darken',
+      '比較(明)': 'Lighten',
       '最近使用': 'Recent',
       'システム': 'System',
       '標準': 'Regular',
@@ -536,6 +562,7 @@
       'お気に入り': '즐겨찾기',
       'お気に入り解除': '즐겨찾기 해제',
       '削除': '삭제',
+      '削除する': '삭제',
       '画像/フォルダをここにドラッグ＆ドロップ':
         '사진 또는 폴더를 여기에 드래그 앤 드롭',
       'まだ写真がありません': '아직 사진이 없습니다',
@@ -700,6 +727,31 @@
       '文字サイズ': '글자 크기',
       '縁の太さ': '테두리 두께',
       '文字間隔': '자간',
+      '画像オーバーレイ': '이미지 오버레이',
+      '画像オーバーレイをリセット': '이미지 오버레이 초기화',
+      '画像オーバーレイ素材を読み込めませんでした':
+        '이미지 오버레이 소재를 불러오지 못했습니다',
+      '画像オーバーレイ素材の追加機能を利用できません':
+        '이미지 오버레이 소재 추가 기능을 사용할 수 없습니다',
+      '画像を追加': '이미지 추가',
+      '管理素材': '관리 소재',
+      '管理素材から削除': '관리 소재에서 삭제',
+      '管理素材を削除': '관리 소재 삭제',
+      '管理素材を削除できませんでした': '관리 소재를 삭제하지 못했습니다',
+      '管理素材を削除しました': '관리 소재를 삭제했습니다',
+      'レイヤー': '레이어',
+      '手前へ': '앞으로',
+      '奥へ': '뒤로',
+      '透明度': '투명도',
+      '合成方法': '합성 방법',
+      '標準合成': '일반',
+      '乗算': '곱하기',
+      'スクリーン': '스크린',
+      'オーバーレイ': '오버레이',
+      'ソフトライト': '소프트 라이트',
+      'ハードライト': '하드 라이트',
+      '比較(暗)': '어둡게',
+      '比較(明)': '밝게',
       '最近使用': '최근 사용',
       'システム': '시스템',
       '標準': '보통',
@@ -1126,6 +1178,48 @@
         : `Preset applied: ${translateText(match[1], language)}`;
     }
 
+    match = core.match(/^(.+)を管理素材から削除$/);
+    if (match) {
+      return language === 'ko'
+        ? `${match[1]} 관리 소재에서 삭제`
+        : `Delete ${match[1]} from managed assets`;
+    }
+
+    match = core.match(/^(.+) を管理素材から削除します。現在の編集で使っている同じ画像レイヤーも外します。$/);
+    if (match) {
+      return language === 'ko'
+        ? `${match[1]}을(를) 관리 소재에서 삭제합니다. 현재 편집에서 같은 이미지를 사용하는 레이어도 제거됩니다.`
+        : `${match[1]} will be deleted from managed assets. Layers using the same image in this edit will also be removed.`;
+    }
+
+    match = core.match(/^画像オーバーレイは(\d+)件までです$/);
+    if (match) {
+      return language === 'ko'
+        ? `이미지 오버레이는 최대 ${formatNumber(match[1], language)}개까지 사용할 수 있습니다`
+        : `Up to ${formatNumber(match[1], language)} image overlays can be used`;
+    }
+
+    match = core.match(/^画像オーバーレイを追加しました: (\d+)件$/);
+    if (match) {
+      return language === 'ko'
+        ? `이미지 오버레이 추가 완료: ${formatNumber(match[1], language)}개`
+        : `Image overlays added: ${formatNumber(match[1], language)}`;
+    }
+
+    match = core.match(/^画像オーバーレイの追加に失敗しました: (.*)$/);
+    if (match) {
+      return language === 'ko'
+        ? `이미지 오버레이 추가 실패: ${match[1]}`
+        : `Image overlay import failed: ${match[1]}`;
+    }
+
+    match = core.match(/^管理素材の削除に失敗しました: (.*)$/);
+    if (match) {
+      return language === 'ko'
+        ? `관리 소재 삭제 실패: ${match[1]}`
+        : `Managed asset delete failed: ${match[1]}`;
+    }
+
     match = core.match(/^出力: (.+)$/);
     if (match) {
       let body = match[1]
@@ -1133,6 +1227,7 @@
         .replace(/未確定/g, language === 'ko' ? '미확정' : 'draft')
         .replace(/黒つぶれ/g, language === 'ko' ? '블랙 클리핑' : 'black clipping')
         .replace(/白飛び/g, language === 'ko' ? '화이트 클리핑' : 'white clipping')
+        .replace(/画像/g, language === 'ko' ? '이미지' : 'images')
         .replace(/比較中/g, language === 'ko' ? '비교 중' : 'comparing')
         .replace(/件/g, language === 'ko' ? '건' : '');
       return language === 'ko' ? `출력: ${body}` : `Output: ${body}`;

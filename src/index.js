@@ -28,6 +28,7 @@ if (require('electron-squirrel-startup')) {
 let photoDb = null;
 let thumbnailDirPath = '';
 let preferencesFilePath = '';
+let photoEditorOverlayAssetDirPath = '';
 let mainWindowRef = null;
 const APP_DISPLAY_NAME = 'WorldShot Log';
 const APP_TITLE = `${APP_DISPLAY_NAME} v${app.getVersion()}`;
@@ -80,6 +81,7 @@ app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 const LEGACY_APP_STORAGE_DIRNAME = 'vrchat-world-photo-manager';
 const APP_STORAGE_DIRNAME = APP_DISPLAY_NAME;
 const THUMBNAIL_DIRNAME = 'thumbnails';
+const PHOTO_EDITOR_OVERLAY_ASSET_DIRNAME = 'photo-editor-overlays';
 const THUMBNAIL_SIZE = 320;
 const THUMBNAIL_EXTENSION = '.jpg';
 const THUMBNAIL_JPEG_QUALITY = 82;
@@ -102,6 +104,12 @@ const PHOTO_EDITOR_EXPORT_FORMATS = Object.freeze({
   },
 });
 const PHOTO_EDITOR_DATA_URL_PATTERN = /^data:(image\/(?:png|jpeg|webp));base64,/;
+const PHOTO_EDITOR_OVERLAY_IMAGE_EXTENSIONS = new Set([
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+]);
 const WORLD_METADATA_API_BASE_URL = 'https://api.vrchat.cloud/api/1/worlds';
 const WORLD_METADATA_FETCH_TIMEOUT_MS = 10000;
 const IMPORT_PREPROCESS_CONCURRENCY = Math.max(
@@ -1429,6 +1437,246 @@ function scheduleStartupAutoUpdateCheck(mainWindow) {
 
 function isSupportedImageFile(filePath) {
   return SUPPORTED_IMAGE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
+
+function isSupportedPhotoEditorOverlayImageFile(filePath) {
+  return PHOTO_EDITOR_OVERLAY_IMAGE_EXTENSIONS.has(
+    path.extname(filePath).toLowerCase()
+  );
+}
+
+function getPhotoEditorOverlayAssetDirectoryPath() {
+  return (
+    photoEditorOverlayAssetDirPath ||
+    path.join(app.getPath('userData'), PHOTO_EDITOR_OVERLAY_ASSET_DIRNAME)
+  );
+}
+
+function normalizePhotoEditorOverlayAssetId(assetId) {
+  if (typeof assetId !== 'string' || assetId.trim().length === 0) {
+    return '';
+  }
+
+  const fileName = path.basename(assetId.trim());
+  return isSupportedPhotoEditorOverlayImageFile(fileName) ? fileName : '';
+}
+
+function getPhotoEditorOverlayAssetPath(assetId) {
+  const fileName = normalizePhotoEditorOverlayAssetId(assetId);
+
+  if (!fileName) {
+    throw new Error('Invalid overlay image id');
+  }
+
+  const directoryPath = path.resolve(getPhotoEditorOverlayAssetDirectoryPath());
+  const filePath = path.resolve(directoryPath, fileName);
+  const normalizedDirectory = directoryPath.toLowerCase();
+  const normalizedFilePath = filePath.toLowerCase();
+
+  if (
+    normalizedFilePath !== normalizedDirectory &&
+    !normalizedFilePath.startsWith(`${normalizedDirectory}${path.sep}`)
+  ) {
+    throw new Error('Invalid overlay image path');
+  }
+
+  return filePath;
+}
+
+function getNativeImageSizeFromBuffer(fileBuffer) {
+  try {
+    const image = nativeImage.createFromBuffer(fileBuffer);
+    const size = image.getSize();
+    return {
+      width: Number(size.width) || 0,
+      height: Number(size.height) || 0,
+    };
+  } catch {
+    return {
+      width: 0,
+      height: 0,
+    };
+  }
+}
+
+async function getPhotoEditorOverlayAssetPayload(filePath, directoryEntry = null) {
+  const fileName = path.basename(filePath);
+
+  if (!isSupportedPhotoEditorOverlayImageFile(fileName)) {
+    return null;
+  }
+
+  let stat = null;
+
+  try {
+    stat = await fs.stat(filePath);
+  } catch {
+    return null;
+  }
+
+  if (!stat.isFile()) {
+    return null;
+  }
+
+  let imageSize = {
+    width: 0,
+    height: 0,
+  };
+
+  try {
+    const image = nativeImage.createFromPath(filePath);
+    imageSize = image.getSize();
+  } catch {
+    // Size metadata is helpful but not required to reuse the overlay image.
+  }
+
+  return {
+    id: directoryEntry?.name || fileName,
+    fileName,
+    fileUrl: pathToFileURL(filePath).href,
+    width: Number(imageSize.width) || 0,
+    height: Number(imageSize.height) || 0,
+    sizeBytes: stat.size,
+    updatedAt: stat.mtimeMs,
+  };
+}
+
+async function listPhotoEditorOverlayAssets() {
+  const directoryPath = getPhotoEditorOverlayAssetDirectoryPath();
+  await ensureDir(directoryPath);
+
+  const entries = await fs.readdir(directoryPath, { withFileTypes: true });
+  const assets = [];
+
+  for (const entry of entries) {
+    if (!entry.isFile() || !isSupportedPhotoEditorOverlayImageFile(entry.name)) {
+      continue;
+    }
+
+    const asset = await getPhotoEditorOverlayAssetPayload(
+      path.join(directoryPath, entry.name),
+      entry
+    );
+
+    if (asset) {
+      assets.push(asset);
+    }
+  }
+
+  return assets.sort((left, right) => {
+    if (right.updatedAt !== left.updatedAt) {
+      return right.updatedAt - left.updatedAt;
+    }
+
+    return left.fileName.localeCompare(right.fileName, 'ja');
+  });
+}
+
+async function createUniquePhotoEditorOverlayAssetPath(sourceFilePath, fileBuffer) {
+  const directoryPath = getPhotoEditorOverlayAssetDirectoryPath();
+  const extension = path.extname(sourceFilePath).toLowerCase();
+  const sourceBaseName = sanitizeEditedPhotoFileNamePart(
+    path.parse(sourceFilePath).name,
+    'overlay'
+  );
+  const hash = createHash('sha256').update(fileBuffer).digest('hex').slice(0, 16);
+  const baseFileName = `${sourceBaseName}-${hash}`;
+  let fileName = `${baseFileName}${extension}`;
+  let filePath = path.join(directoryPath, fileName);
+  let suffix = 2;
+
+  while (fsSync.existsSync(filePath)) {
+    fileName = `${baseFileName}-${suffix}${extension}`;
+    filePath = path.join(directoryPath, fileName);
+    suffix += 1;
+  }
+
+  return filePath;
+}
+
+async function selectPhotoEditorOverlayImages() {
+  const dialogResult = await dialog.showOpenDialog({
+    title: 'Overlay images',
+    properties: ['openFile', 'multiSelections'],
+    filters: [
+      {
+        name: 'Images',
+        extensions: Array.from(PHOTO_EDITOR_OVERLAY_IMAGE_EXTENSIONS).map(
+          (extension) => extension.slice(1)
+        ),
+      },
+    ],
+  });
+
+  if (dialogResult.canceled || dialogResult.filePaths.length === 0) {
+    return {
+      ok: true,
+      canceled: true,
+      assets: await listPhotoEditorOverlayAssets(),
+      importedAssets: [],
+    };
+  }
+
+  const directoryPath = getPhotoEditorOverlayAssetDirectoryPath();
+  await ensureDir(directoryPath);
+
+  const importedAssets = [];
+  const failedFiles = [];
+
+  for (const sourceFilePath of dialogResult.filePaths) {
+    try {
+      if (!isSupportedPhotoEditorOverlayImageFile(sourceFilePath)) {
+        throw new Error('Unsupported image format');
+      }
+
+      const fileBuffer = await fs.readFile(sourceFilePath);
+      const targetFilePath = await createUniquePhotoEditorOverlayAssetPath(
+        sourceFilePath,
+        fileBuffer
+      );
+      await fs.writeFile(targetFilePath, fileBuffer);
+      const asset = await getPhotoEditorOverlayAssetPayload(targetFilePath);
+      const size = getNativeImageSizeFromBuffer(fileBuffer);
+
+      if (asset) {
+        importedAssets.push({
+          ...asset,
+          width: asset.width || size.width,
+          height: asset.height || size.height,
+        });
+      }
+    } catch (error) {
+      failedFiles.push({
+        filePath: sourceFilePath,
+        fileName: path.basename(sourceFilePath),
+        message: error.message,
+      });
+    }
+  }
+
+  return {
+    ok: failedFiles.length === 0,
+    canceled: false,
+    assets: await listPhotoEditorOverlayAssets(),
+    importedAssets,
+    failedFiles,
+    message:
+      failedFiles.length > 0
+        ? `${failedFiles.length} overlay image(s) could not be added`
+        : '',
+  };
+}
+
+async function deletePhotoEditorOverlayAsset(assetId) {
+  const filePath = getPhotoEditorOverlayAssetPath(assetId);
+  await fs.rm(filePath, { force: true });
+
+  return {
+    ok: true,
+    deleted: true,
+    assetId: normalizePhotoEditorOverlayAssetId(assetId),
+    assets: await listPhotoEditorOverlayAssets(),
+  };
 }
 
 function countJapaneseChars(value) {
@@ -5727,11 +5975,16 @@ app.whenReady().then(async () => {
   await migrateLegacyThumbnailStorage();
 
   thumbnailDirPath = path.join(appStorageRootPath, THUMBNAIL_DIRNAME);
+  photoEditorOverlayAssetDirPath = path.join(
+    app.getPath('userData'),
+    PHOTO_EDITOR_OVERLAY_ASSET_DIRNAME
+  );
   preferencesFilePath = path.join(dbDirPath, 'preferences.json');
 
   await ensureDir(dbDirPath);
   await ensureDir(appStorageRootPath);
   await ensureDir(thumbnailDirPath);
+  await ensureDir(photoEditorOverlayAssetDirPath);
 
   photoDb = initDatabase(path.join(dbDirPath, 'app.sqlite'));
   await reconcileManagedThumbnailPaths();
@@ -6433,6 +6686,46 @@ app.whenReady().then(async () => {
       return {
         ok: false,
         message: error.message,
+      };
+    }
+  });
+
+  ipcMain.handle('get-photo-editor-overlay-assets', async () => {
+    try {
+      return {
+        ok: true,
+        assets: await listPhotoEditorOverlayAssets(),
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        assets: [],
+      };
+    }
+  });
+
+  ipcMain.handle('select-photo-editor-overlay-images', async () => {
+    try {
+      return await selectPhotoEditorOverlayImages();
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        assets: await listPhotoEditorOverlayAssets(),
+        importedAssets: [],
+      };
+    }
+  });
+
+  ipcMain.handle('delete-photo-editor-overlay-asset', async (_event, payload) => {
+    try {
+      return await deletePhotoEditorOverlayAsset(payload?.assetId);
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        assets: await listPhotoEditorOverlayAssets(),
       };
     }
   });

@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>WorldShot Log v2.2.1</title>
+    <title>WorldShot Log v2.3.0</title>
     <link rel="stylesheet" href="./index.css" />
     <link
       rel="stylesheet"
@@ -1249,6 +1249,119 @@
                         value="0"
                       />
                     </div>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                class="photo-editor-section photo-editor-accordion-section"
+                data-photo-editor-accordion="imageOverlay"
+              >
+                <div class="photo-editor-accordion-heading">
+                  <button
+                    type="button"
+                    class="photo-editor-accordion-toggle"
+                    data-photo-editor-accordion-toggle="imageOverlay"
+                    aria-expanded="false"
+                    aria-controls="photo-editor-image-overlay-panel"
+                  >
+                    <span>画像オーバーレイ</span>
+                    <span class="material-symbols-outlined photo-editor-accordion-chevron">
+                      expand_more
+                    </span>
+                  </button>
+                  <button
+                    id="photo-editor-image-overlay-reset-btn"
+                    type="button"
+                    class="photo-editor-slider-reset"
+                    aria-label="画像オーバーレイをリセット"
+                    title="画像オーバーレイをリセット"
+                  >
+                    <span class="material-symbols-outlined">restart_alt</span>
+                  </button>
+                </div>
+                <div
+                  id="photo-editor-image-overlay-panel"
+                  class="photo-editor-accordion-panel"
+                  hidden
+                >
+                  <div class="photo-editor-image-overlay-actions">
+                    <button
+                      id="photo-editor-image-overlay-add-btn"
+                      type="button"
+                      class="small-action-button"
+                    >
+                      <span class="material-symbols-outlined">add_photo_alternate</span>
+                      <span>画像を追加</span>
+                    </button>
+                  </div>
+                  <p class="photo-editor-section-title">管理素材</p>
+                  <div
+                    id="photo-editor-image-overlay-library"
+                    class="photo-editor-image-overlay-library"
+                  ></div>
+                  <p class="photo-editor-section-title">レイヤー</p>
+                  <div
+                    id="photo-editor-image-overlay-list"
+                    class="photo-editor-image-overlay-list"
+                  ></div>
+                  <div
+                    id="photo-editor-image-overlay-controls"
+                    class="photo-editor-image-overlay-controls"
+                    hidden
+                  >
+                    <div class="photo-editor-image-overlay-layer-actions">
+                      <button
+                        id="photo-editor-image-overlay-forward-btn"
+                        type="button"
+                        class="secondary"
+                      >
+                        手前へ
+                      </button>
+                      <button
+                        id="photo-editor-image-overlay-backward-btn"
+                        type="button"
+                        class="secondary"
+                      >
+                        奥へ
+                      </button>
+                      <button
+                        id="photo-editor-image-overlay-delete-btn"
+                        type="button"
+                        class="secondary"
+                      >
+                        削除
+                      </button>
+                    </div>
+                    <div class="photo-editor-slider-row">
+                      <div class="photo-editor-slider-label">
+                        <span>透明度</span>
+                        <span id="photo-editor-image-overlay-opacity-value">100%</span>
+                      </div>
+                      <input
+                        id="photo-editor-image-overlay-opacity"
+                        type="range"
+                        min="0"
+                        max="100"
+                        value="100"
+                      />
+                    </div>
+                    <label
+                      class="photo-editor-select-field photo-editor-image-overlay-blend-field"
+                      for="photo-editor-image-overlay-blend-mode"
+                    >
+                      <span>合成方法</span>
+                      <select id="photo-editor-image-overlay-blend-mode">
+                        <option value="source-over">標準合成</option>
+                        <option value="multiply">乗算</option>
+                        <option value="screen">スクリーン</option>
+                        <option value="overlay">オーバーレイ</option>
+                        <option value="soft-light">ソフトライト</option>
+                        <option value="hard-light">ハードライト</option>
+                        <option value="darken">比較(暗)</option>
+                        <option value="lighten">比較(明)</option>
+                      </select>
+                    </label>
                   </div>
                 </div>
               </section>

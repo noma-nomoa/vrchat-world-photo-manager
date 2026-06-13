@@ -106,6 +106,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('open-containing-folder', payload),
   saveEditedPhoto: (payload) =>
     ipcRenderer.invoke('save-edited-photo', payload),
+  getPhotoEditorOverlayAssets: () =>
+    ipcRenderer.invoke('get-photo-editor-overlay-assets'),
+  selectPhotoEditorOverlayImages: () =>
+    ipcRenderer.invoke('select-photo-editor-overlay-images'),
+  deletePhotoEditorOverlayAsset: (assetId) =>
+    ipcRenderer.invoke('delete-photo-editor-overlay-asset', { assetId }),
   updateFavoriteStatus: (photoId, isFavorite) =>
     ipcRenderer.invoke('update-favorite-status', { photoId, isFavorite }),
   updateFavoriteStatuses: (photoIds, isFavorite) =>
