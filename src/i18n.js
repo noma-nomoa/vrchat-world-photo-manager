@@ -218,9 +218,55 @@
       '影': 'Shadow',
       '発光': 'Glow',
       '縁内を透過': 'Transparent fill',
+      '適用範囲': 'Apply to',
+      '被写体': 'Subject',
+      '被写体のみ': 'Subject only',
+      '背景のみ': 'Background only',
       '文字サイズ': 'Text size',
       '縁の太さ': 'Stroke width',
       '文字間隔': 'Letter spacing',
+      'AI被写体': 'AI Subject',
+      '補正対象': 'Adjustment target',
+      '被写体マスクをリセット': 'Reset subject mask',
+      'マスク未作成': 'No mask yet',
+      'ダミーマスク': 'Dummy mask',
+      '軽量AIマスク': 'Lightweight AI mask',
+      '標準AIマスク': 'Standard AI mask',
+      '高精度AIマスク': 'High quality AI mask',
+      '読み込みマスク': 'Imported mask',
+      'マスク': 'Mask',
+      '被写体を自動選択': 'Auto select subject',
+      '標準AIをダウンロード': 'Download standard AI',
+      '高精度AIをダウンロード': 'Download high quality AI',
+      '高精度で再検出': 'Detect with high quality',
+      'マスク画像を読み込み': 'Load mask image',
+      'マスクを表示': 'Show mask',
+      'マスク反転': 'Invert mask',
+      '現在: 標準AIで実行されます': 'Current: Standard AI will be used',
+      '現在: 軽量AIで実行されます': 'Current: Lightweight AI will be used',
+      '現在: 軽量AIで実行されます / 標準AIをダウンロードすると検出精度が向上します':
+        'Current: Lightweight AI will be used / Download Standard AI for better detection.',
+      'AIモデルを利用できません': 'AI model is unavailable',
+      '設定から高精度AIモデルをダウンロードしてください':
+        'Download the high quality AI model from settings.',
+      'AIモデル情報を取得できません': 'Could not get AI model information',
+      'ONNX Runtimeを読み込めませんでした': 'Could not load ONNX Runtime',
+      'AIマスクの出力を読み取れませんでした':
+        'Could not read the AI mask output',
+      '標準AIの実行機能を利用できません':
+        'Standard AI execution is unavailable',
+      'AIモデルの実行に失敗しました': 'AI model execution failed',
+      '画像サイズを取得できませんでした': 'Could not read the image size',
+      'AI入力画像を作成できませんでした': 'Could not create the AI input image',
+      'AIマスクの出力が空でした': 'AI mask output was empty',
+      'AIマスクを作成できませんでした': 'Could not create the AI mask',
+      'AIマスクを切り出せませんでした': 'Could not crop the AI mask',
+      'AIマスクを元画像サイズに戻せませんでした':
+        'Could not restore the AI mask to the source image size',
+      '高解像度マスクを整えています...': 'Refining high resolution mask...',
+      'PNG / JPEG / WebP のマスク画像を選択してください':
+        'Select a PNG, JPEG, or WebP mask image.',
+      'マスク画像を読み込めませんでした': 'Could not load the mask image',
       '画像オーバーレイ': 'Image Overlay',
       '画像オーバーレイをリセット': 'Reset image overlay',
       '画像オーバーレイ素材を読み込めませんでした':
@@ -288,6 +334,67 @@
       '更新対象フォルダの設定': 'Tracked folders',
       'フォルダ追加': 'Add folder',
       'まだ登録されていません': 'Nothing registered yet',
+      'AIモデル': 'AI models',
+      '画像編集の被写体選択で使うモデルを管理します':
+        'Manage models used for subject selection in the image editor.',
+      'AIモデル情報を取得できませんでした':
+        'Could not get AI model information',
+      'AIモデルのダウンロード機能を利用できません':
+        'AI model download is unavailable',
+      'このAIモデルはダウンロードできません':
+        'This AI model cannot be downloaded',
+      '画像は外部サーバーに送信されません。AI処理はPC内で実行されます。':
+        'Images are not sent to external servers. AI processing runs on this PC.',
+      'このモデルは標準AIより処理時間やメモリ使用量が大きくなる場合があります。':
+        'This model may take longer and use more memory than Standard AI.',
+      'AIモデルをダウンロードできませんでした':
+        'Could not download the AI model',
+      '保存場所を開けません': 'Could not open the folder',
+      '保存場所を開けませんでした': 'Could not open the folder',
+      'AIモデルを削除': 'Delete AI model',
+      'AIモデルの削除機能を利用できません':
+        'AI model deletion is unavailable',
+      'AIモデルを削除しています...': 'Deleting AI model...',
+      'AIモデルを削除できませんでした': 'Could not delete the AI model',
+      'AIモデルを削除しました': 'AI model deleted',
+      'ライセンス確認により利用停止中です':
+        'Disabled after license review',
+      '軽量AI': 'Lightweight AI',
+      '標準AI': 'Standard AI',
+      '高精度AI': 'High quality AI',
+      '高精度AI候補': 'High quality AI candidate',
+      '旧モデル': 'Legacy model',
+      '利用可能': 'Ready',
+      '検証失敗': 'Verification failed',
+      '準備中': 'Preparing',
+      '利用停止中': 'Disabled',
+      '一部不足': 'Incomplete',
+      '未ダウンロード': 'Not downloaded',
+      '同梱': 'Bundled',
+      '管理フォルダ': 'Managed folder',
+      '同梱モデル': 'Bundled model',
+      'ダウンロード': 'Download',
+      '配布元': 'Source',
+      '保存場所': 'Folder',
+      '未確定': 'TBD',
+      'すぐ使える軽量な被写体マスク生成モデルです。複雑な髪型、衣装、羽、尻尾などでは精度が落ちる場合があります。':
+        'A lightweight subject mask model ready to use immediately. Accuracy may drop for complex hair, outfits, wings, or tails.',
+      'すぐ使える高速モデルです。複雑な髪型・衣装・羽・尻尾などでは精度が落ちる場合があります。':
+        'A fast model ready to use immediately. Accuracy may drop for complex hair, outfits, wings, or tails.',
+      'VRChatアバター向けの通常モデルです。細かい髪型・衣装・装飾・羽・尻尾などの検出精度が向上します。':
+        'The everyday model for VRChat avatars. It improves detection of detailed hair, outfits, accessories, wings, and tails.',
+      'VRChatアバター向けの標準モデルです。軽量AIよりも、髪型・衣装・装飾・羽・尻尾などの検出精度向上を狙います。':
+        'The standard model for VRChat avatars. It aims to improve detection of hair, outfits, accessories, wings, and tails compared with Lightweight AI.',
+      '境界をよりきれいに検出する上位モデルです。背景ぼかし、被写体だけ補正、文字や画像を被写体に合わせる加工に向いています。':
+        'An advanced model that detects cleaner boundaries. Useful for background blur, subject-only adjustments, and aligning text or images with the subject.',
+      '境界をよりきれいに検出する上位モデルです。背景ぼかし、被写体だけ補正、文字や画像を被写体に合わせる加工に向いています。処理時間やメモリ使用量が大きくなる場合があります。':
+        'An advanced model that detects cleaner boundaries. Useful for background blur, subject-only adjustments, and aligning text or images with the subject. Processing time and memory use may be higher.',
+      '学習データセットの商用利用条件を確認した結果、現在の推奨構成では使用しません。必要に応じて削除できます。':
+        'Disabled in the current recommended setup after reviewing the commercial-use terms of the training dataset. You can delete it if needed.',
+      '学習データセットの商用利用条件を確認した結果、現在の推奨構成では使用しません。':
+        'Disabled in the current recommended setup after reviewing the commercial-use terms of the training dataset.',
+      '旧構成で高精度AIとして扱っていたモデルです。現在の推奨構成では使用しません。':
+        'A legacy model that used to be treated as high quality AI. It is not used in the current recommended setup.',
       'データ管理': 'Data management',
       'ラベル、メモ、お気に入り、World情報を保存・書き出しできます':
         'Back up and export labels, memos, favorites, and world information.',
@@ -724,9 +831,55 @@
       '影': '그림자',
       '発光': '발광',
       '縁内を透過': '글자 내부 투명',
+      '適用範囲': '적용 범위',
+      '被写体': '피사체',
+      '被写体のみ': '피사체만',
+      '背景のみ': '배경만',
       '文字サイズ': '글자 크기',
       '縁の太さ': '테두리 두께',
       '文字間隔': '자간',
+      'AI被写体': 'AI 피사체',
+      '補正対象': '보정 대상',
+      '被写体マスクをリセット': '피사체 마스크 초기화',
+      'マスク未作成': '마스크 없음',
+      'ダミーマスク': '더미 마스크',
+      '軽量AIマスク': '경량 AI 마스크',
+      '標準AIマスク': '표준 AI 마스크',
+      '高精度AIマスク': '고정밀 AI 마스크',
+      '読み込みマスク': '불러온 마스크',
+      'マスク': '마스크',
+      '被写体を自動選択': '피사체 자동 선택',
+      '標準AIをダウンロード': '표준 AI 다운로드',
+      '高精度AIをダウンロード': '고정밀 AI 다운로드',
+      '高精度で再検出': '고정밀로 다시 감지',
+      'マスク画像を読み込み': '마스크 이미지 불러오기',
+      'マスクを表示': '마스크 표시',
+      'マスク反転': '마스크 반전',
+      '現在: 標準AIで実行されます': '현재: 표준 AI로 실행됩니다',
+      '現在: 軽量AIで実行されます': '현재: 경량 AI로 실행됩니다',
+      '現在: 軽量AIで実行されます / 標準AIをダウンロードすると検出精度が向上します':
+        '현재: 경량 AI로 실행됩니다 / 표준 AI를 다운로드하면 감지 정확도가 향상됩니다.',
+      'AIモデルを利用できません': 'AI 모델을 사용할 수 없습니다',
+      '設定から高精度AIモデルをダウンロードしてください':
+        '설정에서 고정밀 AI 모델을 다운로드하세요.',
+      'AIモデル情報を取得できません': 'AI 모델 정보를 가져올 수 없습니다',
+      'ONNX Runtimeを読み込めませんでした': 'ONNX Runtime을 불러오지 못했습니다',
+      'AIマスクの出力を読み取れませんでした':
+        'AI 마스크 출력을 읽을 수 없었습니다',
+      '標準AIの実行機能を利用できません':
+        '표준 AI 실행 기능을 사용할 수 없습니다',
+      'AIモデルの実行に失敗しました': 'AI 모델 실행에 실패했습니다',
+      '画像サイズを取得できませんでした': '이미지 크기를 가져올 수 없었습니다',
+      'AI入力画像を作成できませんでした': 'AI 입력 이미지를 만들 수 없었습니다',
+      'AIマスクの出力が空でした': 'AI 마스크 출력이 비어 있었습니다',
+      'AIマスクを作成できませんでした': 'AI 마스크를 만들 수 없었습니다',
+      'AIマスクを切り出せませんでした': 'AI 마스크를 잘라낼 수 없었습니다',
+      'AIマスクを元画像サイズに戻せませんでした':
+        'AI 마스크를 원본 이미지 크기로 되돌릴 수 없었습니다',
+      '高解像度マスクを整えています...': '고해상도 마스크를 다듬는 중...',
+      'PNG / JPEG / WebP のマスク画像を選択してください':
+        'PNG, JPEG 또는 WebP 마스크 이미지를 선택하세요.',
+      'マスク画像を読み込めませんでした': '마스크 이미지를 불러올 수 없었습니다',
       '画像オーバーレイ': '이미지 오버레이',
       '画像オーバーレイをリセット': '이미지 오버레이 초기화',
       '画像オーバーレイ素材を読み込めませんでした':
@@ -794,6 +947,67 @@
       '更新対象フォルダの設定': '갱신 대상 폴더 설정',
       'フォルダ追加': '폴더 추가',
       'まだ登録されていません': '아직 등록되지 않았습니다',
+      'AIモデル': 'AI 모델',
+      '画像編集の被写体選択で使うモデルを管理します':
+        '이미지 편집의 피사체 선택에 사용하는 모델을 관리합니다.',
+      'AIモデル情報を取得できませんでした':
+        'AI 모델 정보를 가져올 수 없었습니다',
+      'AIモデルのダウンロード機能を利用できません':
+        'AI 모델 다운로드 기능을 사용할 수 없습니다',
+      'このAIモデルはダウンロードできません':
+        '이 AI 모델은 다운로드할 수 없습니다',
+      '画像は外部サーバーに送信されません。AI処理はPC内で実行されます。':
+        '이미지는 외부 서버로 전송되지 않습니다. AI 처리는 PC 안에서 실행됩니다.',
+      'このモデルは標準AIより処理時間やメモリ使用量が大きくなる場合があります。':
+        '이 모델은 표준 AI보다 처리 시간이 길거나 메모리 사용량이 클 수 있습니다.',
+      'AIモデルをダウンロードできませんでした':
+        'AI 모델을 다운로드할 수 없었습니다',
+      '保存場所を開けません': '저장 위치를 열 수 없습니다',
+      '保存場所を開けませんでした': '저장 위치를 열 수 없었습니다',
+      'AIモデルを削除': 'AI 모델 삭제',
+      'AIモデルの削除機能を利用できません':
+        'AI 모델 삭제 기능을 사용할 수 없습니다',
+      'AIモデルを削除しています...': 'AI 모델을 삭제하는 중...',
+      'AIモデルを削除できませんでした': 'AI 모델을 삭제할 수 없었습니다',
+      'AIモデルを削除しました': 'AI 모델을 삭제했습니다',
+      'ライセンス確認により利用停止中です':
+        '라이선스 확인 결과 사용이 중지되었습니다',
+      '軽量AI': '경량 AI',
+      '標準AI': '표준 AI',
+      '高精度AI': '고정밀 AI',
+      '高精度AI候補': '고정밀 AI 후보',
+      '旧モデル': '이전 모델',
+      '利用可能': '사용 가능',
+      '検証失敗': '검증 실패',
+      '準備中': '준비 중',
+      '利用停止中': '사용 중지',
+      '一部不足': '일부 누락',
+      '未ダウンロード': '미다운로드',
+      '同梱': '동봉',
+      '管理フォルダ': '관리 폴더',
+      '同梱モデル': '동봉 모델',
+      'ダウンロード': '다운로드',
+      '配布元': '배포처',
+      '保存場所': '저장 위치',
+      '未確定': '미확정',
+      'すぐ使える軽量な被写体マスク生成モデルです。複雑な髪型、衣装、羽、尻尾などでは精度が落ちる場合があります。':
+        '바로 사용할 수 있는 경량 피사체 마스크 생성 모델입니다. 복잡한 헤어스타일, 의상, 날개, 꼬리 등에서는 정확도가 떨어질 수 있습니다.',
+      'すぐ使える高速モデルです。複雑な髪型・衣装・羽・尻尾などでは精度が落ちる場合があります。':
+        '바로 사용할 수 있는 빠른 모델입니다. 복잡한 헤어스타일, 의상, 날개, 꼬리 등에서는 정확도가 떨어질 수 있습니다.',
+      'VRChatアバター向けの通常モデルです。細かい髪型・衣装・装飾・羽・尻尾などの検出精度が向上します。':
+        'VRChat 아바타용 일반 모델입니다. 세밀한 헤어스타일, 의상, 장식, 날개, 꼬리 등의 감지 정확도가 향상됩니다.',
+      'VRChatアバター向けの標準モデルです。軽量AIよりも、髪型・衣装・装飾・羽・尻尾などの検出精度向上を狙います。':
+        'VRChat 아바타용 표준 모델입니다. 경량 AI보다 헤어스타일, 의상, 장식, 날개, 꼬리 등의 감지 정확도 향상을 목표로 합니다.',
+      '境界をよりきれいに検出する上位モデルです。背景ぼかし、被写体だけ補正、文字や画像を被写体に合わせる加工に向いています。':
+        '경계를 더 깔끔하게 감지하는 상위 모델입니다. 배경 흐림, 피사체만 보정, 문자나 이미지를 피사체에 맞추는 편집에 적합합니다.',
+      '境界をよりきれいに検出する上位モデルです。背景ぼかし、被写体だけ補正、文字や画像を被写体に合わせる加工に向いています。処理時間やメモリ使用量が大きくなる場合があります。':
+        '경계를 더 깔끔하게 감지하는 상위 모델입니다. 배경 흐림, 피사체만 보정, 문자나 이미지를 피사체에 맞추는 편집에 적합합니다. 처리 시간과 메모리 사용량이 커질 수 있습니다.',
+      '学習データセットの商用利用条件を確認した結果、現在の推奨構成では使用しません。必要に応じて削除できます。':
+        '학습 데이터셋의 상업적 이용 조건을 확인한 결과, 현재 권장 구성에서는 사용하지 않습니다. 필요하면 삭제할 수 있습니다.',
+      '学習データセットの商用利用条件を確認した結果、現在の推奨構成では使用しません。':
+        '학습 데이터셋의 상업적 이용 조건을 확인한 결과, 현재 권장 구성에서는 사용하지 않습니다.',
+      '旧構成で高精度AIとして扱っていたモデルです。現在の推奨構成では使用しません。':
+        '이전 구성에서 고정밀 AI로 취급하던 모델입니다. 현재 권장 구성에서는 사용하지 않습니다.',
       'データ管理': '데이터 관리',
       'ラベル、メモ、お気に入り、World情報を保存・書き出しできます':
         '라벨, 메모, 즐겨찾기, World 정보를 저장하고 내보낼 수 있습니다.',

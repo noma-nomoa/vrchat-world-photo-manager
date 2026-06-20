@@ -1,0 +1,13 @@
+{
+  "id": "u2netp",
+  "label": "軽量AI",
+  "modelName": "U-2-Netp",
+  "version": "7112208dbac3a3642496c8d54e2f0f9bb3dc1dc8",
+  "license": "Apache-2.0",
+  "sourceUrl": "https://huggingface.co/BritishWerewolf/U-2-Netp",
+  "modelFile": "model.onnx",
+  "sha256": "309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8",
+  "size": 4574861,
+  "inputSize": 320,
+  "description": "すぐ使える軽量な被写体マスク生成モデルです。複雑な髪型、衣装、羽、尻尾などでは精度が落ちる場合があります。"
+}

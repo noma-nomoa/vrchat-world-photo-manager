@@ -1611,6 +1611,28 @@ body[data-theme="light"] .primary-link-button {
   filter: brightness(1.04);
 }
 
+.small-action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  filter: none;
+}
+
+.photo-editor-toggle-button {
+  min-width: 0;
+  min-height: 38px;
+  border-color: var(--line);
+  background: var(--surface-card);
+  color: var(--text-1);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.photo-editor-toggle-button.is-active {
+  border-color: var(--accent-soft-line);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
 .sub-modal {
   position: fixed;
   inset: 0;
@@ -2547,6 +2569,94 @@ body[data-theme="light"] .primary-link-button {
   line-height: 1;
 }
 
+.photo-editor-subject-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.photo-editor-subject-actions button {
+  min-width: 0;
+}
+
+.photo-editor-subject-actions .small-action-button {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 38px;
+  justify-content: center;
+  gap: 6px;
+}
+
+.photo-editor-subject-actions .secondary {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-card);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.photo-editor-subject-actions .secondary:hover:not(:disabled) {
+  border-color: var(--accent-soft-line);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-card));
+  color: var(--accent-text);
+}
+
+.photo-editor-subject-actions .secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+#photo-editor-subject-import-btn {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#photo-editor-subject-delete-btn {
+  min-width: 52px;
+}
+
+.photo-editor-subject-actions .small-action-button .material-symbols-outlined {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.photo-editor-subject-status {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.photo-editor-subject-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.photo-editor-subject-toggle-grid .small-action-button {
+  min-height: 38px;
+  min-width: 0;
+  justify-content: center;
+  padding: 0 10px;
+  border-color: var(--line);
+  background: var(--surface-card);
+  color: var(--text-1);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.photo-editor-subject-toggle-grid .small-action-button.is-active {
+  border-color: var(--accent-soft-line);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
 .photo-editor-image-overlay-library,
 .photo-editor-image-overlay-list {
   display: grid;
@@ -2677,10 +2787,33 @@ body[data-theme="light"] .primary-link-button {
   gap: 8px;
 }
 
-.photo-editor-image-overlay-layer-actions .secondary {
+.photo-editor-image-overlay-layer-actions .small-action-button {
   min-width: 0;
-  min-height: 34px;
+  min-height: 36px;
+  gap: 5px;
   padding-inline: 10px;
+  border-color: var(--line);
+  background: var(--surface-card);
+  color: var(--text-1);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.photo-editor-image-overlay-layer-actions .small-action-button:hover:not(:disabled) {
+  border-color: var(--accent-soft-line);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-card));
+  color: var(--accent-text);
+}
+
+.photo-editor-image-overlay-layer-actions .small-action-button .material-symbols-outlined {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.photo-editor-image-overlay-layer-actions .small-action-button.is-danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, #ef4444 46%, var(--line));
+  background: color-mix(in srgb, #ef4444 16%, var(--surface-card));
+  color: #fecaca;
 }
 
 .photo-editor-text-list {
@@ -2811,8 +2944,7 @@ body[data-theme="light"] .primary-link-button {
   justify-self: start;
 }
 
-.photo-editor-color-field,
-.photo-editor-checkbox-field {
+.photo-editor-color-field {
   display: grid;
   gap: 6px;
   color: var(--text-1);
@@ -2834,37 +2966,6 @@ body[data-theme="light"] .primary-link-button {
 .photo-editor-color-field input[type='color']:hover {
   border-color: var(--accent-soft-line);
   background: color-mix(in srgb, var(--accent) 12%, var(--surface-card));
-}
-
-.photo-editor-checkbox-field {
-  min-height: 38px;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: end;
-  align-content: end;
-  gap: 8px;
-  padding: 0 10px 7px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface-card);
-  cursor: pointer;
-}
-
-.photo-editor-checkbox-field:hover {
-  border-color: var(--accent-soft-line);
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface-card));
-}
-
-.photo-editor-checkbox-field input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: var(--accent);
-}
-
-.photo-editor-checkbox-field span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 #photo-editor-preset-name {
@@ -3050,7 +3151,7 @@ body[data-theme="light"] .primary-link-button {
 
 .photo-editor-blur-mode-toggle {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -3848,6 +3949,74 @@ body[data-font="gaegu"] .settings-maintenance-status {
 }
 
 .settings-data-status.is-error {
+  color: #ff9aa9;
+}
+
+.settings-ai-model-list {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-ai-model-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.settings-ai-model-name {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.settings-ai-model-meta {
+  margin: 4px 0 0;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.settings-ai-model-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.settings-ai-model-actions .secondary,
+.settings-ai-model-actions .danger-button {
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.settings-ai-model-status {
+  margin: 2px 0 0;
+  min-height: 18px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.settings-ai-model-status.is-busy {
+  color: var(--accent-text);
+}
+
+.settings-ai-model-status.is-success {
+  color: var(--text-1);
+}
+
+.settings-ai-model-status.is-error {
   color: #ff9aa9;
 }
 

@@ -39,6 +39,7 @@ module.exports = {
     ignore: PACKAGER_IGNORE_PATTERNS,
     executableName: WINDOWS_EXECUTABLE_NAME,
     icon: WINDOWS_ICON_PATH,
+    extraResource: ['./resources/models', './resources/onnxruntime-web'],
     win32metadata: {
       CompanyName: 'nooma',
       FileDescription: 'WorldShot Log',

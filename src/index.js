@@ -30,14 +30,334 @@ let thumbnailDirPath = '';
 let preferencesFilePath = '';
 let photoEditorOverlayAssetDirPath = '';
 let mainWindowRef = null;
+const aiSubjectModelVerificationCache = new Map();
 const APP_DISPLAY_NAME = 'WorldShot Log';
 const APP_TITLE = `${APP_DISPLAY_NAME} v${app.getVersion()}`;
 const UNKNOWN_WORLD_DISPLAY_NAME = 'ワールド名を取得できませんでした';
 const APP_WINDOW_ICON_ICO_PATH = path.join(__dirname, '..', 'img', 'logo.ico');
 const APP_WINDOW_ICON_PNG_PATH = path.join(__dirname, '..', 'img', 'logo.png');
+const APP_RESOURCE_ROOT_PATH = app.isPackaged
+  ? process.resourcesPath
+  : path.join(__dirname, '..', 'resources');
+const AI_SUBJECT_MODEL_ROOT_PATH = path.join(APP_RESOURCE_ROOT_PATH, 'models');
+const AI_SUBJECT_WASM_ROOT_PATH = path.join(
+  APP_RESOURCE_ROOT_PATH,
+  'onnxruntime-web'
+);
+const AI_MODEL_TIERS = Object.freeze({
+  lightweight: {
+    id: 'lightweight',
+    label: '軽量AI',
+    defaultModelId: 'u2netp',
+    visible: true,
+  },
+  standard: {
+    id: 'standard',
+    label: '標準AI',
+    defaultModelId: 'withoutbg-snap',
+    visible: true,
+  },
+  highQuality: {
+    id: 'high-quality',
+    label: '高精度AI',
+    defaultModelId: 'withoutbg-focus',
+    visible: true,
+  },
+  legacy: {
+    id: 'legacy',
+    label: '旧モデル',
+    defaultModelId: 'u2net-standard',
+    visible: false,
+  },
+});
+const AI_SUBJECT_MODELS = Object.freeze({
+  u2netp: {
+    id: 'u2netp',
+    tier: 'lightweight',
+    label: 'U-2-NetP',
+    displayName: '軽量AI',
+    modelName: 'U-2-Netp',
+    license: 'Apache-2.0',
+    sizeLabel: '約5MB',
+    directoryName: 'u2netp',
+    fileName: 'model.onnx',
+    metadataFileName: 'model.json',
+    sourceUrl: 'https://huggingface.co/BritishWerewolf/U-2-Netp',
+    sha256: '309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8',
+    inputSize: 320,
+    keepAspectRatio: true,
+    bundled: true,
+    visible: true,
+    recommended: true,
+    description:
+      'すぐ使える高速モデルです。複雑な髪型・衣装・羽・尻尾などでは精度が落ちる場合があります。',
+  },
+  'withoutbg-snap': {
+    id: 'withoutbg-snap',
+    tier: 'standard',
+    label: 'withoutBG Snap',
+    displayName: '標準AI',
+    modelName: 'withoutBG Snap',
+    license: 'Apache-2.0',
+    sizeLabel: '約140MB',
+    directoryName: 'withoutbg-snap',
+    metadataFileName: 'model.json',
+    sourceUrl: 'https://huggingface.co/withoutbg/snap',
+    provider: 'withoutBG',
+    execution: 'onnxruntime-web',
+    localOnly: true,
+    usesCloudApi: false,
+    version: '0.1.0',
+    inputSize: 518,
+    keepAspectRatio: false,
+    bundled: false,
+    visible: true,
+    recommended: true,
+    pipeline: 'withoutbg-snap',
+    files: [
+      {
+        role: 'depth',
+        fileName: 'depth_anything_v2_vits_slim.onnx',
+        downloadUrl:
+          'https://huggingface.co/withoutbg/snap/resolve/main/depth_anything_v2_vits_slim.onnx',
+        sha256:
+          '396bc234301510f59fd45ada24cbb72cdc7cf201f6578dfce76f42b67bc609f7',
+        sizeBytes: 98985353,
+        sizeLabel: '約99MB',
+      },
+      {
+        role: 'matting',
+        fileName: 'snap_matting_0.1.0.onnx',
+        downloadUrl:
+          'https://huggingface.co/withoutbg/snap/resolve/main/snap_matting_0.1.0.onnx',
+        sha256:
+          '094d9b674939cf0f75edc1ddb768a786345205564e01a727f017a5457335197d',
+        sizeBytes: 26831092,
+        sizeLabel: '約26.8MB',
+      },
+      {
+        role: 'refiner',
+        fileName: 'snap_refiner_0.1.0.onnx',
+        downloadUrl:
+          'https://huggingface.co/withoutbg/snap/resolve/main/snap_refiner_0.1.0.onnx',
+        sha256:
+          '9c10a55fcb01f871b35acc5db03dc30a8c92a15c0e445d4d8ba3c8f4da3c3a80',
+        sizeBytes: 14462962,
+        sizeLabel: '約14.5MB',
+      },
+    ],
+    supplementalFiles: [
+      {
+        fileName: 'LICENSE.txt',
+        downloadUrl:
+          'https://raw.githubusercontent.com/withoutbg/withoutbg/main/LICENSE',
+      },
+      {
+        fileName: 'THIRD_PARTY_LICENSES.md',
+        downloadUrl:
+          'https://raw.githubusercontent.com/withoutbg/withoutbg/main/THIRD_PARTY_LICENSES.md',
+      },
+      {
+        fileName: 'README.md',
+        downloadUrl: 'https://huggingface.co/withoutbg/snap/raw/main/README.md',
+      },
+    ],
+    description:
+      'VRChatアバター向けの標準モデルです。軽量AIよりも、髪型・衣装・装飾・羽・尻尾などの検出精度向上を狙います。',
+  },
+  'withoutbg-focus': {
+    id: 'withoutbg-focus',
+    tier: 'high-quality',
+    label: 'withoutBG Focus OSS',
+    displayName: '高精度AI',
+    modelName: 'withoutBG Focus OSS',
+    license: 'Apache-2.0',
+    sizeLabel: '約320MB',
+    directoryName: 'withoutbg-focus',
+    metadataFileName: 'model.json',
+    sourceUrl: 'https://huggingface.co/withoutbg/focus',
+    provider: 'withoutBG',
+    execution: 'onnxruntime-web',
+    localOnly: true,
+    usesCloudApi: false,
+    version: '1.0.0',
+    inputSize: 518,
+    keepAspectRatio: false,
+    bundled: false,
+    visible: true,
+    recommended: false,
+    pipeline: 'withoutbg-focus',
+    files: [
+      {
+        role: 'isnet',
+        fileName: 'isnet.onnx',
+        downloadUrl:
+          'https://huggingface.co/withoutbg/focus/resolve/main/isnet.onnx',
+        sha256:
+          'c3335f04d3aa1f586974cee6310834680498f2f0469319e3821c3995ed61f64e',
+        sizeBytes: 177268929,
+        sizeLabel: '約177MB',
+      },
+      {
+        role: 'depth',
+        fileName: 'depth_anything_v2_vits_slim.onnx',
+        downloadUrl:
+          'https://huggingface.co/withoutbg/focus/resolve/main/depth_anything_v2_vits_slim.onnx',
+        sha256:
+          '396bc234301510f59fd45ada24cbb72cdc7cf201f6578dfce76f42b67bc609f7',
+        sizeBytes: 98985353,
+        sizeLabel: '約99MB',
+      },
+      {
+        role: 'matting',
+        fileName: 'focus_matting_1.0.0.onnx',
+        downloadUrl:
+          'https://huggingface.co/withoutbg/focus/resolve/main/focus_matting_1.0.0.onnx',
+        sha256:
+          '2ac4d48e0c9d670f1146375dffe6cd5e68c386e41bc333753360f63cc70f7ee7',
+        sizeBytes: 26831672,
+        sizeLabel: '約26.8MB',
+      },
+      {
+        role: 'refiner',
+        fileName: 'focus_refiner_1.0.0.onnx',
+        downloadUrl:
+          'https://huggingface.co/withoutbg/focus/resolve/main/focus_refiner_1.0.0.onnx',
+        sha256:
+          'ca5989d91539cad5eac1d6380f80811844488a988380f0541f67082af3a7847b',
+        sizeBytes: 14462382,
+        sizeLabel: '約14.5MB',
+      },
+    ],
+    supplementalFiles: [
+      {
+        fileName: 'LICENSE.txt',
+        downloadUrl:
+          'https://raw.githubusercontent.com/withoutbg/withoutbg/main/LICENSE',
+      },
+      {
+        fileName: 'THIRD_PARTY_LICENSES.md',
+        downloadUrl:
+          'https://raw.githubusercontent.com/withoutbg/withoutbg/main/THIRD_PARTY_LICENSES.md',
+      },
+      {
+        fileName: 'README.md',
+        downloadUrl: 'https://huggingface.co/withoutbg/focus/raw/main/README.md',
+      },
+    ],
+    description:
+      '境界をよりきれいに検出する上位モデルです。背景ぼかし、被写体だけ補正、文字や画像を被写体に合わせる加工に向いています。処理時間やメモリ使用量が大きくなる場合があります。',
+  },
+  'birefnet-lite-onnx': {
+    id: 'birefnet-lite-onnx',
+    tier: 'standard',
+    label: 'BiRefNet_lite-ONNX',
+    displayName: '標準AI',
+    modelName: 'BiRefNet_lite-ONNX',
+    license: 'MIT',
+    sizeLabel: '約115MB',
+    directoryName: 'birefnet-lite-onnx',
+    fileName: 'model.onnx',
+    metadataFileName: 'model.json',
+    sourceUrl: 'https://huggingface.co/onnx-community/BiRefNet_lite-ONNX',
+    downloadUrl: '',
+    sha256: 'd39b897ceb16ae654c1731f3dba0cf9b368d9cae74b5a57459b455cc8bfec402',
+    inputSize: 1024,
+    keepAspectRatio: false,
+    runtime: 'node',
+    bundled: false,
+    visible: false,
+    recommended: false,
+    deprecated: true,
+    licenseRestricted: true,
+    description:
+      '学習データセットの商用利用条件を確認した結果、現在の推奨構成では使用しません。必要に応じて削除できます。',
+  },
+  'ben2-onnx': {
+    id: 'ben2-onnx',
+    tier: 'high-quality',
+    label: 'BEN2-ONNX',
+    displayName: '高精度AI',
+    modelName: 'BEN2-ONNX',
+    license: 'MIT',
+    sizeLabel: '約219MB',
+    directoryName: 'ben2-onnx',
+    fileName: 'model.onnx',
+    metadataFileName: 'model.json',
+    sourceUrl: 'https://huggingface.co/onnx-community/BEN2-ONNX',
+    downloadUrl: '',
+    sha256: 'dfdc25f421f32a0d1268e0f2ff2153d340e8f1d52d3dd16f5dc33c1ce85cedf1',
+    inputSize: 1024,
+    keepAspectRatio: false,
+    runtime: 'node',
+    bundled: false,
+    visible: false,
+    recommended: false,
+    deprecated: true,
+    licenseRestricted: true,
+    description:
+      '学習データセットの商用利用条件を確認した結果、現在の推奨構成では使用しません。必要に応じて削除できます。',
+  },
+  'birefnet-onnx': {
+    id: 'birefnet-onnx',
+    tier: 'high-quality',
+    label: 'BiRefNet-ONNX',
+    displayName: '高精度AI候補',
+    modelName: 'BiRefNet-ONNX',
+    license: 'MIT',
+    sizeLabel: '約490MB(fp16)',
+    directoryName: 'birefnet-onnx',
+    fileName: 'model.onnx',
+    metadataFileName: 'model.json',
+    sourceUrl: 'https://huggingface.co/onnx-community/BiRefNet-ONNX',
+    downloadUrl: '',
+    sha256: '3654c741eb80bd926ada8fed1713b506ccf8d30eb1f6487e87eb9f234f33df09',
+    inputSize: 1024,
+    keepAspectRatio: false,
+    bundled: false,
+    visible: false,
+    recommended: false,
+    deprecated: true,
+    licenseRestricted: true,
+    description:
+      '学習データセットの商用利用条件を確認した結果、現在の推奨構成では使用しません。',
+  },
+  'u2net-standard': {
+    id: 'u2net-standard',
+    tier: 'legacy',
+    label: 'U-2-Net standard',
+    displayName: '旧モデル',
+    modelName: 'U-2-Net',
+    license: 'Apache-2.0',
+    sizeLabel: '約176MB',
+    directoryName: 'u2net',
+    fileName: 'model.onnx',
+    metadataFileName: 'model.json',
+    sourceUrl: 'https://huggingface.co/BritishWerewolf/U-2-Net',
+    downloadUrl: '',
+    sha256: '8d10d2f3bb75ae3b6d527c77944fc5e7dcd94b29809d47a739a7a728a912b491',
+    inputSize: 320,
+    keepAspectRatio: true,
+    bundled: false,
+    visible: false,
+    recommended: false,
+    deprecated: true,
+    storageRoot: 'legacy',
+    description:
+      '旧構成で高精度AIとして扱っていたモデルです。現在の推奨構成では使用しません。',
+  },
+});
 const APP_ROAMING_DATA_ROOT =
   process.env.WORLDSHOT_APPDATA_ROOT || app.getPath('appData');
 const APP_USER_DATA_PATH = path.join(APP_ROAMING_DATA_ROOT, APP_DISPLAY_NAME);
+const AI_SUBJECT_MANAGED_MODEL_ROOT_PATH = path.join(
+  APP_USER_DATA_PATH,
+  'models'
+);
+const AI_SUBJECT_LEGACY_MODEL_ROOT_PATH = path.join(
+  APP_USER_DATA_PATH,
+  'ai-subject-models'
+);
 const APP_LOCAL_DATA_ROOT =
   process.env.WORLDSHOT_LOCALAPPDATA_ROOT ||
   process.env.LOCALAPPDATA ||
@@ -1443,6 +1763,548 @@ function isSupportedPhotoEditorOverlayImageFile(filePath) {
   return PHOTO_EDITOR_OVERLAY_IMAGE_EXTENSIONS.has(
     path.extname(filePath).toLowerCase()
   );
+}
+
+async function calculateFileSha256(filePath) {
+  const fileBuffer = await fs.readFile(filePath);
+  return createHash('sha256').update(fileBuffer).digest('hex');
+}
+
+function getAiSubjectModelDefinition(modelId) {
+  return Object.values(AI_SUBJECT_MODELS).find((model) => model.id === modelId);
+}
+
+function getAiSubjectModelDirectoryPath(modelDefinition) {
+  const rootPath = modelDefinition.bundled
+    ? AI_SUBJECT_MODEL_ROOT_PATH
+    : modelDefinition.storageRoot === 'legacy'
+      ? AI_SUBJECT_LEGACY_MODEL_ROOT_PATH
+      : AI_SUBJECT_MANAGED_MODEL_ROOT_PATH;
+  return path.join(rootPath, modelDefinition.directoryName);
+}
+
+function getAiSubjectModelFileDefinitions(modelDefinition) {
+  if (Array.isArray(modelDefinition.files) && modelDefinition.files.length > 0) {
+    return modelDefinition.files.map((fileDefinition) => ({
+      ...fileDefinition,
+      role: fileDefinition.role || '',
+      sha256: fileDefinition.sha256 || '',
+      sizeBytes: Number(fileDefinition.sizeBytes) || 0,
+    }));
+  }
+
+  return [
+    {
+      role: modelDefinition.role || 'model',
+      fileName: modelDefinition.fileName,
+      downloadUrl: modelDefinition.downloadUrl || '',
+      sha256: modelDefinition.sha256 || '',
+      sizeBytes: Number(modelDefinition.sizeBytes) || 0,
+      sizeLabel: modelDefinition.sizeLabel || '',
+    },
+  ].filter((fileDefinition) => fileDefinition.fileName);
+}
+
+function getAiSubjectModelFilePath(modelDefinition, fileDefinition = null) {
+  const targetFile = fileDefinition || getAiSubjectModelFileDefinitions(modelDefinition)[0];
+
+  return path.join(
+    getAiSubjectModelDirectoryPath(modelDefinition),
+    targetFile.fileName
+  );
+}
+
+function getAiSubjectModelMetadataFilePath(modelDefinition) {
+  return path.join(
+    getAiSubjectModelDirectoryPath(modelDefinition),
+    modelDefinition.metadataFileName
+  );
+}
+
+function createAiSubjectModelMetadata(modelDefinition, files = []) {
+  const normalizedFiles = Array.isArray(files) ? files : [];
+
+  return {
+    id: modelDefinition.id,
+    tier: modelDefinition.tier,
+    modelName: modelDefinition.modelName,
+    displayName: modelDefinition.displayName,
+    version: modelDefinition.version || '',
+    license: modelDefinition.license,
+    provider: modelDefinition.provider || '',
+    source: 'official',
+    sourceUrl: modelDefinition.sourceUrl,
+    sha256: modelDefinition.sha256 || '',
+    size: normalizedFiles.reduce(
+      (total, file) => total + (Number(file.size) || 0),
+      0
+    ),
+    inputSize: modelDefinition.inputSize,
+    description: modelDefinition.description,
+    localOnly: modelDefinition.localOnly !== false,
+    usesCloudApi: Boolean(modelDefinition.usesCloudApi),
+    downloadedAt: new Date().toISOString(),
+    files: normalizedFiles,
+  };
+}
+
+async function verifyAiSubjectModelFile(
+  modelDefinition,
+  fileDefinition,
+  modelFilePath,
+  modelStat
+) {
+  const cacheKey = [
+    modelDefinition.id,
+    fileDefinition.fileName,
+    modelFilePath,
+    modelStat.size,
+    Math.round(modelStat.mtimeMs),
+    fileDefinition.sha256,
+  ].join(':');
+  const cached = aiSubjectModelVerificationCache.get(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
+  const actualSha256 = await calculateFileSha256(modelFilePath);
+  const result = {
+    sha256: actualSha256,
+    verified:
+      actualSha256.toLowerCase() === fileDefinition.sha256.toLowerCase(),
+  };
+  aiSubjectModelVerificationCache.set(cacheKey, result);
+  return result;
+}
+
+async function runAiSubjectModelInMain(payload = {}) {
+  const modelDefinition = getAiSubjectModelDefinition(payload.modelId);
+
+  if (!modelDefinition) {
+    throw new Error('AIモデルが見つかりません');
+  }
+
+  if (
+    modelDefinition.future ||
+    modelDefinition.licenseRestricted ||
+    modelDefinition.runtimeSupported === false
+  ) {
+    throw new Error('このAIモデルは現在の実行環境では利用できません');
+  }
+
+  throw new Error('このAIモデルは現在の実行環境では利用できません');
+}
+
+async function getAiSubjectModelStatus() {
+  const models = [];
+
+  for (const modelDefinition of Object.values(AI_SUBJECT_MODELS)) {
+    const metadataFilePath = getAiSubjectModelMetadataFilePath(modelDefinition);
+    const fileDefinitions = getAiSubjectModelFileDefinitions(modelDefinition);
+    let metadata = {};
+    let installed = false;
+    let verified = false;
+    let sizeBytes = 0;
+    let message = '';
+    const files = [];
+
+    try {
+      const metadataText = await fs.readFile(metadataFilePath, 'utf8').catch(() => '');
+      metadata = metadataText ? JSON.parse(metadataText) : {};
+    } catch {
+      metadata = {};
+    }
+
+    for (const fileDefinition of fileDefinitions) {
+      const filePath = getAiSubjectModelFilePath(modelDefinition, fileDefinition);
+      let fileInstalled = false;
+      let fileVerified = false;
+      let fileSize = 0;
+      let fileSha256 = '';
+
+      try {
+        const fileStat = await fs.stat(filePath);
+        fileInstalled = fileStat.isFile();
+        fileSize = fileInstalled ? fileStat.size : 0;
+
+        if (fileInstalled && fileDefinition.sha256) {
+          const verification = await verifyAiSubjectModelFile(
+            modelDefinition,
+            fileDefinition,
+            filePath,
+            fileStat
+          );
+          fileVerified = verification.verified;
+          fileSha256 = verification.sha256;
+        } else if (fileInstalled && !fileDefinition.sha256) {
+          fileVerified = true;
+        }
+      } catch {
+        fileInstalled = false;
+        fileVerified = false;
+      }
+
+      sizeBytes += fileSize;
+      files.push({
+        role: fileDefinition.role || '',
+        fileName: fileDefinition.fileName,
+        sizeBytes: fileSize,
+        expectedSizeBytes: Number(fileDefinition.sizeBytes) || 0,
+        sizeLabel: fileDefinition.sizeLabel || '',
+        sha256: fileSha256,
+        expectedSha256: fileDefinition.sha256 || '',
+        installed: fileInstalled,
+        verified: fileVerified,
+        fileUrl: fileInstalled ? pathToFileURL(filePath).href : '',
+      });
+    }
+
+    installed = files.length > 0 && files.every((file) => file.installed);
+    const partialInstalled =
+      files.some((file) => file.installed) && !installed;
+    verified =
+      installed && files.every((file) => file.verified || !file.expectedSha256);
+
+    if (partialInstalled) {
+      message = 'モデルファイルが一部不足しています';
+    } else if (installed && !verified) {
+      message = 'モデルファイルの検証に失敗しました';
+    } else if (!installed) {
+      message = 'モデルファイルが見つかりません';
+    }
+
+    const modelFileMap = {};
+    for (const file of files) {
+      if (file.role) {
+        modelFileMap[file.role] = file.fileUrl;
+      }
+    }
+
+    models.push({
+      id: modelDefinition.id,
+      tier: modelDefinition.tier,
+      label: modelDefinition.label,
+      displayName: modelDefinition.displayName,
+      modelName: modelDefinition.modelName,
+      license: metadata.license || modelDefinition.license,
+      sizeLabel: modelDefinition.sizeLabel,
+      sizeBytes,
+      bundled: Boolean(modelDefinition.bundled),
+      visible: Boolean(modelDefinition.visible),
+      recommended: Boolean(modelDefinition.recommended),
+      deprecated: Boolean(modelDefinition.deprecated),
+      licenseRestricted: Boolean(modelDefinition.licenseRestricted),
+      future: Boolean(modelDefinition.future),
+      runtime: modelDefinition.runtime || 'web',
+      runtimeSupported: modelDefinition.runtimeSupported !== false,
+      provider: metadata.provider || modelDefinition.provider || '',
+      execution: metadata.execution || modelDefinition.execution || '',
+      localOnly: modelDefinition.localOnly !== false,
+      usesCloudApi: Boolean(modelDefinition.usesCloudApi),
+      pipeline: modelDefinition.pipeline || '',
+      partial: partialInstalled,
+      files,
+      canDownload: Boolean(
+        !modelDefinition.bundled &&
+          !modelDefinition.future &&
+          !modelDefinition.licenseRestricted &&
+          modelDefinition.runtimeSupported !== false &&
+          fileDefinitions.every(
+            (fileDefinition) =>
+              fileDefinition.downloadUrl && fileDefinition.sha256
+          )
+      ),
+      canDelete: Boolean(!modelDefinition.bundled && (installed || partialInstalled)),
+      installed,
+      verified,
+      ready:
+        installed &&
+        verified &&
+        !modelDefinition.future &&
+        !modelDefinition.licenseRestricted &&
+        modelDefinition.runtimeSupported !== false,
+      inputSize: Number(metadata.inputSize || modelDefinition.inputSize) || 320,
+      keepAspectRatio: Boolean(modelDefinition.keepAspectRatio),
+      sourceUrl: metadata.sourceUrl || modelDefinition.sourceUrl,
+      description: metadata.description || modelDefinition.description,
+      modelUrl: installed && files[0] ? files[0].fileUrl : '',
+      modelFiles: modelFileMap,
+      modelDirectoryPath:
+        installed || partialInstalled
+          ? getAiSubjectModelDirectoryPath(modelDefinition)
+          : '',
+      wasmBaseUrl: pathToFileURL(`${AI_SUBJECT_WASM_ROOT_PATH}${path.sep}`).href,
+      message:
+        message ||
+        (modelDefinition.runtimeSupported === false
+          ? '現在の実行環境では検証中です'
+          : modelDefinition.licenseRestricted
+            ? 'ライセンス確認により利用停止中です'
+          : modelDefinition.future
+            ? '将来実装予定です'
+          : '') ||
+        (!modelDefinition.bundled && !installed
+          ? '設定からダウンロードできます'
+          : ''),
+    });
+  }
+
+  return {
+    ok: true,
+    tiers: AI_MODEL_TIERS,
+    models,
+  };
+}
+
+function sendAiSubjectModelDownloadProgress(webContents, payload) {
+  try {
+    webContents?.send?.('ai-subject-model-download-progress', payload);
+  } catch {
+    // Progress events are best-effort; the download result is still returned.
+  }
+}
+
+async function writeResponseBodyToFileWithProgress(
+  response,
+  destinationPath,
+  {
+    modelId,
+    webContents,
+    totalBytes = 0,
+    receivedOffsetBytes = 0,
+    totalExpectedBytes = 0,
+    fileName = '',
+  } = {}
+) {
+  const reader = response.body.getReader();
+  const writeStream = fsSync.createWriteStream(destinationPath);
+  let receivedBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      const chunk = Buffer.from(value);
+      receivedBytes += chunk.length;
+
+      if (!writeStream.write(chunk)) {
+        await new Promise((resolve, reject) => {
+          writeStream.once('drain', resolve);
+          writeStream.once('error', reject);
+        });
+      }
+
+      sendAiSubjectModelDownloadProgress(webContents, {
+        modelId,
+        fileName,
+        receivedBytes: receivedOffsetBytes + receivedBytes,
+        currentFileReceivedBytes: receivedBytes,
+        currentFileTotalBytes: totalBytes,
+        totalBytes: totalExpectedBytes || totalBytes,
+      });
+    }
+  } finally {
+    await new Promise((resolve, reject) => {
+      writeStream.once('error', reject);
+      writeStream.end(resolve);
+    });
+  }
+}
+
+async function downloadTextFileToPath(downloadUrl, destinationPath) {
+  if (!downloadUrl) {
+    return false;
+  }
+
+  try {
+    const response = await net.fetch(downloadUrl);
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const text = await response.text();
+    await fs.writeFile(destinationPath, text, 'utf8');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function downloadAiSubjectModel(modelId, webContents = null) {
+  const modelDefinition = getAiSubjectModelDefinition(modelId);
+
+  if (!modelDefinition) {
+    throw new Error('AIモデルが見つかりません');
+  }
+
+  if (
+    modelDefinition.bundled ||
+    modelDefinition.future ||
+    modelDefinition.licenseRestricted ||
+    modelDefinition.runtimeSupported === false ||
+    getAiSubjectModelFileDefinitions(modelDefinition).some(
+      (fileDefinition) => !fileDefinition.downloadUrl || !fileDefinition.sha256
+    )
+  ) {
+    throw new Error('このAIモデルはダウンロード対象ではありません');
+  }
+
+  const modelDirectoryPath = getAiSubjectModelDirectoryPath(modelDefinition);
+  const metadataFilePath = getAiSubjectModelMetadataFilePath(modelDefinition);
+  const fileDefinitions = getAiSubjectModelFileDefinitions(modelDefinition);
+  const totalExpectedBytes = fileDefinitions.reduce(
+    (total, fileDefinition) => total + (Number(fileDefinition.sizeBytes) || 0),
+    0
+  );
+  let receivedOffsetBytes = 0;
+  const downloadedFiles = [];
+
+  await ensureDir(modelDirectoryPath);
+
+  try {
+    for (const fileDefinition of fileDefinitions) {
+      const modelFilePath = getAiSubjectModelFilePath(
+        modelDefinition,
+        fileDefinition
+      );
+      const tempFilePath = `${modelFilePath}.download`;
+
+      await fs.rm(tempFilePath, { force: true }).catch(() => {});
+
+      sendAiSubjectModelDownloadProgress(webContents, {
+        modelId: modelDefinition.id,
+        fileName: fileDefinition.fileName,
+        receivedBytes: receivedOffsetBytes,
+        totalBytes: totalExpectedBytes,
+      });
+
+      const response = await net.fetch(fileDefinition.downloadUrl);
+
+      if (!response.ok || !response.body) {
+        throw new Error(
+          `AIモデルをダウンロードできませんでした (${response.status || 'unknown'})`
+        );
+      }
+
+      const totalBytes =
+        Number(response.headers.get('content-length')) ||
+        Number(fileDefinition.sizeBytes) ||
+        0;
+      await writeResponseBodyToFileWithProgress(response, tempFilePath, {
+        modelId: modelDefinition.id,
+        webContents,
+        totalBytes,
+        receivedOffsetBytes,
+        totalExpectedBytes,
+        fileName: fileDefinition.fileName,
+      });
+
+      const actualSha256 = await calculateFileSha256(tempFilePath);
+
+      if (actualSha256.toLowerCase() !== fileDefinition.sha256.toLowerCase()) {
+        await fs.rm(tempFilePath, { force: true }).catch(() => {});
+        throw new Error('AIモデルの検証に失敗しました');
+      }
+
+      const modelStat = await fs.stat(tempFilePath);
+      await fs.rm(modelFilePath, { force: true }).catch(() => {});
+      await fs.rename(tempFilePath, modelFilePath);
+      receivedOffsetBytes += modelStat.size;
+      downloadedFiles.push({
+        role: fileDefinition.role || '',
+        fileName: fileDefinition.fileName,
+        sha256: actualSha256,
+        size: modelStat.size,
+      });
+    }
+  } catch (error) {
+    for (const fileDefinition of fileDefinitions) {
+      await fs
+        .rm(`${getAiSubjectModelFilePath(modelDefinition, fileDefinition)}.download`, {
+          force: true,
+        })
+        .catch(() => {});
+    }
+    throw error;
+  }
+
+  if (Array.isArray(modelDefinition.supplementalFiles)) {
+    for (const supplementalFile of modelDefinition.supplementalFiles) {
+      const targetPath = path.join(modelDirectoryPath, supplementalFile.fileName);
+      await downloadTextFileToPath(supplementalFile.downloadUrl, targetPath);
+    }
+  }
+
+  await fs.writeFile(
+    metadataFilePath,
+    `${JSON.stringify(createAiSubjectModelMetadata(modelDefinition, downloadedFiles), null, 2)}\n`,
+    'utf8'
+  );
+
+  return getAiSubjectModelStatus();
+}
+
+async function deleteAiSubjectModel(modelId) {
+  const modelDefinition = getAiSubjectModelDefinition(modelId);
+
+  if (!modelDefinition) {
+    throw new Error('AIモデルが見つかりません');
+  }
+
+  if (modelDefinition.bundled) {
+    throw new Error('同梱AIモデルは削除できません');
+  }
+
+  const modelDirectoryPath = path.resolve(
+    getAiSubjectModelDirectoryPath(modelDefinition)
+  );
+  const managedRootPath = path.resolve(
+    modelDefinition.storageRoot === 'legacy'
+      ? AI_SUBJECT_LEGACY_MODEL_ROOT_PATH
+      : AI_SUBJECT_MANAGED_MODEL_ROOT_PATH
+  );
+
+  if (
+    modelDirectoryPath !== managedRootPath &&
+    !modelDirectoryPath.startsWith(`${managedRootPath}${path.sep}`)
+  ) {
+    throw new Error('AIモデルの削除先が不正です');
+  }
+
+  for (const cacheKey of aiSubjectModelVerificationCache.keys()) {
+    if (cacheKey.startsWith(`${modelDefinition.id}:`)) {
+      aiSubjectModelVerificationCache.delete(cacheKey);
+    }
+  }
+
+  await fs.rm(modelDirectoryPath, { recursive: true, force: true });
+  return getAiSubjectModelStatus();
+}
+
+async function openAiSubjectModelFolder(modelId) {
+  const modelDefinition = getAiSubjectModelDefinition(modelId);
+
+  if (!modelDefinition) {
+    throw new Error('AIモデルが見つかりません');
+  }
+
+  const modelDirectoryPath = getAiSubjectModelDirectoryPath(modelDefinition);
+  await ensureDir(modelDirectoryPath);
+  const result = await shell.openPath(modelDirectoryPath);
+
+  if (result) {
+    throw new Error(result);
+  }
+
+  return {
+    ok: true,
+  };
 }
 
 function getPhotoEditorOverlayAssetDirectoryPath() {
@@ -6726,6 +7588,64 @@ app.whenReady().then(async () => {
         ok: false,
         message: error.message,
         assets: await listPhotoEditorOverlayAssets(),
+      };
+    }
+  });
+
+  ipcMain.handle('get-ai-subject-model-status', async () => {
+    try {
+      return await getAiSubjectModelStatus();
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        models: [],
+      };
+    }
+  });
+
+  ipcMain.handle('download-ai-subject-model', async (event, payload) => {
+    try {
+      return await downloadAiSubjectModel(payload?.modelId, event.sender);
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        models: [],
+      };
+    }
+  });
+
+  ipcMain.handle('run-ai-subject-model', async (_event, payload) => {
+    try {
+      return await runAiSubjectModelInMain(payload);
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+      };
+    }
+  });
+
+  ipcMain.handle('delete-ai-subject-model', async (_event, payload) => {
+    try {
+      return await deleteAiSubjectModel(payload?.modelId);
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        models: [],
+      };
+    }
+  });
+
+  ipcMain.handle('open-ai-subject-model-folder', async (_event, payload) => {
+    try {
+      return await openAiSubjectModelFolder(payload?.modelId);
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
       };
     }
   });

@@ -61,6 +61,14 @@ WorldShot Log は、VRChat の写真を整理し、見返し、投稿しやす�
 - 90度回転、自由回転、左右反転、上下反転
 - ルーラー、三分割グリッドの表示
 
+### AI被写体選択
+
+- 軽量AIによるローカル被写体マスク生成
+- 標準AI withoutBG Snap、高精度AI withoutBG Focus OSS は必要な場合のみ初回ダウンロード
+- 生成した被写体マスクを補正、ぼかし、テキスト、画像オーバーレイの適用範囲に利用
+- AI処理はPC内で実行され、画像はAI処理のために外部サーバーへ送信しません
+- 利用モデルとライセンス確認: [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)、[AI Model License Review](./docs/ai-model-license-review.md)
+
 ### ぼかし・目隠し加工
 
 - 全体ぼかし
@@ -104,6 +112,7 @@ WorldShot Log は、VRChat の写真を整理し、見返し、投稿しやす�
 最新版は GitHub Releases からダウンロードできます。
 
 - [Releases](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases)
+- [v2.4.0 リリースノート](./release-notes/v2.4.0.md)
 - [v2.3.0 リリースノート](./release-notes/v2.3.0.md)
 - [v2.2.1 リリースノート](./release-notes/v2.2.1.md)
 - [v2.2.0 リリースノート](./release-notes/v2.2.0.md)
@@ -133,6 +142,7 @@ WorldShot Log は GitHub Releases を使った更新確認に対応していま�
 - 取り込んだ写真、メモ、ラベル、設定、サムネイルはユーザーのPC内に保存されます。
 - 元画像は上書きしません。画像編集で保存したファイルは別名で保存されます。
 - World情報の取得やアップデート確認のため、VRChat や GitHub など外部サービスへアクセスする場合があります。
+- AI被写体選択はPC内で実行されます。モデルを追加する場合のみ、モデルファイルのダウンロード先へアクセスします。
 - アプリ内で作成したバックアップやCSV / JSONエクスポートは、ユーザーが選択した保存先に出力されます。
 - アンインストール時にデータも削除する操作を選んだ場合、保存済みのアプリデータが削除されます。
 

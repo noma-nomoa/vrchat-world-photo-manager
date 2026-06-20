@@ -112,6 +112,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('select-photo-editor-overlay-images'),
   deletePhotoEditorOverlayAsset: (assetId) =>
     ipcRenderer.invoke('delete-photo-editor-overlay-asset', { assetId }),
+  getAiSubjectModelStatus: () =>
+    ipcRenderer.invoke('get-ai-subject-model-status'),
+  downloadAiSubjectModel: (modelId) =>
+    ipcRenderer.invoke('download-ai-subject-model', { modelId }),
+  runAiSubjectModel: (payload) =>
+    ipcRenderer.invoke('run-ai-subject-model', payload),
+  deleteAiSubjectModel: (modelId) =>
+    ipcRenderer.invoke('delete-ai-subject-model', { modelId }),
+  openAiSubjectModelFolder: (modelId) =>
+    ipcRenderer.invoke('open-ai-subject-model-folder', { modelId }),
+  onAiSubjectModelDownloadProgress: (callback) => {
+    if (typeof callback !== 'function') {
+      return () => {};
+    }
+
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('ai-subject-model-download-progress', listener);
+    return () =>
+      ipcRenderer.removeListener(
+        'ai-subject-model-download-progress',
+        listener
+      );
+  },
   updateFavoriteStatus: (photoId, isFavorite) =>
     ipcRenderer.invoke('update-favorite-status', { photoId, isFavorite }),
   updateFavoriteStatuses: (photoIds, isFavorite) =>
