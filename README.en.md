@@ -98,6 +98,11 @@ In addition to photo management by date and world, it includes image adjustments
 - Preview each font in the font selector
 - Show recently used fonts
 
+### Display Languages
+
+- Supports Japanese, English, and Korean UI
+- Change the display language from the settings screen
+
 ### Data Management
 
 - Regenerate thumbnails
