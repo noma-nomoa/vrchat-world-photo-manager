@@ -98,10 +98,9 @@ WorldShot Log は、現状次の構成で配布しています。
 例:
 
 ```powershell
-node --check src/index.js
-node --check src/preload.js
-node --check src/renderer.js
-node --check src/db.js
+node --check src/index.js src/preload.js src/renderer.js src/i18n.js src/photo-editor-worker.js
+npm run audit:i18n
+npm run smoke:data
 ```
 
 ---
@@ -128,6 +127,7 @@ npm run make:win
 
 - `.exe` だけでは自動アップデート配布は成立しません
 - **`.nupkg` と `RELEASES` が必須**です
+- ビルド後は `npm run smoke:packaged` で配布版の起動確認を行います
 
 ---
 
@@ -197,6 +197,7 @@ GitHub Release は、**git タグと同名**で作成します。
 
 - `draft` のままでは自動アップデート対象になりません
 - 自動アップデートに乗せるなら、**Release を公開状態にする**必要があります
+- Release 公開後、GitHub 側で `WorldShotLogSetup.exe`、`.nupkg`、`RELEASES` の 3 asset が表示されていることを確認します
 
 ---
 
@@ -214,6 +215,61 @@ GitHub Release は、**git タグと同名**で作成します。
 
 - `npm start` のような開発実行では自動アップデートは動作しません
 - Windows 配布版でのみ有効です
+- GitHub Release に asset が存在していても、`update.electronjs.org` が古い情報を返している場合があります
+- リリース完了前に、旧バージョンから新バージョンが返ることを必ず確認してください
+
+### 8-1. 更新エンドポイント確認
+
+Release 公開後、旧バージョンから最新版が返ることを確認します。
+
+例:
+
+```powershell
+$owner = 'noma-nomoa'
+$repo = 'vrchat-world-photo-manager'
+$oldVersion = '2.4.1'
+$newVersion = '2.4.2'
+
+$updateJsonUrl = "https://update.electronjs.org/$owner/$repo/win32-x64/$oldVersion"
+$releasesUrl = "https://update.electronjs.org/$owner/$repo/win32-x64/$oldVersion/RELEASES?id=worldshot_log&localVersion=$oldVersion&arch=amd64"
+
+Invoke-WebRequest $updateJsonUrl -Headers @{ 'User-Agent' = "WorldShot Log/$oldVersion" }
+Invoke-WebRequest $releasesUrl -Headers @{ 'User-Agent' = "WorldShot Log/$oldVersion" }
+```
+
+確認ポイント:
+
+- `$updateJsonUrl` が `204 No Content` ではなく、`WorldShot Log v<newVersion>` を返す
+- `$releasesUrl` が `worldshot_log-<newVersion>-full.nupkg` を指している
+- 新バージョン自身から確認した場合は `204 No Content` になる
+
+例:
+
+```powershell
+Invoke-WebRequest "https://update.electronjs.org/$owner/$repo/win32-x64/$newVersion" `
+  -Headers @{ 'User-Agent' = "WorldShot Log/$newVersion" }
+```
+
+### 8-2. update.electronjs.org のキャッシュに注意
+
+`update.electronjs.org` は GitHub Releases を参照しますが、内部キャッシュの影響で一時的に古い Release を返すことがあります。
+
+確認時に古い結果が返る場合は、次を確認します。
+
+- 最新 Release が draft / prerelease になっていないか
+- 最新 Release に `.nupkg` と `RELEASES` が添付されているか
+- `RELEASES` の中身が最新 `.nupkg` を指しているか
+- クエリ付き URL でも結果を確認し、キャッシュが更新されるか
+
+例:
+
+```powershell
+$stamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+Invoke-WebRequest "$updateJsonUrl?bust=$stamp" `
+  -Headers @{ 'User-Agent' = "WorldShot Log/$oldVersion" }
+```
+
+この確認が通るまで、リリース完了扱いにしません。
 
 ---
 
@@ -233,6 +289,8 @@ GitHub Release は、**git タグと同名**で作成します。
 10. `WorldShotLogSetup.exe`、`.nupkg`、`RELEASES` を添付する
 11. release-notes の本文を貼る
 12. 公開状態にする
+13. `update.electronjs.org` の通常URLで旧バージョンから最新版が返ることを確認する
+14. 最新版自身からの更新確認が `204 No Content` になることを確認する
 
 ---
 
@@ -274,17 +332,26 @@ draft Release はアップデート対象になりません。
 後から差分が追いにくくなります。
 毎回 `release-notes/` に残す運用を推奨します。
 
+### 11-5. 更新エンドポイントを確認しない
+
+GitHub Release に配布物があっても、更新サービスが古いキャッシュを返していると自動更新が走りません。
+
+旧バージョンからの確認で、次のどちらかになっている場合はリリース完了にしないでください。
+
+- `204 No Content`
+- `RELEASES` が前バージョンの `.nupkg` を指している
+
 ---
 
 ## 12. 現在の公開版
 
 現時点の公開版:
 
-- `v2.2.1`
+- `v2.4.2`
 
 対応する変更点ファイル:
 
-- `release-notes/v2.2.1.md`
+- `release-notes/v2.4.2.md`
 
 ---
 
@@ -299,3 +366,4 @@ draft Release はアップデート対象になりません。
 3. `out/make/squirrel.windows/x64/` の成果物
 4. GitHub Release の本文と添付
 5. Release が draft でないこと
+6. `update.electronjs.org` が旧バージョンから最新版を返すこと
