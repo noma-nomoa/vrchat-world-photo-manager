@@ -161,29 +161,6 @@ WorldShot Log は GitHub Releases を使った更新確認に対応していま�
 
 WorldShot Log は個人開発のアプリであり、設計、実装、ドキュメント整理の一部に AI 支援を活用しています。最終的な仕様判断、動作確認、リリース判断は開発者が行っています。
 
-## 開発
-
-### 必要環境
-
-- Node.js
-- npm
-- Windows
-
-### 起動
-
-```powershell
-npm install
-npm start
-```
-
-### Windows ビルド
-
-```powershell
-npm run make:win
-```
-
-生成物は `out/make/squirrel.windows/x64/` に出力されます。
-
 ## 関連ドキュメント
 
 - [RELEASE.md](./RELEASE.md): リリース手順
