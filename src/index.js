@@ -1457,6 +1457,59 @@ function compareComparableVersions(leftVersion, rightVersion) {
   return 0;
 }
 
+function extractAppUpdateReleaseHighlights(releaseBody, maxItems = 4) {
+  if (typeof releaseBody !== 'string' || !releaseBody.trim()) {
+    return [];
+  }
+
+  const updateHighlights = [];
+  const fallbackHighlights = [];
+  const lines = releaseBody.split(/\r?\n/);
+  let isInUpdateSection = false;
+
+  const normalizeHighlightText = (text) =>
+    text
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .trim();
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (/^#{1,6}\s+/.test(line)) {
+      isInUpdateSection = /更新内容|changes|what'?s new|主な更新/i.test(line);
+      continue;
+    }
+
+    const match = line.match(/^[-*]\s+(.+)$/);
+
+    if (!match) {
+      continue;
+    }
+
+    const text = normalizeHighlightText(match[1]);
+
+    if (!text) {
+      continue;
+    }
+
+    if (isInUpdateSection) {
+      updateHighlights.push(text);
+    } else {
+      fallbackHighlights.push(text);
+    }
+
+    if (updateHighlights.length >= maxItems) {
+      break;
+    }
+  }
+
+  const highlights =
+    updateHighlights.length > 0 ? updateHighlights : fallbackHighlights;
+
+  return highlights.slice(0, maxItems);
+}
+
 function sendAppUpdateStatusToRenderer(message) {
   if (
     !message ||
@@ -1521,6 +1574,7 @@ async function fetchLatestGitHubReleaseInfo() {
       typeof payload?.name === 'string' && payload.name.trim()
         ? payload.name.trim()
         : `v${version}`,
+    highlights: extractAppUpdateReleaseHighlights(payload?.body),
     htmlUrl:
       typeof payload?.html_url === 'string' ? payload.html_url.trim() : '',
   };
@@ -1555,6 +1609,7 @@ function setupAutoUpdater() {
     sendAppUpdateActionToRenderer({
       kind: 'downloaded',
       version: latestAvailableAppUpdateRelease?.version || '',
+      highlights: latestAvailableAppUpdateRelease?.highlights || [],
     });
   });
   // Legacy native-dialog flow is intentionally left below as quarantine only.
@@ -1698,6 +1753,7 @@ async function checkForAppUpdatesOnLaunch() {
     sendAppUpdateActionToRenderer({
       kind: 'available',
       version: latestRelease.version,
+      highlights: latestRelease.highlights,
     });
     // Legacy native-dialog prompt flow is intentionally left below as quarantine only.
     return;
@@ -4660,21 +4716,23 @@ async function buildPhotoRecord(filePath) {
     (await fs.stat(filePath)).mtime;
   const worldInfo = extractWorldInfo(tags, fileBuffer, rawWorldInfo);
   const printNoteText = extractPhotoPrintNote(tags);
-  const resolvedImageDetails = imageDetailsFromFileName
+  const hasDecodedImageDimensions =
+    Number.isFinite(imageDetails.imageWidth) &&
+    Number.isFinite(imageDetails.imageHeight) &&
+    imageDetails.imageWidth > 0 &&
+    imageDetails.imageHeight > 0;
+  const resolvedImageDetails = hasDecodedImageDimensions
     ? {
-        imageWidth: imageDetailsFromFileName.imageWidth,
-        imageHeight: imageDetailsFromFileName.imageHeight,
-        resolutionTier: imageDetailsFromFileName.resolutionTier,
-        // Keep width / height filename-first for speed, but prefer the decoded
-        // image orientation so portrait captures filter correctly.
-        orientationTier:
-          imageDetails.orientationTier || imageDetailsFromFileName.orientationTier,
-      }
-    : {
         imageWidth: imageDetails.imageWidth,
         imageHeight: imageDetails.imageHeight,
         resolutionTier: imageDetails.resolutionTier,
         orientationTier: imageDetails.orientationTier,
+      }
+    : {
+        imageWidth: imageDetailsFromFileName?.imageWidth || null,
+        imageHeight: imageDetailsFromFileName?.imageHeight || null,
+        resolutionTier: imageDetailsFromFileName?.resolutionTier || null,
+        orientationTier: imageDetailsFromFileName?.orientationTier || null,
       };
   const nowIso = new Date().toISOString();
   const thumbnailPath = await thumbnailPathPromise;

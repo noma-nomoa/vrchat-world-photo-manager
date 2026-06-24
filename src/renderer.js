@@ -482,6 +482,9 @@ const photoEditorSubjectStatus = document.getElementById(
 const photoEditorSubjectAutoButton = document.getElementById(
   'photo-editor-subject-auto-btn'
 );
+const photoEditorSubjectTransparentSaveButton = document.getElementById(
+  'photo-editor-subject-transparent-save-btn'
+);
 const photoEditorSubjectStandardDownloadButton = document.getElementById(
   'photo-editor-subject-standard-download-btn'
 );
@@ -1265,7 +1268,7 @@ const PHOTO_EDITOR_EXPORT_FORMATS = Object.freeze({
     supportsQuality: true,
   },
 });
-const PHOTO_EDITOR_EXPORT_MAX_EDGES = Object.freeze([0, 3840, 2560, 2048, 1600, 1200, 1024]);
+const PHOTO_EDITOR_EXPORT_MAX_EDGES = Object.freeze([0, 3840, 2560, 2048, 1600, 1200, 1024, 800]);
 const PHOTO_EDITOR_AUTO_ENHANCE_ANALYSIS_MAX_EDGE = 512;
 const PHOTO_EDITOR_AUTO_ENHANCE_DEFAULT_STRENGTH = 50;
 const PHOTO_EDITOR_CROP_ZOOM_MAX = 300;
@@ -1793,10 +1796,20 @@ const PHOTO_EDITOR_CROP_PRESETS = [
   { key: 'classic', label: '3:2', ratio: 3 / 2 },
   { key: 'twoThree', label: '2:3', ratio: 2 / 3 },
   {
+    key: 'avatarThumbnail',
+    label: 'アバターサムネイル',
+    ratio: 4 / 3,
+    exportWidth: 800,
+    exportHeight: 600,
+    exportMaxEdge: 800,
+  },
+  {
     key: 'vrcGallery',
     label: 'VRCギャラリー',
     ratio: 1,
     transparentPadding: true,
+    exportWidth: 2048,
+    exportHeight: 2048,
     exportMaxEdge: 2048,
     exportFormat: 'png',
   },
@@ -1805,6 +1818,8 @@ const PHOTO_EDITOR_CROP_PRESETS = [
     label: '絵文字・ステッカー',
     ratio: 1,
     transparentPadding: true,
+    exportWidth: 1024,
+    exportHeight: 1024,
     exportMaxEdge: 1024,
     exportFormat: 'png',
   },
@@ -6967,6 +6982,26 @@ function getPhotoEditorTextFontWeights(fontKey) {
   return weights.map((weight) => String(weight));
 }
 
+function createPhotoEditorTextFontOption(font) {
+  const normalizedFont = getPhotoEditorTextFontOption(font?.key);
+  const option = document.createElement('option');
+  option.value = normalizedFont.key;
+  option.textContent = normalizedFont.label;
+  option.style.fontFamily = normalizedFont.family;
+  option.style.fontWeight = normalizedFont.defaultWeight || '700';
+  return option;
+}
+
+function syncPhotoEditorTextFontSelectPreview(fontKey) {
+  if (!photoEditorTextFontSelect) {
+    return;
+  }
+
+  const font = getPhotoEditorTextFontOption(fontKey);
+  photoEditorTextFontSelect.style.fontFamily = font.family;
+  photoEditorTextFontSelect.style.fontWeight = font.defaultWeight || '700';
+}
+
 function getPhotoEditorTextDefaultWeight(fontKey) {
   const font = getPhotoEditorTextFontOption(fontKey);
   const weights = getPhotoEditorTextFontWeights(font.key);
@@ -8087,6 +8122,15 @@ function setPhotoEditorSaving(isSaving) {
       ? '保存中...'
       : '別名で保存';
   }
+
+  if (photoEditorSubjectTransparentSaveButton) {
+    photoEditorSubjectTransparentSaveButton.disabled =
+      photoEditorState.isSaving || !hasPhotoEditorReadySubjectMask();
+    photoEditorSubjectTransparentSaveButton.title =
+      hasPhotoEditorReadySubjectMask()
+        ? '被写体マスクを使って背景を透過したPNGとして保存します'
+        : 'AI被写体選択でマスクを作成すると使用できます';
+  }
 }
 
 function getPhotoEditorSliderMeta(key) {
@@ -8185,6 +8229,14 @@ function syncPhotoEditorSubjectMaskControls() {
 
   if (photoEditorSubjectDeleteButton) {
     photoEditorSubjectDeleteButton.disabled = !hasMask;
+  }
+
+  if (photoEditorSubjectTransparentSaveButton) {
+    photoEditorSubjectTransparentSaveButton.disabled =
+      !hasMask || photoEditorState.isSaving || subjectMask.status === 'loading';
+    photoEditorSubjectTransparentSaveButton.title = hasMask
+      ? '被写体マスクを使って背景を透過したPNGとして保存します'
+      : 'AI被写体選択でマスクを作成すると使用できます';
   }
 
   if (photoEditorSubjectAutoButton) {
@@ -10413,9 +10465,7 @@ function renderPhotoEditorTextFontOptions() {
 
     for (const fontKey of recentKeys) {
       const font = getPhotoEditorTextFontOption(fontKey);
-      const option = document.createElement('option');
-      option.value = font.key;
-      option.textContent = font.label;
+      const option = createPhotoEditorTextFontOption(font);
       recentGroup.appendChild(option);
       appendedKeys.add(font.key);
     }
@@ -10434,14 +10484,13 @@ function renderPhotoEditorTextFontOptions() {
       continue;
     }
 
-    const option = document.createElement('option');
-    option.value = font.key;
-    option.textContent = font.label;
+    const option = createPhotoEditorTextFontOption(font);
     fontGroup.appendChild(option);
   }
 
   photoEditorTextFontSelect.appendChild(fontGroup);
   photoEditorTextFontSelect.value = getPhotoEditorTextFontOption(currentValue).key;
+  syncPhotoEditorTextFontSelectPreview(photoEditorTextFontSelect.value);
 }
 
 function formatPhotoEditorTextWeightLabel(weight) {
@@ -10561,6 +10610,7 @@ function syncPhotoEditorTextControls() {
 
   if (photoEditorTextFontSelect) {
     photoEditorTextFontSelect.value = displayState.fontKey;
+    syncPhotoEditorTextFontSelectPreview(displayState.fontKey);
   }
 
   if (photoEditorTextSizeInput) {
@@ -11374,6 +11424,11 @@ function syncPhotoEditorUi() {
       ? '保存中...'
       : '別名で保存';
   }
+
+  if (photoEditorSubjectTransparentSaveButton && photoEditorState) {
+    photoEditorSubjectTransparentSaveButton.disabled =
+      photoEditorState.isSaving || !hasPhotoEditorReadySubjectMask();
+  }
 }
 
 function getPhotoEditorCropPreset(key) {
@@ -11470,7 +11525,32 @@ function getPhotoEditorCropRotationDegrees(crop = {}) {
   );
 }
 
-function getPhotoEditorOutputSize(sourceRect, maxEdge = null, crop = null) {
+function getPhotoEditorFixedOutputSize(crop = photoEditorState?.crop) {
+  const preset = getPhotoEditorCropPreset(crop?.preset);
+  const width = Number(preset.exportWidth);
+  const height = Number(preset.exportHeight);
+
+  if (
+    Number.isFinite(width) &&
+    Number.isFinite(height) &&
+    width > 0 &&
+    height > 0
+  ) {
+    return {
+      width: Math.max(1, Math.round(width)),
+      height: Math.max(1, Math.round(height)),
+    };
+  }
+
+  return null;
+}
+
+function getPhotoEditorOutputSize(
+  sourceRect,
+  maxEdge = null,
+  crop = null,
+  fixedOutputSize = null
+) {
   const activeCrop = crop || photoEditorState?.crop;
   const isSideways = isPhotoEditorCropRotationSideways(
     activeCrop
@@ -11488,6 +11568,24 @@ function getPhotoEditorOutputSize(sourceRect, maxEdge = null, crop = null) {
   const fullHeight = shouldUseTransparentPadding
     ? transparentFullEdge
     : baseFullHeight;
+  const fixedWidth = Number(fixedOutputSize?.width);
+  const fixedHeight = Number(fixedOutputSize?.height);
+
+  if (
+    Number.isFinite(fixedWidth) &&
+    Number.isFinite(fixedHeight) &&
+    fixedWidth > 0 &&
+    fixedHeight > 0
+  ) {
+    return {
+      width: Math.max(1, Math.round(fixedWidth)),
+      height: Math.max(1, Math.round(fixedHeight)),
+      fullWidth,
+      fullHeight,
+      scale: 1,
+    };
+  }
+
   const numericMaxEdge = Number(maxEdge);
 
   if (!Number.isFinite(numericMaxEdge) || numericMaxEdge <= 0) {
@@ -11856,15 +11954,17 @@ function drawPhotoEditorOverlayGroup(
   textOverlays,
   imageOverlays,
   maskMode,
-  { textScale = 1 } = {}
+  { textScale = 1, sourceRect = null, includeImageOverlays = true } = {}
 ) {
-  applyPhotoEditorImageOverlayToCanvas(
-    ctx,
-    outputSize.width,
-    outputSize.height,
-    imageOverlays,
-    { maskMode }
-  );
+  if (includeImageOverlays) {
+    applyPhotoEditorImageOverlayToCanvas(
+      ctx,
+      outputSize.width,
+      outputSize.height,
+      imageOverlays,
+      { maskMode, outputSize, sourceRect }
+    );
+  }
   applyPhotoEditorTextOverlayToCanvas(
     ctx,
     outputSize.width,
@@ -11913,6 +12013,13 @@ function applyPhotoEditorMaskedOverlaysToCanvas(
     baseCtx.drawImage(ctx.canvas, 0, 0);
   }
 
+  applyPhotoEditorImageOverlayToCanvas(
+    ctx,
+    outputSize.width,
+    outputSize.height,
+    imageOverlays,
+    { maskMode: 'background-only', outputSize, sourceRect }
+  );
   withPhotoEditorSubjectMaskLayer(
     ctx,
     outputSize,
@@ -11925,7 +12032,7 @@ function applyPhotoEditorMaskedOverlaysToCanvas(
         textOverlays,
         imageOverlays,
         'background-only',
-        { textScale }
+        { textScale, includeImageOverlays: false }
       );
     }
   );
@@ -11939,6 +12046,13 @@ function applyPhotoEditorMaskedOverlaysToCanvas(
     );
   }
 
+  applyPhotoEditorImageOverlayToCanvas(
+    ctx,
+    outputSize.width,
+    outputSize.height,
+    imageOverlays,
+    { maskMode: 'subject-only', outputSize, sourceRect }
+  );
   withPhotoEditorSubjectMaskLayer(
     ctx,
     outputSize,
@@ -11951,7 +12065,7 @@ function applyPhotoEditorMaskedOverlaysToCanvas(
         textOverlays,
         imageOverlays,
         'subject-only',
-        { textScale }
+        { textScale, includeImageOverlays: false }
       );
     }
   );
@@ -14157,12 +14271,74 @@ function drawPhotoEditorSingleImageOverlay(ctx, width, height, overlay) {
   return true;
 }
 
+function drawPhotoEditorSingleMaskedImageOverlay(
+  ctx,
+  width,
+  height,
+  overlay,
+  outputSize,
+  sourceRect,
+  maskMode
+) {
+  const imageOverlay = normalizePhotoEditorImageOverlayState(overlay);
+  const cacheEntry = getPhotoEditorOverlayImageCacheEntry(imageOverlay);
+
+  if (!cacheEntry?.loaded || cacheEntry.failed || !outputSize || !sourceRect) {
+    return false;
+  }
+
+  const maskCanvas = createPhotoEditorSubjectMaskOutputCanvas(outputSize, sourceRect);
+
+  if (!maskCanvas) {
+    return false;
+  }
+
+  const image = cacheEntry.image;
+  const centerX = imageOverlay.x * width;
+  const centerY = imageOverlay.y * height;
+  const drawWidth = Math.max(1, Math.abs(imageOverlay.width) * width);
+  const drawHeight = Math.max(1, Math.abs(imageOverlay.height) * height);
+  const layerCanvas = document.createElement('canvas');
+  layerCanvas.width = width;
+  layerCanvas.height = height;
+  const layerCtx = layerCanvas.getContext('2d');
+
+  if (!layerCtx) {
+    return false;
+  }
+
+  layerCtx.save();
+  layerCtx.globalAlpha = clampNumber(imageOverlay.opacity, 0, 1, 1);
+  layerCtx.drawImage(
+    image,
+    centerX - drawWidth / 2,
+    centerY - drawHeight / 2,
+    drawWidth,
+    drawHeight
+  );
+  layerCtx.restore();
+  layerCtx.globalCompositeOperation =
+    normalizePhotoEditorInternalMaskMode(maskMode) === 'background-only'
+      ? 'destination-out'
+      : 'destination-in';
+  layerCtx.drawImage(maskCanvas, 0, 0);
+  layerCtx.globalCompositeOperation = 'source-over';
+
+  ctx.save();
+  ctx.globalCompositeOperation = normalizePhotoEditorImageOverlayBlendMode(
+    imageOverlay.blendMode
+  );
+  ctx.drawImage(layerCanvas, 0, 0);
+  ctx.restore();
+  return true;
+}
+
 function applyPhotoEditorImageOverlayToCanvas(
   ctx,
   width,
   height,
   imageOverlays,
-  { maskMode = null } = {}
+  { maskMode = null, outputSize = null, sourceRect = null } = {}
 ) {
   const overlays = normalizePhotoEditorImageOverlays(imageOverlays);
   const targetMaskMode = maskMode
@@ -14174,6 +14350,25 @@ function applyPhotoEditorImageOverlayToCanvas(
       targetMaskMode &&
       normalizePhotoEditorInternalMaskMode(overlay.maskMode) !== targetMaskMode
     ) {
+      continue;
+    }
+
+    if (
+      targetMaskMode &&
+      targetMaskMode !== 'normal' &&
+      outputSize &&
+      sourceRect &&
+      hasPhotoEditorReadySubjectMask()
+    ) {
+      drawPhotoEditorSingleMaskedImageOverlay(
+        ctx,
+        width,
+        height,
+        overlay,
+        outputSize,
+        sourceRect,
+        targetMaskMode
+      );
       continue;
     }
 
@@ -14910,7 +15105,10 @@ async function applyPhotoEditorEffectsWithWorker(
   }
 }
 
-function drawPhotoEditorBaseToCanvas(targetCanvas, { maxEdge = null } = {}) {
+function drawPhotoEditorBaseToCanvas(
+  targetCanvas,
+  { maxEdge = null, fixedOutputSize = null } = {}
+) {
   if (!photoEditorState?.sourceImage || !targetCanvas) {
     return null;
   }
@@ -14918,7 +15116,12 @@ function drawPhotoEditorBaseToCanvas(targetCanvas, { maxEdge = null } = {}) {
   const crop = normalizePhotoEditorCropState(photoEditorState.crop);
   photoEditorState.crop = crop;
   const sourceRect = getPhotoEditorSourceRect(photoEditorState.sourceImage);
-  const outputSize = getPhotoEditorOutputSize(sourceRect, maxEdge, crop);
+  const outputSize = getPhotoEditorOutputSize(
+    sourceRect,
+    maxEdge,
+    crop,
+    fixedOutputSize
+  );
   const ctx = targetCanvas.getContext('2d', { willReadFrequently: true });
 
   if (!ctx) {
@@ -15319,8 +15522,11 @@ async function renderPhotoEditorPreview() {
     ? ` / 黒つぶれ: ${formatPhotoEditorPercent(clipInfo.shadows)} / 白飛び: ${formatPhotoEditorPercent(clipInfo.highlights)}`
     : '';
   const compareText = photoEditorState.showOriginalPreview ? ' / 比較中' : '';
+  const fixedOutputSize = getPhotoEditorFixedOutputSize(photoEditorState.crop);
+  const statusOutputWidth = fixedOutputSize?.width || outputSize.fullWidth;
+  const statusOutputHeight = fixedOutputSize?.height || outputSize.fullHeight;
   setPhotoEditorStatus(
-    `出力: ${outputSize.fullWidth} x ${outputSize.fullHeight} / ` +
+    `出力: ${statusOutputWidth} x ${statusOutputHeight} / ` +
       `目隠し: ${photoEditorState.masks.length}件${pendingMaskText}${imageOverlayText}${clipText}${compareText}`
   );
   syncPhotoEditorBlurControls();
@@ -19262,13 +19468,13 @@ function getPhotoEditorEffectiveExportSettings(settings = null) {
   );
   const cropPreset = getPhotoEditorCropPreset(photoEditorState?.crop?.preset);
 
-  if (!cropPreset.transparentPadding) {
+  if (!cropPreset.exportFormat && !cropPreset.exportMaxEdge) {
     return exportSettings;
   }
 
   return normalizePhotoEditorExportSettings({
     ...exportSettings,
-    format: cropPreset.exportFormat || 'png',
+    format: cropPreset.exportFormat || exportSettings.format,
     maxEdge: cropPreset.exportMaxEdge || exportSettings.maxEdge,
   });
 }
@@ -19289,6 +19495,43 @@ function getPhotoEditorExportQuality(exportSettings, formatMeta) {
     : undefined;
 }
 
+function applyPhotoEditorSubjectTransparencyToCanvas(ctx, outputSize, sourceRect) {
+  if (!ctx || !outputSize || !sourceRect) {
+    throw new Error('背景透過用の描画を準備できませんでした');
+  }
+
+  const maskCanvas = createPhotoEditorSubjectMaskOutputCanvas(outputSize, sourceRect);
+
+  if (!maskCanvas) {
+    throw new Error('背景透過に使う被写体マスクを読み込めませんでした');
+  }
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.drawImage(maskCanvas, 0, 0);
+  ctx.restore();
+}
+
+function buildPhotoEditorExportRenderResult(
+  exportCanvas,
+  exportSettings,
+  renderBase,
+  { transparentSubjectBackground = false } = {}
+) {
+  if (transparentSubjectBackground) {
+    applyPhotoEditorSubjectTransparencyToCanvas(
+      renderBase.ctx,
+      renderBase.outputSize,
+      renderBase.sourceRect
+    );
+  }
+
+  return {
+    dataUrl: getPhotoEditorExportDataUrl(exportCanvas, exportSettings),
+    outputSize: renderBase.outputSize,
+  };
+}
+
 function arrayBufferToBase64(buffer) {
   const bytes = new Uint8Array(buffer);
   const chunkSize = 0x8000;
@@ -19303,9 +19546,15 @@ function arrayBufferToBase64(buffer) {
   return btoa(binary);
 }
 
-async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
+async function renderPhotoEditorExportDataUrl(
+  exportCanvas,
+  exportSettings,
+  { transparentSubjectBackground = false } = {}
+) {
+  const fixedOutputSize = getPhotoEditorFixedOutputSize(photoEditorState?.crop);
   const renderBase = drawPhotoEditorBaseToCanvas(exportCanvas, {
     maxEdge: exportSettings.maxEdge > 0 ? exportSettings.maxEdge : null,
+    fixedOutputSize,
   });
 
   if (!renderBase) {
@@ -19319,7 +19568,12 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
   const hasTextOverlays = textOverlays.length > 0;
   const hasImageOverlays = imageOverlays.length > 0;
   const hasSubjectMask = hasPhotoEditorReadySubjectMask();
-  const needsMainOverlayPass = hasTextOverlays || hasImageOverlays;
+  const needsMainOverlayPass =
+    hasTextOverlays || hasImageOverlays || transparentSubjectBackground;
+
+  if (transparentSubjectBackground && !hasSubjectMask) {
+    throw new Error('背景透過で保存するにはAI被写体選択のマスクが必要です');
+  }
 
   if (hasImageOverlays) {
     await waitForPhotoEditorImageOverlaysToLoad(imageOverlays);
@@ -19370,13 +19624,15 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
         textOverlays
       );
 
-      return {
-        dataUrl: getPhotoEditorExportDataUrl(exportCanvas, exportSettings),
-        outputSize: renderBase.outputSize,
-      };
+      return buildPhotoEditorExportRenderResult(
+        exportCanvas,
+        exportSettings,
+        renderBase,
+        { transparentSubjectBackground }
+      );
     }
 
-    if (workerResult?.buffer) {
+    if (!transparentSubjectBackground && workerResult?.buffer) {
       return {
         dataUrl: `data:${workerResult.mimeType || formatMeta.mimeType};base64,${arrayBufferToBase64(workerResult.buffer)}`,
         outputSize: renderBase.outputSize,
@@ -19393,10 +19649,12 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
       }
     );
 
-    return {
-      dataUrl: getPhotoEditorExportDataUrl(exportCanvas, exportSettings),
-      outputSize: renderBase.outputSize,
-    };
+    return buildPhotoEditorExportRenderResult(
+      exportCanvas,
+      exportSettings,
+      renderBase,
+      { transparentSubjectBackground }
+    );
   }
 
   applyPhotoEditorEffectsToCanvas(
@@ -19409,10 +19667,12 @@ async function renderPhotoEditorExportDataUrl(exportCanvas, exportSettings) {
     }
   );
 
-  return {
-    dataUrl: getPhotoEditorExportDataUrl(exportCanvas, exportSettings),
-    outputSize: renderBase.outputSize,
-  };
+  return buildPhotoEditorExportRenderResult(
+    exportCanvas,
+    exportSettings,
+    renderBase,
+    { transparentSubjectBackground }
+  );
 }
 
 function buildPhotoEditorSourceMetadataPayload(sourcePhoto) {
@@ -19445,7 +19705,7 @@ function buildPhotoEditorSourceMetadataPayload(sourcePhoto) {
   };
 }
 
-async function savePhotoEditorImage() {
+async function savePhotoEditorImage({ transparentSubjectBackground = false } = {}) {
   if (!photoEditorState?.sourceImage || photoEditorState.isSaving) {
     return;
   }
@@ -19455,17 +19715,31 @@ async function savePhotoEditorImage() {
     return;
   }
 
+  if (transparentSubjectBackground && !hasPhotoEditorReadySubjectMask()) {
+    setPhotoEditorStatus('背景透過で保存するにはAI被写体選択のマスクが必要です');
+    return;
+  }
+
   setPhotoEditorSaving(true);
-  setPhotoEditorStatus('保存中...');
+  setPhotoEditorStatus(
+    transparentSubjectBackground ? '背景透過PNGを保存中...' : '保存中...'
+  );
 
   try {
     const exportCanvas = document.createElement('canvas');
-    const exportSettings = getPhotoEditorEffectiveExportSettings(
+    const baseExportSettings = getPhotoEditorEffectiveExportSettings(
       photoEditorState.exportSettings
     );
+    const exportSettings = transparentSubjectBackground
+      ? normalizePhotoEditorExportSettings({
+          ...baseExportSettings,
+          format: 'png',
+        })
+      : baseExportSettings;
     const renderResult = await renderPhotoEditorExportDataUrl(
       exportCanvas,
-      exportSettings
+      exportSettings,
+      { transparentSubjectBackground }
     );
 
     if (!renderResult?.dataUrl) {
@@ -19502,7 +19776,9 @@ async function savePhotoEditorImage() {
     showToast(
       result.importFailed
         ? `保存しました（登録は未反映）: ${result.fileName || ''}`
-        : `編集済み画像を保存しました: ${result.fileName || ''}`
+        : transparentSubjectBackground
+          ? `背景透過PNGを保存しました: ${result.fileName || ''}`
+          : `編集済み画像を保存しました: ${result.fileName || ''}`
     );
   } catch (error) {
     setPhotoEditorStatus(`保存に失敗しました: ${error.message}`);
@@ -20042,17 +20318,37 @@ function openConfirmModal({
   });
 }
 
+function getAppUpdateHighlightMessage(payload) {
+  const highlights = Array.isArray(payload?.highlights)
+    ? payload.highlights
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .filter(Boolean)
+        .slice(0, 4)
+    : [];
+
+  if (highlights.length === 0) {
+    return '';
+  }
+
+  return `\n\n主な更新:\n${highlights
+    .map((item) => `・${item}`)
+    .join('\n')}`;
+}
+
 function buildAppUpdatePromptConfig(payload) {
   const kind =
     typeof payload?.kind === 'string' ? payload.kind.trim().toLowerCase() : '';
   const version =
     typeof payload?.version === 'string' ? payload.version.trim() : '';
   const versionLabel = version || '最新バージョン';
+  const highlightMessage = getAppUpdateHighlightMessage(payload);
 
   if (kind === 'downloaded') {
     return {
       title: 'アップデートの準備ができました',
-      message: `${versionLabel} のダウンロードが完了しました。再起動して更新しますか？`,
+      message:
+        `${versionLabel} のダウンロードが完了しました。再起動して更新しますか？` +
+        highlightMessage,
       confirmText: '再起動して更新',
     };
   }
@@ -20060,7 +20356,9 @@ function buildAppUpdatePromptConfig(payload) {
   if (kind === 'available') {
     return {
       title: 'アップデートがあります',
-      message: `新しいバージョン ${versionLabel} が利用できます。今すぐダウンロードしますか？`,
+      message:
+        `新しいバージョン ${versionLabel} が利用できます。今すぐダウンロードしますか？` +
+        highlightMessage,
       confirmText: '今すぐ更新',
     };
   }
@@ -25298,6 +25596,7 @@ function bindPhotoAndEditModalControls() {
   });
 
   photoEditorTextFontSelect?.addEventListener('change', () => {
+    syncPhotoEditorTextFontSelectPreview(photoEditorTextFontSelect.value);
     updatePhotoEditorTextOverlay(
       { fontKey: photoEditorTextFontSelect.value },
       { interactive: false }
@@ -25460,6 +25759,10 @@ function bindPhotoAndEditModalControls() {
 
   photoEditorSubjectDeleteButton?.addEventListener('click', () => {
     clearPhotoEditorSubjectMask();
+  });
+
+  photoEditorSubjectTransparentSaveButton?.addEventListener('click', async () => {
+    await savePhotoEditorImage({ transparentSubjectBackground: true });
   });
 
   photoEditorSubjectShowMaskInput?.addEventListener('click', () => {

@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>WorldShot Log v2.4.0</title>
+    <title>WorldShot Log v2.4.1</title>
     <link rel="stylesheet" href="./index.css" />
     <link
       rel="stylesheet"
@@ -606,7 +606,7 @@
                     aria-expanded="false"
                     aria-controls="photo-editor-subject-panel"
                   >
-                    <span>AI被写体</span>
+                    <span>AI被写体選択</span>
                     <span class="material-symbols-outlined photo-editor-accordion-chevron">
                       expand_more
                     </span>
@@ -637,6 +637,15 @@
                     >
                       <span class="material-symbols-outlined">person_search</span>
                       <span>被写体を自動選択</span>
+                    </button>
+                    <button
+                      id="photo-editor-subject-transparent-save-btn"
+                      type="button"
+                      class="small-action-button"
+                      disabled
+                    >
+                      <span class="material-symbols-outlined">opacity</span>
+                      <span>背景透過で保存</span>
                     </button>
                     <button
                       id="photo-editor-subject-standard-download-btn"
@@ -1568,6 +1577,7 @@
                         <option value="1600">長辺 1600px</option>
                         <option value="1200">長辺 1200px</option>
                         <option value="1024">長辺 1024px</option>
+                        <option value="800">長辺 800px</option>
                       </select>
                     </label>
                   </div>

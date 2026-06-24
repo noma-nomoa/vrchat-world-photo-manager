@@ -5066,6 +5066,10 @@ body[data-theme='light'] .danger-button:hover {
   max-width: 460px;
 }
 
+.confirm-modal-content .sub-modal-description {
+  white-space: pre-line;
+}
+
 .confirm-modal-actions {
   display: flex;
   gap: 10px;

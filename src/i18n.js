@@ -135,6 +135,8 @@
       '左 右位置': 'Horizontal position',
       '左右位置': 'Horizontal position',
       '上下位置': 'Vertical position',
+      'アバターサムネイル': 'Avatar thumbnail',
+      '長辺 800px': 'Long edge 800px',
       'VRCギャラリー': 'VRC Gallery',
       '絵文字・ステッカー': 'Emoji / Sticker',
       'プリセット': 'Presets',
@@ -226,6 +228,19 @@
       '縁の太さ': 'Stroke width',
       '文字間隔': 'Letter spacing',
       'AI被写体': 'AI Subject',
+      'AI被写体選択': 'AI Subject Selection',
+      '背景透過で保存': 'Save transparent',
+      '背景透過PNGを保存中...': 'Saving transparent PNG...',
+      '背景透過で保存するにはAI被写体選択のマスクが必要です':
+        'Create an AI subject selection mask before saving with a transparent background.',
+      '被写体マスクを使って背景を透過したPNGとして保存します':
+        'Save a PNG with the background made transparent using the subject mask.',
+      'AI被写体選択でマスクを作成すると使用できます':
+        'Create a mask with AI Subject Selection to use this.',
+      '背景透過用の描画を準備できませんでした':
+        'Could not prepare the transparent background render.',
+      '背景透過に使う被写体マスクを読み込めませんでした':
+        'Could not load the subject mask for transparent background saving.',
       '補正対象': 'Adjustment target',
       '被写体マスクをリセット': 'Reset subject mask',
       'マスク未作成': 'No mask yet',
@@ -749,6 +764,8 @@
       '左 右位置': '좌우 위치',
       '左右位置': '좌우 위치',
       '上下位置': '상하 위치',
+      'アバターサムネイル': '아바타 썸네일',
+      '長辺 800px': '긴 변 800px',
       'VRCギャラリー': 'VRC 갤러리',
       '絵文字・ステッカー': '이모지/스티커',
       'プリセット': '프리셋',
@@ -839,6 +856,19 @@
       '縁の太さ': '테두리 두께',
       '文字間隔': '자간',
       'AI被写体': 'AI 피사체',
+      'AI被写体選択': 'AI 피사체 선택',
+      '背景透過で保存': '투명 배경으로 저장',
+      '背景透過PNGを保存中...': '투명 배경 PNG 저장 중...',
+      '背景透過で保存するにはAI被写体選択のマスクが必要です':
+        '투명 배경으로 저장하려면 AI 피사체 선택 마스크가 필요합니다.',
+      '被写体マスクを使って背景を透過したPNGとして保存します':
+        '피사체 마스크를 사용해 배경을 투명하게 만든 PNG로 저장합니다.',
+      'AI被写体選択でマスクを作成すると使用できます':
+        'AI 피사체 선택으로 마스크를 만들면 사용할 수 있습니다.',
+      '背景透過用の描画を準備できませんでした':
+        '투명 배경 렌더링을 준비할 수 없었습니다.',
+      '背景透過に使う被写体マスクを読み込めませんでした':
+        '투명 배경 저장에 사용할 피사체 마스크를 불러올 수 없었습니다.',
       '補正対象': '보정 대상',
       '被写体マスクをリセット': '피사체 마스크 초기화',
       'マスク未作成': '마스크 없음',
@@ -1390,6 +1420,13 @@
       return language === 'ko'
         ? `프리셋 적용 완료: ${translateText(match[1], language)}`
         : `Preset applied: ${translateText(match[1], language)}`;
+    }
+
+    match = core.match(/^背景透過PNGを保存しました: (.+)$/);
+    if (match) {
+      return language === 'ko'
+        ? `투명 배경 PNG 저장 완료: ${match[1]}`
+        : `Transparent PNG saved: ${match[1]}`;
     }
 
     match = core.match(/^(.+)を管理素材から削除$/);
