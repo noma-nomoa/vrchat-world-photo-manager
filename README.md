@@ -1,5 +1,11 @@
 # WorldShot Log
 
+<p align="right">
+  <a href="./README.md"><kbd>日本語</kbd></a>
+  <a href="./README.en.md"><kbd>English</kbd></a>
+  <a href="./README.ko.md"><kbd>한국어</kbd></a>
+</p>
+
 ![WorldShot Log](./img/banner.png)
 
 WorldShot Log は、VRChat の写真を整理し、見返し、投稿しやすく整えるための Windows 向けデスクトップアプリです。
