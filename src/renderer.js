@@ -20302,6 +20302,8 @@ function openConfirmModal({
   title = '確認',
   message = 'この操作を実行しますか？',
   confirmText = '実行する',
+  cancelText = 'キャンセル',
+  showCancel = true,
 } = {}) {
   if (!confirmModal) {
     return Promise.resolve(false);
@@ -20311,6 +20313,11 @@ function openConfirmModal({
   confirmModalMessage.textContent = message;
   confirmModalConfirmButton.textContent = confirmText;
 
+  if (confirmModalCancelButton) {
+    confirmModalCancelButton.textContent = cancelText;
+    confirmModalCancelButton.hidden = !showCancel;
+  }
+
   openSubModalElement(confirmModal);
 
   return new Promise((resolve) => {
@@ -20318,7 +20325,7 @@ function openConfirmModal({
   });
 }
 
-function getAppUpdateHighlightMessage(payload) {
+function getAppUpdateHighlights(payload) {
   const highlights = Array.isArray(payload?.highlights)
     ? payload.highlights
         .map((item) => (typeof item === 'string' ? item.trim() : ''))
@@ -20326,13 +20333,7 @@ function getAppUpdateHighlightMessage(payload) {
         .slice(0, 4)
     : [];
 
-  if (highlights.length === 0) {
-    return '';
-  }
-
-  return `\n\n主な更新:\n${highlights
-    .map((item) => `・${item}`)
-    .join('\n')}`;
+  return highlights;
 }
 
 function buildAppUpdatePromptConfig(payload) {
@@ -20341,24 +20342,35 @@ function buildAppUpdatePromptConfig(payload) {
   const version =
     typeof payload?.version === 'string' ? payload.version.trim() : '';
   const versionLabel = version || '最新バージョン';
-  const highlightMessage = getAppUpdateHighlightMessage(payload);
 
   if (kind === 'downloaded') {
     return {
-      title: 'アップデートの準備ができました',
+      title: translateUiText('アップデートの準備ができました'),
       message:
-        `${versionLabel} のダウンロードが完了しました。再起動して更新しますか？` +
-        highlightMessage,
+        `${versionLabel} のダウンロードが完了しました。再起動して更新しますか？`,
       confirmText: '再起動して更新',
+    };
+  }
+
+  if (kind === 'installed') {
+    const highlights = getAppUpdateHighlights(payload);
+
+    return {
+      title: translateUiText('主な更新内容'),
+      message:
+        highlights.length > 0
+          ? highlights.map((item) => `・${item}`).join('\n')
+          : `${versionLabel} へのアップデートが完了しました。`,
+      confirmText: 'OK',
+      showCancel: false,
     };
   }
 
   if (kind === 'available') {
     return {
-      title: 'アップデートがあります',
+      title: translateUiText('アップデートがあります'),
       message:
-        `新しいバージョン ${versionLabel} が利用できます。今すぐダウンロードしますか？` +
-        highlightMessage,
+        `新しいバージョン ${versionLabel} が利用できます。今すぐダウンロードしますか？`,
       confirmText: '今すぐ更新',
     };
   }

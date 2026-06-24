@@ -1,7 +1,7 @@
 {
   "name": "worldshot-log",
   "productName": "WorldShot Log",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "VRChatで撮影した写真を整理し、見返し、投稿しやすく整えるWindows向けデスクトップアプリです。",
   "main": "src/index.js",
   "private": true,

@@ -482,6 +482,8 @@ const APP_UPDATE_RELEASE_API_URL = `https://api.github.com/repos/${APP_UPDATE_RE
 const APP_UPDATE_SERVICE_BASE_URL = 'https://update.electronjs.org';
 const DEFAULT_APP_PREFERENCES = Object.freeze({
   backgroundImagePath: '',
+  pendingInstalledAppUpdateNotice: null,
+  lastShownInstalledAppUpdateNoticeVersion: '',
 });
 const APP_DATA_BACKUP_SCHEMA_VERSION = 1;
 const PHOTO_CATALOG_EXPORT_COLUMNS = Object.freeze([
@@ -552,6 +554,33 @@ function normalizeBackgroundImagePreferencePath(filePath) {
   return typeof filePath === 'string' ? filePath.trim() : '';
 }
 
+function normalizePendingInstalledAppUpdateNotice(notice) {
+  if (!notice || typeof notice !== 'object') {
+    return null;
+  }
+
+  const version = normalizeReleaseVersionTag(notice.version);
+  const highlights = Array.isArray(notice.highlights)
+    ? notice.highlights
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .filter(Boolean)
+        .slice(0, 4)
+    : [];
+
+  if (!version) {
+    return null;
+  }
+
+  return {
+    version,
+    highlights,
+    savedAt:
+      typeof notice.savedAt === 'string' && notice.savedAt.trim()
+        ? notice.savedAt.trim()
+        : new Date().toISOString(),
+  };
+}
+
 async function readAppPreferences() {
   if (!preferencesFilePath) {
     return { ...DEFAULT_APP_PREFERENCES };
@@ -565,6 +594,12 @@ async function readAppPreferences() {
       ...(parsed && typeof parsed === 'object' ? parsed : {}),
       backgroundImagePath: normalizeBackgroundImagePreferencePath(
         parsed?.backgroundImagePath
+      ),
+      pendingInstalledAppUpdateNotice: normalizePendingInstalledAppUpdateNotice(
+        parsed?.pendingInstalledAppUpdateNotice
+      ),
+      lastShownInstalledAppUpdateNoticeVersion: normalizeReleaseVersionTag(
+        parsed?.lastShownInstalledAppUpdateNoticeVersion
       ),
     };
   } catch {
@@ -585,6 +620,12 @@ async function writeAppPreferences(nextPreferences) {
     backgroundImagePath: normalizeBackgroundImagePreferencePath(
       nextPreferences?.backgroundImagePath
     ),
+    pendingInstalledAppUpdateNotice: normalizePendingInstalledAppUpdateNotice(
+      nextPreferences?.pendingInstalledAppUpdateNotice
+    ),
+    lastShownInstalledAppUpdateNoticeVersion: normalizeReleaseVersionTag(
+      nextPreferences?.lastShownInstalledAppUpdateNoticeVersion
+    ),
   };
 
   await fs.writeFile(
@@ -594,6 +635,96 @@ async function writeAppPreferences(nextPreferences) {
   );
 
   return normalizedPreferences;
+}
+
+async function savePendingInstalledAppUpdateNotice(releaseInfo) {
+  if (!releaseInfo) {
+    return;
+  }
+
+  const nextNotice = normalizePendingInstalledAppUpdateNotice({
+    version: releaseInfo.version,
+    highlights: releaseInfo.highlights,
+    savedAt: new Date().toISOString(),
+  });
+
+  if (!nextNotice) {
+    return;
+  }
+
+  const preferences = await readAppPreferences();
+  preferences.pendingInstalledAppUpdateNotice = nextNotice;
+  await writeAppPreferences(preferences);
+}
+
+async function consumeInstalledAppUpdateNoticeForCurrentVersion() {
+  const hadPreferencesFile = await pathExists(preferencesFilePath);
+  const preferences = await readAppPreferences();
+  const currentVersion = normalizeReleaseVersionTag(app.getVersion());
+  const lastShownVersion = normalizeReleaseVersionTag(
+    preferences.lastShownInstalledAppUpdateNoticeVersion
+  );
+
+  if (!currentVersion || lastShownVersion === currentVersion) {
+    return null;
+  }
+
+  let notice = normalizePendingInstalledAppUpdateNotice(
+    preferences.pendingInstalledAppUpdateNotice
+  );
+
+  const pendingVersionComparison = notice
+    ? compareComparableVersions(notice.version, currentVersion)
+    : 0;
+
+  if (notice && pendingVersionComparison > 0) {
+    return null;
+  }
+
+  if (!notice || pendingVersionComparison < 0) {
+    if (!hadPreferencesFile) {
+      preferences.pendingInstalledAppUpdateNotice = null;
+      preferences.lastShownInstalledAppUpdateNoticeVersion = currentVersion;
+      await writeAppPreferences(preferences);
+      return null;
+    }
+
+    let latestRelease = null;
+
+    try {
+      latestRelease = await fetchLatestGitHubReleaseInfo();
+    } catch {
+      latestRelease = null;
+    }
+
+    if (
+      !latestRelease ||
+      compareComparableVersions(latestRelease.version, currentVersion) !== 0
+    ) {
+      if (notice && pendingVersionComparison < 0) {
+        preferences.pendingInstalledAppUpdateNotice = null;
+        await writeAppPreferences(preferences);
+      }
+
+      return null;
+    }
+
+    notice = normalizePendingInstalledAppUpdateNotice({
+      version: latestRelease.version,
+      highlights: latestRelease.highlights,
+      savedAt: new Date().toISOString(),
+    });
+  }
+
+  if (!notice) {
+    return null;
+  }
+
+  preferences.pendingInstalledAppUpdateNotice = null;
+  preferences.lastShownInstalledAppUpdateNoticeVersion = currentVersion;
+  await writeAppPreferences(preferences);
+
+  return notice;
 }
 
 async function getBackgroundImagePreference() {
@@ -1808,6 +1939,39 @@ function scheduleStartupAutoUpdateCheck(mainWindow) {
     setTimeout(() => {
       void checkForAppUpdatesOnLaunch();
     }, APP_UPDATE_CHECK_DELAY_MS);
+  });
+}
+
+function scheduleInstalledAppUpdateNotice(mainWindow) {
+  if (!mainWindow || !isAutoUpdateSupportedRuntime()) {
+    return;
+  }
+
+  mainWindow.webContents.once('did-finish-load', () => {
+    setTimeout(async () => {
+      try {
+        const notice =
+          await consumeInstalledAppUpdateNoticeForCurrentVersion();
+
+        if (!notice) {
+          return;
+        }
+
+        sendAppUpdateActionToRenderer({
+          kind: 'installed',
+          version: notice.version,
+          highlights: notice.highlights,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : '不明なエラー';
+        sendAppUpdateStatusToRenderer(
+          `アップデート内容の表示に失敗しました: ${message}`
+        );
+      }
+    }, 900);
   });
 }
 
@@ -6876,6 +7040,7 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
   mainWindowRef = mainWindow;
   setupAutoUpdater();
+  scheduleInstalledAppUpdateNotice(mainWindow);
   scheduleStartupAutoUpdateCheck(mainWindow);
   mainWindow.on('closed', () => {
     if (mainWindowRef === mainWindow) {
@@ -7833,6 +7998,9 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('install-downloaded-app-update', async () => {
     try {
+      await savePendingInstalledAppUpdateNotice(
+        latestAvailableAppUpdateRelease
+      );
       autoUpdater.quitAndInstall();
       return {
         ok: true,
