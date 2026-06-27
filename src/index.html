@@ -589,6 +589,30 @@
                   </button>
                 </div>
                 <canvas id="photo-editor-canvas"></canvas>
+                <div
+                  id="photo-editor-subject-brush-cursor"
+                  class="photo-editor-subject-brush-cursor"
+                  aria-hidden="true"
+                ></div>
+                <div
+                  id="photo-editor-css-controls"
+                  class="photo-editor-css-controls"
+                  aria-hidden="true"
+                >
+                  <div
+                    id="photo-editor-image-overlay-outline"
+                    class="photo-editor-css-outline photo-editor-css-outline-image"
+                  >
+                    <span class="photo-editor-css-handle photo-editor-css-handle-resize"></span>
+                  </div>
+                  <div
+                    id="photo-editor-text-outline"
+                    class="photo-editor-css-outline photo-editor-css-outline-text"
+                  >
+                    <span class="photo-editor-css-rotate-line"></span>
+                    <span class="photo-editor-css-handle photo-editor-css-handle-rotate"></span>
+                  </div>
+                </div>
               </div>
               <p id="photo-editor-status" class="photo-editor-status" aria-live="polite"></p>
             </div>
@@ -708,6 +732,59 @@
                       aria-pressed="false"
                     >
                       マスク反転
+                    </button>
+                  </div>
+                  <div class="photo-editor-subject-manual-controls">
+                    <div class="photo-editor-subject-manual-title">マスク修正</div>
+                    <div class="photo-editor-subject-toggle-grid">
+                      <button
+                        id="photo-editor-subject-brush-add"
+                        type="button"
+                        class="small-action-button"
+                        aria-pressed="false"
+                      >
+                        修正する
+                      </button>
+                      <button
+                        id="photo-editor-subject-brush-erase"
+                        type="button"
+                        class="small-action-button"
+                        aria-pressed="false"
+                      >
+                        消す
+                      </button>
+                    </div>
+                    <label class="photo-editor-range-row">
+                      <span>ブラシサイズ</span>
+                      <span id="photo-editor-subject-brush-size-value">48px</span>
+                      <input
+                        id="photo-editor-subject-brush-size"
+                        type="range"
+                        min="1"
+                        max="180"
+                        step="1"
+                        value="48"
+                      />
+                    </label>
+                    <label class="photo-editor-range-row">
+                      <span>濃度</span>
+                      <span id="photo-editor-subject-brush-opacity-value">100%</span>
+                      <input
+                        id="photo-editor-subject-brush-opacity"
+                        type="range"
+                        min="1"
+                        max="100"
+                        step="1"
+                        value="100"
+                      />
+                    </label>
+                    <button
+                      id="photo-editor-subject-brush-sample"
+                      type="button"
+                      class="small-action-button"
+                      aria-pressed="false"
+                    >
+                      スポイト
                     </button>
                   </div>
                 </div>
@@ -2100,6 +2177,8 @@
 
     <script src="./i18n.js"></script>
     <script src="../node_modules/onnxruntime-web/dist/ort.min.js"></script>
+    <script src="./photo-editor-subject-mask.js"></script>
+    <script src="./photo-editor-image-overlay.js"></script>
     <script src="./renderer.js"></script>
   </body>
 </html>

@@ -26,6 +26,7 @@
     "audit:i18n": "node scripts/audit-i18n.js",
     "capture:ui": "electron scripts/capture-ui-screenshots.js",
     "smoke:data": "electron scripts/smoke-data-compat.js",
+    "smoke:mask-brush": "electron scripts/smoke-photo-editor-mask-brush.js",
     "smoke:packaged": "node scripts/smoke-packaged-app.js",
     "lint": "echo \"No linting configured\""
   },

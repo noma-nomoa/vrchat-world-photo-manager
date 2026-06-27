@@ -279,6 +279,18 @@ const photoEditorCompareButton = document.getElementById(
 );
 const photoEditorCanvas = document.getElementById('photo-editor-canvas');
 const photoEditorCanvasWrap = document.getElementById('photo-editor-canvas-wrap');
+const photoEditorSubjectBrushCursor = document.getElementById(
+  'photo-editor-subject-brush-cursor'
+);
+const photoEditorCssControls = document.getElementById(
+  'photo-editor-css-controls'
+);
+const photoEditorImageOverlayOutline = document.getElementById(
+  'photo-editor-image-overlay-outline'
+);
+const photoEditorTextOutline = document.getElementById(
+  'photo-editor-text-outline'
+);
 const photoEditorRuleGridButton = document.getElementById(
   'photo-editor-rule-grid-btn'
 );
@@ -508,6 +520,27 @@ const photoEditorSubjectShowMaskInput = document.getElementById(
 );
 const photoEditorSubjectInvertInput = document.getElementById(
   'photo-editor-subject-invert'
+);
+const photoEditorSubjectBrushAddButton = document.getElementById(
+  'photo-editor-subject-brush-add'
+);
+const photoEditorSubjectBrushEraseButton = document.getElementById(
+  'photo-editor-subject-brush-erase'
+);
+const photoEditorSubjectBrushSizeInput = document.getElementById(
+  'photo-editor-subject-brush-size'
+);
+const photoEditorSubjectBrushSizeValue = document.getElementById(
+  'photo-editor-subject-brush-size-value'
+);
+const photoEditorSubjectBrushOpacityInput = document.getElementById(
+  'photo-editor-subject-brush-opacity'
+);
+const photoEditorSubjectBrushOpacityValue = document.getElementById(
+  'photo-editor-subject-brush-opacity-value'
+);
+const photoEditorSubjectBrushSampleButton = document.getElementById(
+  'photo-editor-subject-brush-sample'
 );
 const photoEditorMaskToolGroup = document.getElementById(
   'photo-editor-mask-tools'
@@ -748,6 +781,8 @@ const photoEditorOverlayImageCache = new Map();
 const photoEditorSubjectMaskImageCache = new Map();
 let photoEditorAiSubjectModelStatus = null;
 const photoEditorSubjectModelSessionCache = new Map();
+let photoEditorSubjectMaskEditCanvas = null;
+let photoEditorSubjectMaskEditCtx = null;
 let photoCardDensityAnimationTimer = null;
 let modalShellRestoreTimer = null;
 let modalWorldMetadataRequestId = 0;
@@ -1272,6 +1307,8 @@ const PHOTO_EDITOR_EXPORT_MAX_EDGES = Object.freeze([0, 3840, 2560, 2048, 1600, 
 const PHOTO_EDITOR_AUTO_ENHANCE_ANALYSIS_MAX_EDGE = 512;
 const PHOTO_EDITOR_AUTO_ENHANCE_DEFAULT_STRENGTH = 50;
 const PHOTO_EDITOR_CROP_ZOOM_MAX = 300;
+const PHOTO_EDITOR_PREVIEW_ZOOM_MIN = 1;
+const PHOTO_EDITOR_PREVIEW_ZOOM_MAX = 10;
 const PHOTO_EDIT_SLIDERS = [
   { key: 'brightness', label: '明るさ', min: -100, max: 100, defaultValue: 0 },
   { key: 'exposure', label: '露出', min: -100, max: 100, defaultValue: 0 },
@@ -7055,78 +7092,11 @@ function normalizePhotoEditorAdjustmentTarget(value) {
 }
 
 function getDefaultPhotoEditorSubjectMaskState(overrides = {}) {
-  return {
-    enabled: false,
-    status: 'none',
-    source: 'none',
-    modelId: null,
-    maskDataUrl: '',
-    width: 0,
-    height: 0,
-    feather: 0,
-    expand: 0,
-    invert: false,
-    opacity: 0.55,
-    showOverlay: false,
-    createdAt: null,
-    updatedAt: null,
-    errorMessage: '',
-    ...overrides,
-  };
+  return PhotoEditorSubjectMask.getDefaultSubjectMaskState(overrides);
 }
 
 function normalizePhotoEditorSubjectMaskState(subjectMask = {}) {
-  const defaults = getDefaultPhotoEditorSubjectMaskState();
-  const maskDataUrl =
-    typeof subjectMask?.maskDataUrl === 'string' &&
-    subjectMask.maskDataUrl.startsWith('data:image/')
-      ? subjectMask.maskDataUrl
-      : '';
-  const enabled = Boolean(subjectMask?.enabled && maskDataUrl);
-  const statusValues = ['none', 'loading', 'ready', 'failed'];
-  const sourceValues = [
-    'none',
-    'lightweight',
-    'standard',
-    'high-quality',
-    'manual',
-    'imported',
-    'dummy',
-  ];
-
-  return {
-    enabled,
-    status: statusValues.includes(subjectMask?.status)
-      ? subjectMask.status
-      : enabled
-        ? 'ready'
-        : defaults.status,
-    source: sourceValues.includes(subjectMask?.source)
-      ? subjectMask.source
-      : enabled
-        ? 'manual'
-        : defaults.source,
-    modelId:
-      typeof subjectMask?.modelId === 'string' && subjectMask.modelId.trim()
-        ? subjectMask.modelId.trim()
-        : null,
-    maskDataUrl,
-    width: Math.max(0, Math.round(Number(subjectMask?.width) || 0)),
-    height: Math.max(0, Math.round(Number(subjectMask?.height) || 0)),
-    feather: 0,
-    expand: 0,
-    invert: Boolean(subjectMask?.invert),
-    opacity: clampNumber(subjectMask?.opacity, 0, 1, defaults.opacity),
-    showOverlay: Boolean(subjectMask?.showOverlay),
-    createdAt:
-      typeof subjectMask?.createdAt === 'string' ? subjectMask.createdAt : null,
-    updatedAt:
-      typeof subjectMask?.updatedAt === 'string' ? subjectMask.updatedAt : null,
-    errorMessage:
-      typeof subjectMask?.errorMessage === 'string'
-        ? subjectMask.errorMessage
-        : '',
-  };
+  return PhotoEditorSubjectMask.normalizeSubjectMaskState(subjectMask);
 }
 
 function getDefaultPhotoEditorTextState(overrides = {}) {
@@ -7289,142 +7259,35 @@ function getPhotoEditorActiveTextOverlay() {
 }
 
 function createPhotoEditorImageOverlayId() {
-  return `image-${Date.now().toString(36)}-${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
+  return PhotoEditorImageOverlay.createImageOverlayId();
 }
 
 function normalizePhotoEditorOverlayAsset(rawAsset = {}) {
-  const id =
-    typeof rawAsset?.id === 'string' && rawAsset.id.trim()
-      ? rawAsset.id.trim()
-      : '';
-  const fileUrl =
-    typeof rawAsset?.fileUrl === 'string' && rawAsset.fileUrl.trim()
-      ? rawAsset.fileUrl.trim()
-      : '';
-
-  if (!id || !fileUrl) {
-    return null;
-  }
-
-  return {
-    id,
-    fileName:
-      typeof rawAsset?.fileName === 'string' && rawAsset.fileName.trim()
-        ? rawAsset.fileName.trim()
-        : id,
-    fileUrl,
-    width: Math.max(0, Number(rawAsset?.width) || 0),
-    height: Math.max(0, Number(rawAsset?.height) || 0),
-    sizeBytes: Math.max(0, Number(rawAsset?.sizeBytes) || 0),
-    updatedAt: Math.max(0, Number(rawAsset?.updatedAt) || 0),
-  };
+  return PhotoEditorImageOverlay.normalizeOverlayAsset(rawAsset);
 }
 
 function normalizePhotoEditorOverlayAssets(assets = []) {
-  return (Array.isArray(assets) ? assets : [])
-    .map(normalizePhotoEditorOverlayAsset)
-    .filter(Boolean);
+  return PhotoEditorImageOverlay.normalizeOverlayAssets(assets);
 }
 
 function getPhotoEditorImageOverlayAspectRatio(overlay = {}) {
-  const width = Number(overlay?.naturalWidth || overlay?.width || overlay?.assetWidth);
-  const height = Number(overlay?.naturalHeight || overlay?.height || overlay?.assetHeight);
-  return width > 0 && height > 0 ? width / height : 1;
+  return PhotoEditorImageOverlay.getImageOverlayAspectRatio(overlay);
 }
 
 function normalizePhotoEditorImageOverlayBlendMode(value) {
-  return PHOTO_EDITOR_IMAGE_OVERLAY_BLEND_MODES.includes(value)
-    ? value
-    : 'source-over';
+  return PhotoEditorImageOverlay.normalizeImageOverlayBlendMode(value);
 }
 
 function getDefaultPhotoEditorImageOverlayState(asset = {}, overrides = {}) {
-  const normalizedAsset = normalizePhotoEditorOverlayAsset(asset) || {};
-  const aspectRatio = getPhotoEditorImageOverlayAspectRatio({
-    width: normalizedAsset.width,
-    height: normalizedAsset.height,
-  });
-  let defaultWidth = PHOTO_EDITOR_IMAGE_OVERLAY_DEFAULT_EDGE;
-  let defaultHeight = defaultWidth / Math.max(0.05, aspectRatio);
-
-  if (defaultHeight > 0.72) {
-    defaultHeight = 0.72;
-    defaultWidth = defaultHeight * aspectRatio;
-  }
-
-  return {
-    id: createPhotoEditorImageOverlayId(),
-    assetId: normalizedAsset.id || '',
-    fileName: normalizedAsset.fileName || 'overlay',
-    fileUrl: normalizedAsset.fileUrl || '',
-    x: 0.5,
-    y: 0.5,
-    width: clampNumber(defaultWidth, 0.08, 0.72, PHOTO_EDITOR_IMAGE_OVERLAY_DEFAULT_EDGE),
-    height: clampNumber(defaultHeight, 0.08, 0.72, defaultWidth),
-    opacity: 1,
-    blendMode: 'source-over',
-    maskMode: 'normal',
-    naturalWidth: normalizedAsset.width || 0,
-    naturalHeight: normalizedAsset.height || 0,
-    ...overrides,
-  };
+  return PhotoEditorImageOverlay.getDefaultImageOverlayState(asset, overrides);
 }
 
 function normalizePhotoEditorImageOverlayState(overlay = {}) {
-  const defaults = getDefaultPhotoEditorImageOverlayState();
-  const id =
-    typeof overlay?.id === 'string' && overlay.id.trim()
-      ? overlay.id.trim()
-      : defaults.id;
-  const fileUrl =
-    typeof overlay?.fileUrl === 'string' && overlay.fileUrl.trim()
-      ? overlay.fileUrl.trim()
-      : '';
-  const naturalWidth = Math.max(0, Number(overlay?.naturalWidth) || 0);
-  const naturalHeight = Math.max(0, Number(overlay?.naturalHeight) || 0);
-
-  return {
-    id,
-    assetId:
-      typeof overlay?.assetId === 'string' && overlay.assetId.trim()
-        ? overlay.assetId.trim()
-        : '',
-    fileName:
-      typeof overlay?.fileName === 'string' && overlay.fileName.trim()
-        ? overlay.fileName.trim()
-        : 'overlay',
-    fileUrl,
-    x: clampNumber(overlay?.x, -0.5, 1.5, defaults.x),
-    y: clampNumber(overlay?.y, -0.5, 1.5, defaults.y),
-    width: clampNumber(
-      overlay?.width,
-      PHOTO_EDITOR_IMAGE_OVERLAY_MIN_SIZE,
-      2,
-      defaults.width
-    ),
-    height: clampNumber(
-      overlay?.height,
-      PHOTO_EDITOR_IMAGE_OVERLAY_MIN_SIZE,
-      2,
-      defaults.height
-    ),
-    opacity: clampNumber(overlay?.opacity, 0, 1, defaults.opacity),
-    blendMode: normalizePhotoEditorImageOverlayBlendMode(
-      overlay?.blendMode || defaults.blendMode
-    ),
-    maskMode: normalizePhotoEditorMaskMode(overlay?.maskMode),
-    naturalWidth,
-    naturalHeight,
-  };
+  return PhotoEditorImageOverlay.normalizeImageOverlayState(overlay);
 }
 
 function normalizePhotoEditorImageOverlays(imageOverlays = []) {
-  return (Array.isArray(imageOverlays) ? imageOverlays : [])
-    .map(normalizePhotoEditorImageOverlayState)
-    .filter((overlay) => Boolean(overlay.fileUrl))
-    .slice(0, PHOTO_EDITOR_IMAGE_OVERLAY_LIMIT);
+  return PhotoEditorImageOverlay.normalizeImageOverlays(imageOverlays);
 }
 
 function getPhotoEditorImageOverlayCollectionFromState(state = photoEditorState) {
@@ -7763,6 +7626,12 @@ function createPhotoEditorState(photo) {
     imageOverlays: [],
     activeImageOverlayId: '',
     subjectMask: getDefaultPhotoEditorSubjectMaskState(),
+    subjectMaskBrushMode: 'none',
+    subjectMaskBrushSize: 48,
+    subjectMaskBrushOpacity: 1,
+    subjectMaskBrushSampleMode: false,
+    subjectMaskBrushPreviewPoint: null,
+    previewZoom: 1,
     rulerGuides: normalizePhotoEditorRulerGuides(),
     draftRulerGuide: null,
     dragInitialRulerGuide: null,
@@ -7782,6 +7651,7 @@ function createPhotoEditorState(photo) {
     dragInitialMask: null,
     dragInitialText: null,
     dragInitialImageOverlay: null,
+    dragInitialStageScroll: null,
     dragCurvePointIndex: null,
     draftMask: null,
     showOriginalPreview: false,
@@ -7961,6 +7831,8 @@ function applyPhotoEditorHistorySnapshot(snapshot) {
   photoEditorState.subjectMask = normalizePhotoEditorSubjectMaskState(
     snapshot.subjectMask
   );
+  clearPhotoEditorSubjectMaskEditCanvas();
+  photoEditorSubjectMaskImageCache.clear();
   photoEditorState.rulerGuides = normalizePhotoEditorRulerGuides(
     snapshot.rulerGuides
   );
@@ -7999,6 +7871,7 @@ function applyPhotoEditorHistorySnapshot(snapshot) {
   photoEditorCanvas?.classList.remove(
     'is-panning',
     'is-mask-draft-active',
+    'is-stage-scroll-dragging',
     'is-text-tool-active',
     'is-image-overlay-tool-active'
   );
@@ -8307,6 +8180,85 @@ function syncPhotoEditorSubjectMaskControls() {
     );
   }
 
+  if (!hasMask && photoEditorState.subjectMaskBrushMode !== 'none') {
+    photoEditorState.subjectMaskBrushMode = 'none';
+  }
+  if (!hasMask && photoEditorState.subjectMaskBrushSampleMode) {
+    photoEditorState.subjectMaskBrushSampleMode = false;
+  }
+
+  const brushMode = photoEditorState.subjectMaskBrushMode || 'none';
+  const brushSize = Math.round(
+    clampNumber(photoEditorState.subjectMaskBrushSize, 1, 180, 48)
+  );
+  const brushOpacity = clampNumber(
+    photoEditorState.subjectMaskBrushOpacity,
+    0.01,
+    1,
+    1
+  );
+  const isSampleMode = Boolean(photoEditorState.subjectMaskBrushSampleMode);
+
+  if (photoEditorSubjectBrushAddButton) {
+    photoEditorSubjectBrushAddButton.disabled = !hasMask;
+    photoEditorSubjectBrushAddButton.classList.toggle(
+      'is-active',
+      brushMode === 'add'
+    );
+    photoEditorSubjectBrushAddButton.setAttribute(
+      'aria-pressed',
+      String(brushMode === 'add')
+    );
+  }
+
+  if (photoEditorSubjectBrushEraseButton) {
+    photoEditorSubjectBrushEraseButton.disabled = !hasMask;
+    photoEditorSubjectBrushEraseButton.classList.toggle(
+      'is-active',
+      brushMode === 'erase'
+    );
+    photoEditorSubjectBrushEraseButton.setAttribute(
+      'aria-pressed',
+      String(brushMode === 'erase')
+    );
+  }
+
+  if (photoEditorSubjectBrushSizeInput) {
+    photoEditorSubjectBrushSizeInput.disabled = !hasMask;
+    photoEditorSubjectBrushSizeInput.value = String(brushSize);
+  }
+
+  if (photoEditorSubjectBrushSizeValue) {
+    photoEditorSubjectBrushSizeValue.textContent = `${brushSize}px`;
+  }
+
+  if (photoEditorSubjectBrushOpacityInput) {
+    photoEditorSubjectBrushOpacityInput.disabled = !hasMask;
+    photoEditorSubjectBrushOpacityInput.value = String(
+      Math.round(brushOpacity * 100)
+    );
+  }
+
+  if (photoEditorSubjectBrushOpacityValue) {
+    photoEditorSubjectBrushOpacityValue.textContent = `${Math.round(
+      brushOpacity * 100
+    )}%`;
+  }
+
+  if (photoEditorSubjectBrushSampleButton) {
+    photoEditorSubjectBrushSampleButton.disabled = !hasMask;
+    photoEditorSubjectBrushSampleButton.classList.toggle('is-active', isSampleMode);
+    photoEditorSubjectBrushSampleButton.setAttribute(
+      'aria-pressed',
+      String(isSampleMode)
+    );
+  }
+
+  photoEditorCanvas?.classList.toggle(
+    'is-subject-mask-brush-active',
+    hasMask && (brushMode !== 'none' || isSampleMode)
+  );
+  syncPhotoEditorSubjectMaskBrushCursor();
 }
 
 function updatePhotoEditorAdjustmentTarget(target) {
@@ -8326,12 +8278,24 @@ function hasPhotoEditorReadySubjectMask(state = photoEditorState) {
   return Boolean(subjectMask.enabled && subjectMask.maskDataUrl);
 }
 
+function clearPhotoEditorSubjectMaskEditCanvas() {
+  photoEditorSubjectMaskEditCanvas = null;
+  photoEditorSubjectMaskEditCtx = null;
+}
+
 function updatePhotoEditorSubjectMask(nextValues = {}, { interactive = true } = {}) {
   if (!photoEditorState) {
     return;
   }
 
   beginPhotoEditorHistoryMutation();
+  if (
+    Object.prototype.hasOwnProperty.call(nextValues, 'maskDataUrl') &&
+    nextValues.maskDataUrl !== photoEditorState.subjectMask?.maskDataUrl
+  ) {
+    clearPhotoEditorSubjectMaskEditCanvas();
+    photoEditorSubjectMaskImageCache.clear();
+  }
   photoEditorState.subjectMask = normalizePhotoEditorSubjectMaskState({
     ...photoEditorState.subjectMask,
     ...nextValues,
@@ -8351,9 +8315,395 @@ function clearPhotoEditorSubjectMask() {
 
   beginPhotoEditorHistoryMutation();
   photoEditorState.subjectMask = getDefaultPhotoEditorSubjectMaskState();
+  photoEditorState.subjectMaskBrushMode = 'none';
+  clearPhotoEditorSubjectMaskEditCanvas();
+  photoEditorSubjectMaskImageCache.clear();
   syncPhotoEditorSubjectMaskControls();
   schedulePhotoEditorRender();
   commitPhotoEditorHistoryMutation();
+}
+
+function setPhotoEditorSubjectMaskBrushMode(mode) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  if (!hasPhotoEditorReadySubjectMask()) {
+    photoEditorState.subjectMaskBrushMode = 'none';
+    syncPhotoEditorSubjectMaskControls();
+    return;
+  }
+
+  const normalizedMode = ['add', 'erase'].includes(mode) ? mode : 'none';
+  photoEditorState.subjectMaskBrushMode =
+    photoEditorState.subjectMaskBrushMode === normalizedMode
+      ? 'none'
+      : normalizedMode;
+  if (photoEditorState.subjectMaskBrushMode !== 'none') {
+    photoEditorState.subjectMaskBrushSampleMode = false;
+  }
+  if (photoEditorState.subjectMaskBrushMode === 'none') {
+    photoEditorState.subjectMaskBrushPreviewPoint = null;
+  }
+  syncPhotoEditorSubjectMaskControls();
+  paintPhotoEditorPreviewOverlayOnly();
+}
+
+function updatePhotoEditorSubjectMaskBrushSize(size) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  photoEditorState.subjectMaskBrushSize = Math.round(
+    clampNumber(size, 1, 180, 48)
+  );
+  syncPhotoEditorSubjectMaskControls();
+  if (paintPhotoEditorPreviewOverlayOnly()) {
+    return;
+  }
+  schedulePhotoEditorRender();
+}
+
+function updatePhotoEditorSubjectMaskBrushOpacity(value) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  photoEditorState.subjectMaskBrushOpacity = clampNumber(
+    Number(value) / 100,
+    0.01,
+    1,
+    1
+  );
+  syncPhotoEditorSubjectMaskControls();
+}
+
+function setPhotoEditorSubjectMaskBrushSampleMode(enabled) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  photoEditorState.subjectMaskBrushSampleMode = Boolean(
+    enabled && hasPhotoEditorReadySubjectMask()
+  );
+  if (photoEditorState.subjectMaskBrushSampleMode) {
+    photoEditorState.subjectMaskBrushMode = 'none';
+    photoEditorState.subjectMaskBrushPreviewPoint = null;
+  }
+  syncPhotoEditorSubjectMaskControls();
+  paintPhotoEditorPreviewOverlayOnly();
+}
+
+function updatePhotoEditorPreviewZoom(value, { anchorEvent = null } = {}) {
+  if (!photoEditorState) {
+    return;
+  }
+
+  const previousZoom = clampNumber(
+    photoEditorState.previewZoom,
+    PHOTO_EDITOR_PREVIEW_ZOOM_MIN,
+    PHOTO_EDITOR_PREVIEW_ZOOM_MAX,
+    1
+  );
+  const nextZoom = clampNumber(
+    value,
+    PHOTO_EDITOR_PREVIEW_ZOOM_MIN,
+    PHOTO_EDITOR_PREVIEW_ZOOM_MAX,
+    1
+  );
+
+  if (Math.abs(previousZoom - nextZoom) < 0.001) {
+    return;
+  }
+
+  const anchor =
+    anchorEvent && photoEditorCanvasWrap
+      ? {
+          x: anchorEvent.clientX,
+          y: anchorEvent.clientY,
+          rect: photoEditorCanvasWrap.getBoundingClientRect(),
+          left: photoEditorCanvasWrap.scrollLeft,
+          top: photoEditorCanvasWrap.scrollTop,
+        }
+      : null;
+
+  photoEditorState.previewZoom = nextZoom;
+  syncPhotoEditorSubjectMaskControls();
+
+  const outputSize =
+    photoEditorPreviewOverlayMeta?.outputSize ||
+    (photoEditorCanvas?.width && photoEditorCanvas?.height
+      ? {
+          width: photoEditorCanvas.width,
+          height: photoEditorCanvas.height,
+          fullWidth: photoEditorCanvas.width,
+          fullHeight: photoEditorCanvas.height,
+        }
+      : null);
+
+  if (outputSize) {
+    syncPhotoEditorPreviewCanvasDisplaySize(outputSize);
+  }
+
+  if (anchor && photoEditorCanvasWrap) {
+    const ratio = nextZoom / Math.max(0.001, previousZoom);
+    const anchorX = anchor.x - anchor.rect.left + anchor.left;
+    const anchorY = anchor.y - anchor.rect.top + anchor.top;
+    photoEditorCanvasWrap.scrollLeft =
+      anchorX * ratio - (anchor.x - anchor.rect.left);
+    photoEditorCanvasWrap.scrollTop =
+      anchorY * ratio - (anchor.y - anchor.rect.top);
+  }
+
+  syncPhotoEditorSubjectMaskBrushCursor();
+  syncPhotoEditorCurrentCssControlOverlays();
+}
+
+function getPhotoEditorSubjectMaskEditCanvas() {
+  if (photoEditorSubjectMaskEditCanvas && photoEditorSubjectMaskEditCtx) {
+    return photoEditorSubjectMaskEditCanvas;
+  }
+
+  const subjectMask = normalizePhotoEditorSubjectMaskState(
+    photoEditorState?.subjectMask
+  );
+
+  if (!subjectMask.enabled || !subjectMask.maskDataUrl) {
+    return null;
+  }
+
+  const cacheEntry = getPhotoEditorSubjectMaskImageCacheEntry(subjectMask);
+
+  if (!cacheEntry?.loaded || cacheEntry.failed) {
+    setPhotoEditorStatus('マスク画像を読み込み中です');
+    return null;
+  }
+
+  const width = Math.max(
+    1,
+    Math.round(subjectMask.width || cacheEntry.image.naturalWidth || 1)
+  );
+  const height = Math.max(
+    1,
+    Math.round(subjectMask.height || cacheEntry.image.naturalHeight || 1)
+  );
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  if (!ctx) {
+    return null;
+  }
+
+  ctx.drawImage(cacheEntry.image, 0, 0, width, height);
+  normalizePhotoEditorMaskCanvasAlpha(canvas);
+  photoEditorSubjectMaskEditCanvas = canvas;
+  photoEditorSubjectMaskEditCtx = ctx;
+  return canvas;
+}
+
+function getPhotoEditorSubjectMaskCanvasPoint(point, canvas) {
+  if (!photoEditorState?.sourceImage || !point || !canvas) {
+    return null;
+  }
+
+  const sourcePoint = mapPhotoEditorOutputPointToSource(
+    point,
+    getPhotoEditorSourceRect(photoEditorState.sourceImage),
+    photoEditorState.sourceImage
+  );
+
+  return {
+    x: clampNumber(sourcePoint.x * canvas.width, 0, canvas.width - 1, 0),
+    y: clampNumber(sourcePoint.y * canvas.height, 0, canvas.height - 1, 0),
+  };
+}
+
+function samplePhotoEditorSubjectMaskBrushOpacity(point) {
+  if (!photoEditorState?.subjectMaskBrushSampleMode) {
+    return false;
+  }
+
+  const canvas = getPhotoEditorSubjectMaskEditCanvas();
+  const ctx = photoEditorSubjectMaskEditCtx;
+  const canvasPoint = getPhotoEditorSubjectMaskCanvasPoint(point, canvas);
+
+  if (!canvas || !ctx || !canvasPoint) {
+    return true;
+  }
+
+  try {
+    const pixel = ctx.getImageData(
+      Math.round(canvasPoint.x),
+      Math.round(canvasPoint.y),
+      1,
+      1
+    ).data;
+    const sampledAlpha = clampNumber(pixel[3] / 255, 0.01, 1, 1);
+    photoEditorState.subjectMaskBrushOpacity = sampledAlpha;
+    photoEditorState.subjectMaskBrushSampleMode = false;
+    syncPhotoEditorSubjectMaskControls();
+    paintPhotoEditorPreviewOverlayOnly();
+  } catch {
+    photoEditorState.subjectMaskBrushSampleMode = false;
+    syncPhotoEditorSubjectMaskControls();
+  }
+
+  return true;
+}
+
+function paintPhotoEditorSubjectMaskBrush(point) {
+  if (
+    !photoEditorState?.sourceImage ||
+    !['add', 'erase'].includes(photoEditorState.subjectMaskBrushMode)
+  ) {
+    return false;
+  }
+
+  const canvas = getPhotoEditorSubjectMaskEditCanvas();
+  const ctx = photoEditorSubjectMaskEditCtx;
+
+  if (!canvas || !ctx) {
+    return false;
+  }
+
+  const canvasPoint = getPhotoEditorSubjectMaskCanvasPoint(point, canvas);
+
+  if (!canvasPoint) {
+    return false;
+  }
+
+  const radius = clampNumber(photoEditorState.subjectMaskBrushSize, 1, 180, 48);
+  const x = canvasPoint.x;
+  const y = canvasPoint.y;
+  const isErase = photoEditorState.subjectMaskBrushMode === 'erase';
+  const opacity = clampNumber(
+    photoEditorState.subjectMaskBrushOpacity,
+    0.01,
+    1,
+    1
+  );
+
+  ctx.save();
+  ctx.globalCompositeOperation = isErase ? 'destination-out' : 'source-over';
+  ctx.globalAlpha = opacity;
+  ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  photoEditorState.subjectMaskBrushPreviewPoint = point;
+  syncPhotoEditorSubjectMaskBrushCursor();
+  schedulePhotoEditorRender({
+    debounceMs: PHOTO_EDITOR_INTERACTIVE_PREVIEW_DEBOUNCE_MS,
+    interactive: true,
+  });
+  return true;
+}
+
+function beginPhotoEditorSubjectMaskBrushDrag(event, point) {
+  if (
+    !photoEditorState ||
+    !hasPhotoEditorReadySubjectMask() ||
+    (
+      !['add', 'erase'].includes(photoEditorState.subjectMaskBrushMode) &&
+      !photoEditorState.subjectMaskBrushSampleMode
+    )
+  ) {
+    return false;
+  }
+
+  const editCanvas = getPhotoEditorSubjectMaskEditCanvas();
+
+  if (!editCanvas) {
+    event.preventDefault();
+    return true;
+  }
+
+  event.preventDefault();
+  if (samplePhotoEditorSubjectMaskBrushOpacity(point)) {
+    return true;
+  }
+
+  safelySetPointerCapture(photoEditorCanvas, event.pointerId);
+  beginPhotoEditorHistoryMutation();
+  photoEditorState.dragMode = 'subject-mask-brush';
+  photoEditorState.dragStart = point;
+  photoEditorState.subjectMask = normalizePhotoEditorSubjectMaskState({
+    ...photoEditorState.subjectMask,
+    showOverlay: true,
+  });
+  paintPhotoEditorSubjectMaskBrush(point);
+  syncPhotoEditorSubjectMaskControls();
+  return true;
+}
+
+function updatePhotoEditorSubjectMaskBrushDrag(event, point) {
+  if (photoEditorState?.dragMode !== 'subject-mask-brush') {
+    return false;
+  }
+
+  event.preventDefault();
+  paintPhotoEditorSubjectMaskBrush(point);
+  return true;
+}
+
+function updatePhotoEditorSubjectMaskBrushPreview(point) {
+  if (
+    !photoEditorState ||
+    !['add', 'erase'].includes(photoEditorState.subjectMaskBrushMode) ||
+    !hasPhotoEditorReadySubjectMask()
+  ) {
+    return false;
+  }
+
+  photoEditorState.subjectMaskBrushPreviewPoint = point || null;
+  syncPhotoEditorSubjectMaskBrushCursor();
+  return true;
+}
+
+function clearPhotoEditorSubjectMaskBrushPreview() {
+  if (!photoEditorState?.subjectMaskBrushPreviewPoint) {
+    syncPhotoEditorSubjectMaskBrushCursor();
+    return;
+  }
+
+  photoEditorState.subjectMaskBrushPreviewPoint = null;
+  syncPhotoEditorSubjectMaskBrushCursor();
+}
+
+function finishPhotoEditorSubjectMaskBrushDrag() {
+  if (photoEditorState?.dragMode !== 'subject-mask-brush') {
+    return false;
+  }
+
+  if (photoEditorSubjectMaskEditCanvas) {
+    const now = new Date().toISOString();
+    photoEditorState.subjectMask = normalizePhotoEditorSubjectMaskState({
+      ...photoEditorState.subjectMask,
+      enabled: true,
+      status: 'ready',
+      source: 'manual',
+      maskDataUrl: photoEditorSubjectMaskEditCanvas.toDataURL('image/png'),
+      width: photoEditorSubjectMaskEditCanvas.width,
+      height: photoEditorSubjectMaskEditCanvas.height,
+      updatedAt: now,
+      createdAt: photoEditorState.subjectMask?.createdAt || now,
+      errorMessage: '',
+    });
+    clearPhotoEditorSubjectMaskEditCanvas();
+    photoEditorSubjectMaskImageCache.clear();
+  }
+
+  photoEditorState.subjectMaskBrushPreviewPoint = null;
+  photoEditorState.dragStart = null;
+  photoEditorState.dragMode = null;
+  photoEditorCanvas?.classList.remove('is-panning');
+  syncPhotoEditorSubjectMaskControls();
+  finishPhotoEditorInteractivePreview();
+  commitPhotoEditorHistoryMutation();
+  return true;
 }
 
 function getPhotoEditorSubjectModel(modelId) {
@@ -8996,73 +9346,11 @@ function createPhotoEditorSubjectModelInput(
 }
 
 function getPhotoEditorSubjectMaskHistogramPercentile(histogram, percentile) {
-  const total = histogram.reduce((sum, count) => sum + count, 0);
-
-  if (total <= 0) {
-    return 0;
-  }
-
-  const target = total * clampNumber(percentile, 0, 1, 0);
-  let cumulative = 0;
-
-  for (let index = 0; index < histogram.length; index += 1) {
-    cumulative += histogram[index] || 0;
-
-    if (cumulative >= target) {
-      return index;
-    }
-  }
-
-  return histogram.length - 1;
+  return PhotoEditorSubjectMask.getHistogramPercentile(histogram, percentile);
 }
 
 function getPhotoEditorSubjectMaskOtsuThreshold(histogram, pixelCount) {
-  if (!Array.isArray(histogram) || pixelCount <= 0) {
-    return 128;
-  }
-
-  let totalIntensity = 0;
-
-  for (let index = 0; index < histogram.length; index += 1) {
-    totalIntensity += index * (histogram[index] || 0);
-  }
-
-  let backgroundWeight = 0;
-  let backgroundIntensity = 0;
-  let bestThreshold = 128;
-  let bestVariance = -1;
-
-  for (let threshold = 0; threshold < histogram.length; threshold += 1) {
-    const count = histogram[threshold] || 0;
-    backgroundWeight += count;
-
-    if (backgroundWeight <= 0) {
-      continue;
-    }
-
-    const foregroundWeight = pixelCount - backgroundWeight;
-
-    if (foregroundWeight <= 0) {
-      break;
-    }
-
-    backgroundIntensity += threshold * count;
-    const backgroundMean = backgroundIntensity / backgroundWeight;
-    const foregroundMean =
-      (totalIntensity - backgroundIntensity) / foregroundWeight;
-    const variance =
-      backgroundWeight *
-      foregroundWeight *
-      (backgroundMean - foregroundMean) *
-      (backgroundMean - foregroundMean);
-
-    if (variance > bestVariance) {
-      bestVariance = variance;
-      bestThreshold = threshold;
-    }
-  }
-
-  return bestThreshold;
+  return PhotoEditorSubjectMask.getOtsuThreshold(histogram, pixelCount);
 }
 
 function removeSmallPhotoEditorSubjectMaskComponents(
@@ -9071,115 +9359,12 @@ function removeSmallPhotoEditorSubjectMaskComponents(
   height,
   threshold
 ) {
-  const pixelCount = width * height;
-
-  if (!alphaValues || pixelCount <= 0) {
-    return alphaValues;
-  }
-
-  const visited = new Uint8Array(pixelCount);
-  const keep = new Uint8Array(pixelCount);
-  const queue = new Int32Array(pixelCount);
-  const component = new Int32Array(pixelCount);
-  const minComponentSize = Math.max(28, Math.round(pixelCount * 0.0012));
-  let largestComponentStart = -1;
-  let largestComponentSize = 0;
-
-  for (let start = 0; start < pixelCount; start += 1) {
-    if (visited[start] || alphaValues[start] < threshold) {
-      continue;
-    }
-
-    let queueStart = 0;
-    let queueEnd = 0;
-    let componentSize = 0;
-    visited[start] = 1;
-    queue[queueEnd] = start;
-    queueEnd += 1;
-
-    while (queueStart < queueEnd) {
-      const current = queue[queueStart];
-      queueStart += 1;
-      component[componentSize] = current;
-      componentSize += 1;
-
-      const x = current % width;
-      const y = Math.floor(current / width);
-      const neighbors = [
-        x > 0 ? current - 1 : -1,
-        x < width - 1 ? current + 1 : -1,
-        y > 0 ? current - width : -1,
-        y < height - 1 ? current + width : -1,
-      ];
-
-      for (const neighbor of neighbors) {
-        if (
-          neighbor >= 0 &&
-          !visited[neighbor] &&
-          alphaValues[neighbor] >= threshold
-        ) {
-          visited[neighbor] = 1;
-          queue[queueEnd] = neighbor;
-          queueEnd += 1;
-        }
-      }
-    }
-
-    if (componentSize > largestComponentSize) {
-      largestComponentSize = componentSize;
-      largestComponentStart = start;
-    }
-
-    if (componentSize >= minComponentSize) {
-      for (let index = 0; index < componentSize; index += 1) {
-        keep[component[index]] = 1;
-      }
-    }
-  }
-
-  if (largestComponentStart >= 0 && largestComponentSize > 0) {
-    visited.fill(0);
-    let queueStart = 0;
-    let queueEnd = 0;
-    visited[largestComponentStart] = 1;
-    queue[queueEnd] = largestComponentStart;
-    queueEnd += 1;
-
-    while (queueStart < queueEnd) {
-      const current = queue[queueStart];
-      queueStart += 1;
-      keep[current] = 1;
-
-      const x = current % width;
-      const y = Math.floor(current / width);
-      const neighbors = [
-        x > 0 ? current - 1 : -1,
-        x < width - 1 ? current + 1 : -1,
-        y > 0 ? current - width : -1,
-        y < height - 1 ? current + width : -1,
-      ];
-
-      for (const neighbor of neighbors) {
-        if (
-          neighbor >= 0 &&
-          !visited[neighbor] &&
-          alphaValues[neighbor] >= threshold
-        ) {
-          visited[neighbor] = 1;
-          queue[queueEnd] = neighbor;
-          queueEnd += 1;
-        }
-      }
-    }
-  }
-
-  for (let index = 0; index < pixelCount; index += 1) {
-    if (!keep[index] && alphaValues[index] >= threshold) {
-      alphaValues[index] = Math.min(alphaValues[index], threshold - 1);
-    }
-  }
-
-  return alphaValues;
+  return PhotoEditorSubjectMask.removeSmallComponents(
+    alphaValues,
+    width,
+    height,
+    threshold
+  );
 }
 
 function fillSmallPhotoEditorSubjectMaskHoles(
@@ -9188,185 +9373,16 @@ function fillSmallPhotoEditorSubjectMaskHoles(
   height,
   threshold
 ) {
-  const pixelCount = width * height;
-
-  if (!alphaValues || pixelCount <= 0) {
-    return alphaValues;
-  }
-
-  const visited = new Uint8Array(pixelCount);
-  const queue = new Int32Array(pixelCount);
-  const component = new Int32Array(pixelCount);
-  const minDimension = Math.max(1, Math.min(width, height));
-  const maxHoleSize = Math.max(
-    24,
-    Math.round(pixelCount * 0.0009),
-    Math.round(minDimension * 0.9)
+  return PhotoEditorSubjectMask.fillSmallHoles(
+    alphaValues,
+    width,
+    height,
+    threshold
   );
-
-  for (let start = 0; start < pixelCount; start += 1) {
-    if (visited[start] || alphaValues[start] >= threshold) {
-      continue;
-    }
-
-    let queueStart = 0;
-    let queueEnd = 0;
-    let componentSize = 0;
-    let touchesEdge = false;
-    let neighborAlphaSum = 0;
-    let neighborAlphaCount = 0;
-    visited[start] = 1;
-    queue[queueEnd] = start;
-    queueEnd += 1;
-
-    while (queueStart < queueEnd) {
-      const current = queue[queueStart];
-      queueStart += 1;
-      component[componentSize] = current;
-      componentSize += 1;
-
-      const x = current % width;
-      const y = Math.floor(current / width);
-
-      if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
-        touchesEdge = true;
-      }
-
-      const neighbors = [
-        x > 0 ? current - 1 : -1,
-        x < width - 1 ? current + 1 : -1,
-        y > 0 ? current - width : -1,
-        y < height - 1 ? current + width : -1,
-      ];
-
-      for (const neighbor of neighbors) {
-        if (neighbor < 0) {
-          continue;
-        }
-
-        if (alphaValues[neighbor] >= threshold) {
-          neighborAlphaSum += alphaValues[neighbor];
-          neighborAlphaCount += 1;
-        } else if (!visited[neighbor]) {
-          visited[neighbor] = 1;
-          queue[queueEnd] = neighbor;
-          queueEnd += 1;
-        }
-      }
-    }
-
-    if (
-      !touchesEdge &&
-      componentSize <= maxHoleSize &&
-      neighborAlphaCount > 0
-    ) {
-      const fillValue = clampColorChannel(
-        Math.max(threshold + 10, neighborAlphaSum / neighborAlphaCount)
-      );
-
-      for (let index = 0; index < componentSize; index += 1) {
-        alphaValues[component[index]] = fillValue;
-      }
-    }
-  }
-
-  return alphaValues;
 }
 
 function cleanupPhotoEditorSubjectMaskCanvas(maskCanvas) {
-  if (!maskCanvas) {
-    return maskCanvas;
-  }
-
-  const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
-
-  if (!maskCtx) {
-    return maskCanvas;
-  }
-
-  try {
-    const width = maskCanvas.width;
-    const height = maskCanvas.height;
-    const pixelCount = width * height;
-    const imageData = maskCtx.getImageData(0, 0, width, height);
-    const data = imageData.data;
-    const histogram = Array.from({ length: 256 }, () => 0);
-    const alphaValues = new Uint8Array(pixelCount);
-
-    for (let index = 0; index < pixelCount; index += 1) {
-      const value = data[index * 4];
-      alphaValues[index] = value;
-      histogram[value] += 1;
-    }
-
-    const p04 = getPhotoEditorSubjectMaskHistogramPercentile(histogram, 0.04);
-    const p35 = getPhotoEditorSubjectMaskHistogramPercentile(histogram, 0.35);
-    const p58 = getPhotoEditorSubjectMaskHistogramPercentile(histogram, 0.58);
-    const p82 = getPhotoEditorSubjectMaskHistogramPercentile(histogram, 0.82);
-    const p96 = getPhotoEditorSubjectMaskHistogramPercentile(histogram, 0.96);
-
-    if (p96 - p04 < 12) {
-      return maskCanvas;
-    }
-
-    const otsuThreshold = getPhotoEditorSubjectMaskOtsuThreshold(
-      histogram,
-      pixelCount
-    );
-    const foregroundCount = alphaValues.reduce(
-      (count, value) => count + (value >= otsuThreshold ? 1 : 0),
-      0
-    );
-    const foregroundRatio = foregroundCount / Math.max(1, pixelCount);
-    const adjustedThreshold =
-      foregroundRatio > 0.68
-        ? Math.max(otsuThreshold, p58)
-        : clampNumber(otsuThreshold, p35, p82, otsuThreshold);
-    const low = clampNumber(adjustedThreshold - 20, p04, 245, adjustedThreshold);
-    const high = clampNumber(adjustedThreshold + 34, low + 1, p96, low + 36);
-    const componentThreshold = Math.max(96, Math.round(adjustedThreshold));
-
-    for (let index = 0; index < pixelCount; index += 1) {
-      const value = alphaValues[index];
-      let nextValue = smoothstep(low, high, value) * 255;
-
-      if (value < adjustedThreshold * 0.52) {
-        nextValue = 0;
-      } else if (value > high + 12) {
-        nextValue = 255;
-      }
-
-      alphaValues[index] = clampColorChannel(value * 0.1 + nextValue * 0.9);
-    }
-
-    removeSmallPhotoEditorSubjectMaskComponents(
-      alphaValues,
-      width,
-      height,
-      componentThreshold
-    );
-    fillSmallPhotoEditorSubjectMaskHoles(
-      alphaValues,
-      width,
-      height,
-      componentThreshold
-    );
-
-    for (let index = 0; index < pixelCount; index += 1) {
-      const value = alphaValues[index];
-      const dataIndex = index * 4;
-      data[dataIndex] = value;
-      data[dataIndex + 1] = value;
-      data[dataIndex + 2] = value;
-      data[dataIndex + 3] = 255;
-    }
-
-    maskCtx.putImageData(imageData, 0, 0);
-  } catch {
-    return maskCanvas;
-  }
-
-  return maskCanvas;
+  return PhotoEditorSubjectMask.cleanupSubjectMaskCanvas(maskCanvas);
 }
 
 function refinePhotoEditorSubjectMaskWithSourceImage(maskCanvas, sourceImage) {
@@ -9634,6 +9650,7 @@ async function generatePhotoEditorSubjectMaskWithModel(modelId, source) {
     },
     { interactive: false }
   );
+  clearPhotoEditorSubjectMaskEditCanvas();
   setPhotoEditorStatus(`${label}で被写体を選択中...`);
 
   try {
@@ -9662,6 +9679,8 @@ async function generatePhotoEditorSubjectMaskWithModel(modelId, source) {
     const imageSize = getPhotoEditorImageSize(photoEditorState.sourceImage);
 
     beginPhotoEditorHistoryMutation();
+    clearPhotoEditorSubjectMaskEditCanvas();
+    photoEditorSubjectMaskImageCache.clear();
     photoEditorState.subjectMask = normalizePhotoEditorSubjectMaskState({
       enabled: true,
       status: 'ready',
@@ -9754,6 +9773,8 @@ function loadPhotoEditorSubjectMaskFile(file) {
         createdAt: timestamp,
         updatedAt: timestamp,
       });
+      clearPhotoEditorSubjectMaskEditCanvas();
+      photoEditorSubjectMaskImageCache.clear();
       syncPhotoEditorSubjectMaskControls();
       schedulePhotoEditorRender();
       commitPhotoEditorHistoryMutation();
@@ -11079,10 +11100,23 @@ function addPhotoEditorImageOverlayFromAsset(asset) {
   }
 
   const offset = Math.min(collection.imageOverlays.length * 0.045, 0.22);
+  const outputSize =
+    photoEditorPreviewOverlayMeta?.outputSize ||
+    (photoEditorCanvas?.width && photoEditorCanvas?.height
+      ? {
+          width: photoEditorCanvas.width,
+          height: photoEditorCanvas.height,
+        }
+      : null);
+  const canvasAspectRatio =
+    outputSize?.width > 0 && outputSize?.height > 0
+      ? outputSize.width / outputSize.height
+      : 1;
   const nextOverlay = normalizePhotoEditorImageOverlayState(
     getDefaultPhotoEditorImageOverlayState(normalizedAsset, {
       x: clampNumber(0.5 + offset, 0.12, 0.88, 0.5),
       y: clampNumber(0.5 + offset, 0.12, 0.88, 0.5),
+      canvasAspectRatio,
     })
   );
 
@@ -11723,9 +11757,19 @@ function syncPhotoEditorPreviewCanvasDisplaySize(outputSize) {
     availableWidth / fullWidth,
     availableHeight / fullHeight
   );
+  const previewZoom = clampNumber(
+    photoEditorState?.previewZoom,
+    PHOTO_EDITOR_PREVIEW_ZOOM_MIN,
+    PHOTO_EDITOR_PREVIEW_ZOOM_MAX,
+    1
+  );
+  const effectiveScale = displayScale * previewZoom;
 
-  photoEditorCanvas.style.width = `${Math.max(1, Math.round(fullWidth * displayScale))}px`;
-  photoEditorCanvas.style.height = `${Math.max(1, Math.round(fullHeight * displayScale))}px`;
+  photoEditorCanvas.style.width = `${Math.max(1, Math.round(fullWidth * effectiveScale))}px`;
+  photoEditorCanvas.style.height = `${Math.max(1, Math.round(fullHeight * effectiveScale))}px`;
+  photoEditorCanvasWrap.classList.toggle('is-preview-zoomed', previewZoom > 1.001);
+  syncPhotoEditorSubjectMaskBrushCursor();
+  syncPhotoEditorCurrentCssControlOverlays();
 }
 
 function getPhotoEditorPreviewWorkCanvas() {
@@ -11915,6 +11959,7 @@ function drawPhotoEditorRulerGuides(ctx, width, height) {
 
 function drawPhotoEditorPreviewOverlays(ctx, outputSize, sourceRect) {
   if (!ctx || !photoEditorState || photoEditorState.showOriginalPreview) {
+    hidePhotoEditorCssControlOverlays();
     return;
   }
 
@@ -11940,12 +11985,7 @@ function drawPhotoEditorPreviewOverlays(ctx, outputSize, sourceRect) {
     outputSize.width,
     outputSize.height
   );
-  drawPhotoEditorImageOverlayControls(
-    ctx,
-    outputSize.width,
-    outputSize.height
-  );
-  drawPhotoEditorTextControls(ctx, outputSize.width, outputSize.height);
+  syncPhotoEditorCssControlOverlays(ctx, outputSize);
 }
 
 function drawPhotoEditorOverlayGroup(
@@ -13193,9 +13233,12 @@ function createPhotoEditorSubjectMaskOutputCanvas(outputSize, sourceRect) {
     return null;
   }
 
-  const cacheEntry = getPhotoEditorSubjectMaskImageCacheEntry(subjectMask);
+  const maskSource = photoEditorSubjectMaskEditCanvas;
+  const cacheEntry = maskSource
+    ? null
+    : getPhotoEditorSubjectMaskImageCacheEntry(subjectMask);
 
-  if (!cacheEntry?.loaded || cacheEntry.failed) {
+  if (!maskSource && (!cacheEntry?.loaded || cacheEntry.failed)) {
     return null;
   }
 
@@ -13211,7 +13254,7 @@ function createPhotoEditorSubjectMaskOutputCanvas(outputSize, sourceRect) {
   maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
   drawPhotoEditorCroppedSourceToCanvas(
     maskCtx,
-    cacheEntry.image,
+    maskSource || cacheEntry.image,
     sourceRect,
     outputSize,
     photoEditorState?.crop || getDefaultPhotoEditorCropState()
@@ -13382,6 +13425,182 @@ function drawPhotoEditorSubjectMaskPreview(ctx, outputSize, sourceRect) {
   ctx.globalAlpha = subjectMask.opacity;
   ctx.drawImage(overlayCanvas, 0, 0);
   ctx.restore();
+}
+
+function syncPhotoEditorSubjectMaskBrushCursor() {
+  const point = photoEditorState?.subjectMaskBrushPreviewPoint;
+  const brushMode = photoEditorState?.subjectMaskBrushMode;
+
+  if (
+    !photoEditorSubjectBrushCursor ||
+    !photoEditorCanvas ||
+    !point ||
+    !['add', 'erase'].includes(brushMode) ||
+    !hasPhotoEditorReadySubjectMask()
+  ) {
+    photoEditorSubjectBrushCursor?.classList.remove('is-visible', 'is-erase');
+    return;
+  }
+
+  const sourceRect = getPhotoEditorSourceRect(photoEditorState.sourceImage);
+  const canvasWidth = Math.max(1, photoEditorCanvas.offsetWidth || 1);
+  const radius = Math.max(
+    1,
+    clampNumber(photoEditorState.subjectMaskBrushSize, 1, 180, 48) *
+      (canvasWidth / Math.max(1, sourceRect.width))
+  );
+  const left = photoEditorCanvas.offsetLeft + point.x * photoEditorCanvas.offsetWidth;
+  const top = photoEditorCanvas.offsetTop + point.y * photoEditorCanvas.offsetHeight;
+  const size = Math.max(3, Math.round(radius * 2));
+
+  photoEditorSubjectBrushCursor.style.left = `${left}px`;
+  photoEditorSubjectBrushCursor.style.top = `${top}px`;
+  photoEditorSubjectBrushCursor.style.width = `${size}px`;
+  photoEditorSubjectBrushCursor.style.height = `${size}px`;
+  photoEditorSubjectBrushCursor.classList.toggle('is-erase', brushMode === 'erase');
+  photoEditorSubjectBrushCursor.classList.add('is-visible');
+}
+
+function hidePhotoEditorCssControlOverlays() {
+  photoEditorImageOverlayOutline?.classList.remove('is-visible');
+  photoEditorTextOutline?.classList.remove('is-visible');
+}
+
+function getPhotoEditorCanvasCssMetrics(outputSize) {
+  if (
+    !photoEditorCanvas ||
+    !photoEditorCssControls ||
+    !outputSize?.width ||
+    !outputSize?.height
+  ) {
+    return null;
+  }
+
+  const cssWidth = photoEditorCanvas.offsetWidth || 0;
+  const cssHeight = photoEditorCanvas.offsetHeight || 0;
+
+  if (cssWidth <= 0 || cssHeight <= 0) {
+    return null;
+  }
+
+  photoEditorCssControls.style.left = `${photoEditorCanvas.offsetLeft}px`;
+  photoEditorCssControls.style.top = `${photoEditorCanvas.offsetTop}px`;
+  photoEditorCssControls.style.width = `${cssWidth}px`;
+  photoEditorCssControls.style.height = `${cssHeight}px`;
+
+  return {
+    left: 0,
+    top: 0,
+    scaleX: cssWidth / outputSize.width,
+    scaleY: cssHeight / outputSize.height,
+  };
+}
+
+function applyPhotoEditorCssOutlineGeometry(
+  element,
+  metrics,
+  cssMetrics,
+  { rotationRadians = 0, rotateOffset = 0 } = {}
+) {
+  if (!element || !metrics || !cssMetrics) {
+    return;
+  }
+
+  const width = Math.max(1, metrics.width * cssMetrics.scaleX);
+  const height = Math.max(1, metrics.height * cssMetrics.scaleY);
+  const left = cssMetrics.left + metrics.centerX * cssMetrics.scaleX - width / 2;
+  const top = cssMetrics.top + metrics.centerY * cssMetrics.scaleY - height / 2;
+  const rotation = Number(rotationRadians) || 0;
+
+  element.style.left = `${left}px`;
+  element.style.top = `${top}px`;
+  element.style.width = `${width}px`;
+  element.style.height = `${height}px`;
+  element.style.transform = rotation
+    ? `rotate(${rotation}rad)`
+    : 'rotate(0rad)';
+  if (rotateOffset > 0) {
+    element.style.setProperty(
+      '--photo-editor-css-rotate-offset',
+      `${Math.max(18, rotateOffset * cssMetrics.scaleY)}px`
+    );
+  }
+  element.classList.add('is-visible');
+}
+
+function syncPhotoEditorCssControlOverlays(ctx, outputSize) {
+  hidePhotoEditorCssControlOverlays();
+
+  if (
+    !photoEditorState ||
+    !ctx ||
+    !outputSize ||
+    !photoEditorCssControls ||
+    photoEditorState.showOriginalPreview ||
+    photoEditorState.maskTool !== 'none' ||
+    photoEditorState.draftMask
+  ) {
+    return;
+  }
+
+  const cssMetrics = getPhotoEditorCanvasCssMetrics(outputSize);
+
+  if (!cssMetrics) {
+    return;
+  }
+
+  if (isPhotoEditorAccordionOpen('imageOverlay')) {
+    const imageOverlay = getPhotoEditorActiveImageOverlay();
+    const imageMetrics = getPhotoEditorImageOverlayCanvasMetrics(
+      outputSize.width,
+      outputSize.height,
+      imageOverlay
+    );
+    if (imageMetrics) {
+      applyPhotoEditorCssOutlineGeometry(
+        photoEditorImageOverlayOutline,
+        imageMetrics,
+        cssMetrics
+      );
+    }
+  }
+
+  if (isPhotoEditorAccordionOpen('text')) {
+    const activeText = getPhotoEditorActiveTextOverlay();
+    const textMetrics = getPhotoEditorTextCanvasMetrics(
+      ctx,
+      outputSize.width,
+      outputSize.height,
+      activeText
+    );
+    if (textMetrics) {
+      applyPhotoEditorCssOutlineGeometry(
+        photoEditorTextOutline,
+        textMetrics,
+        cssMetrics,
+        {
+          rotationRadians: textMetrics.rotationRadians,
+          rotateOffset: textMetrics.handleOffset,
+        }
+      );
+    }
+  }
+}
+
+function syncPhotoEditorCurrentCssControlOverlays() {
+  if (!photoEditorPreviewOverlayMeta) {
+    hidePhotoEditorCssControlOverlays();
+    return;
+  }
+
+  const ctx =
+    photoEditorPreviewOverlayCanvas?.getContext?.('2d') ||
+    photoEditorCanvas?.getContext?.('2d');
+
+  syncPhotoEditorCssControlOverlays(
+    ctx,
+    photoEditorPreviewOverlayMeta.outputSize
+  );
 }
 
 function drawPhotoEditorRadialBlurControl(ctx, width, height) {
@@ -17032,6 +17251,24 @@ function handlePhotoEditorCanvasWheel(event) {
     return;
   }
 
+  if (
+    ['add', 'erase'].includes(photoEditorState.subjectMaskBrushMode) ||
+    (isPhotoEditorAccordionOpen('subject') && hasPhotoEditorReadySubjectMask())
+  ) {
+    event.preventDefault();
+    const currentZoom = clampNumber(
+      photoEditorState.previewZoom,
+      PHOTO_EDITOR_PREVIEW_ZOOM_MIN,
+      PHOTO_EDITOR_PREVIEW_ZOOM_MAX,
+      1
+    );
+    const zoomFactor = event.deltaY < 0 ? 1.12 : 1 / 1.12;
+    updatePhotoEditorPreviewZoom(currentZoom * zoomFactor, {
+      anchorEvent: event,
+    });
+    return;
+  }
+
   event.preventDefault();
 
   const currentZoom = clampNumber(
@@ -18883,6 +19120,52 @@ function beginPhotoEditorDraftMaskTransform(point, dragMode) {
   schedulePhotoEditorRender({ interactive: true });
 }
 
+function beginPhotoEditorStageScrollDrag(event) {
+  if (!photoEditorState || !photoEditorCanvasWrap) {
+    return false;
+  }
+
+  event.preventDefault();
+  safelySetPointerCapture(photoEditorCanvas, event.pointerId);
+  photoEditorState.dragMode = 'stage-scroll';
+  photoEditorState.dragStart = { x: event.clientX, y: event.clientY };
+  photoEditorState.dragInitialStageScroll = {
+    left: photoEditorCanvasWrap.scrollLeft,
+    top: photoEditorCanvasWrap.scrollTop,
+    x: event.clientX,
+    y: event.clientY,
+  };
+  photoEditorCanvas?.classList.add('is-stage-scroll-dragging');
+  clearPhotoEditorSubjectMaskBrushPreview();
+  return true;
+}
+
+function updatePhotoEditorStageScrollDrag(event) {
+  if (
+    photoEditorState?.dragMode !== 'stage-scroll' ||
+    !photoEditorState.dragInitialStageScroll ||
+    !photoEditorCanvasWrap
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+  const initial = photoEditorState.dragInitialStageScroll;
+  photoEditorCanvasWrap.scrollLeft = initial.left - (event.clientX - initial.x);
+  photoEditorCanvasWrap.scrollTop = initial.top - (event.clientY - initial.y);
+}
+
+function finishPhotoEditorStageScrollDrag() {
+  if (photoEditorState?.dragMode !== 'stage-scroll') {
+    return;
+  }
+
+  photoEditorState.dragMode = null;
+  photoEditorState.dragStart = null;
+  photoEditorState.dragInitialStageScroll = null;
+  photoEditorCanvas?.classList.remove('is-stage-scroll-dragging');
+}
+
 function beginPhotoEditorMaskDrag(event) {
   if (
     !photoEditorState ||
@@ -18891,11 +19174,19 @@ function beginPhotoEditorMaskDrag(event) {
     return;
   }
 
+  if (event.button === 1 && beginPhotoEditorStageScrollDrag(event)) {
+    return;
+  }
+
   const point = getPhotoEditorCanvasPointerPoint(event, {
     allowOutside: Boolean(photoEditorState.draftMask),
   });
 
   if (!point) {
+    return;
+  }
+
+  if (beginPhotoEditorSubjectMaskBrushDrag(event, point)) {
     return;
   }
 
@@ -18996,7 +19287,16 @@ function beginPhotoEditorMaskDrag(event) {
 }
 
 function updatePhotoEditorMaskDrag(event) {
+  if (photoEditorState?.dragMode === 'stage-scroll') {
+    updatePhotoEditorStageScrollDrag(event);
+    return;
+  }
+
   if (!photoEditorState?.dragStart) {
+    const hoverPoint = getPhotoEditorCanvasPointerPoint(event);
+    if (hoverPoint && updatePhotoEditorSubjectMaskBrushPreview(hoverPoint)) {
+      return;
+    }
     return;
   }
 
@@ -19013,6 +19313,10 @@ function updatePhotoEditorMaskDrag(event) {
   }
 
   event.preventDefault();
+
+  if (updatePhotoEditorSubjectMaskBrushDrag(event, point)) {
+    return;
+  }
 
   if (photoEditorState.dragMode === 'pan') {
     updatePhotoEditorPanDrag(point);
@@ -19127,6 +19431,15 @@ function updatePhotoEditorMaskDrag(event) {
 
 function finishPhotoEditorMaskDrag(event) {
   if (!photoEditorState?.dragStart) {
+    return;
+  }
+
+  if (photoEditorState.dragMode === 'stage-scroll') {
+    finishPhotoEditorStageScrollDrag();
+    return;
+  }
+
+  if (finishPhotoEditorSubjectMaskBrushDrag()) {
     return;
   }
 
@@ -25793,6 +26106,30 @@ function bindPhotoAndEditModalControls() {
     finishPhotoEditorInteractivePreview();
   });
 
+  photoEditorSubjectBrushAddButton?.addEventListener('click', () => {
+    setPhotoEditorSubjectMaskBrushMode('add');
+  });
+
+  photoEditorSubjectBrushEraseButton?.addEventListener('click', () => {
+    setPhotoEditorSubjectMaskBrushMode('erase');
+  });
+
+  photoEditorSubjectBrushSizeInput?.addEventListener('input', () => {
+    updatePhotoEditorSubjectMaskBrushSize(photoEditorSubjectBrushSizeInput.value);
+  });
+
+  photoEditorSubjectBrushOpacityInput?.addEventListener('input', () => {
+    updatePhotoEditorSubjectMaskBrushOpacity(
+      photoEditorSubjectBrushOpacityInput.value
+    );
+  });
+
+  photoEditorSubjectBrushSampleButton?.addEventListener('click', () => {
+    setPhotoEditorSubjectMaskBrushSampleMode(
+      !photoEditorState?.subjectMaskBrushSampleMode
+    );
+  });
+
   photoEditorExportResetButton?.addEventListener('click', () => {
     resetPhotoEditorExportSettings();
   });
@@ -26104,9 +26441,18 @@ function bindPhotoAndEditModalControls() {
   photoEditorCanvas?.addEventListener('pointermove', updatePhotoEditorMaskDrag);
   photoEditorCanvas?.addEventListener('pointerup', finishPhotoEditorMaskDrag);
   photoEditorCanvas?.addEventListener('pointercancel', finishPhotoEditorMaskDrag);
+  photoEditorCanvas?.addEventListener('pointerleave', clearPhotoEditorSubjectMaskBrushPreview);
   photoEditorCanvas?.addEventListener('wheel', handlePhotoEditorCanvasWheel, {
     passive: false,
   });
+  photoEditorCanvasWrap?.addEventListener(
+    'scroll',
+    () => {
+      syncPhotoEditorSubjectMaskBrushCursor();
+      syncPhotoEditorCurrentCssControlOverlays();
+    },
+    { passive: true }
+  );
   photoEditorCurveCanvas?.addEventListener('pointerdown', beginPhotoEditorCurveDrag);
   photoEditorCurveCanvas?.addEventListener('pointermove', updatePhotoEditorCurveDrag);
   photoEditorCurveCanvas?.addEventListener('pointerup', finishPhotoEditorCurveDrag);
