@@ -57,6 +57,7 @@ In addition to photo management by date and world, it includes image adjustments
 - Add transparent images as image overlays
 - Manage, delete, and arrange multiple overlay layers
 - Adjust opacity, blend mode, target area, layer order, and size
+- Show clearer selection outlines for text and image overlays while zoomed in
 - Light snapping to rulers and grids
 
 ### Cropping and Composition
@@ -74,6 +75,8 @@ In addition to photo management by date and world, it includes image adjustments
 - Generate local subject masks with a lightweight AI model
 - Download standard AI withoutBG Snap and high-quality AI withoutBG Focus OSS only when needed
 - Use generated subject masks as the target area for adjustments, blur, text, and image overlays
+- Manually refine subject masks with a brush, opacity control, and an eyedropper for natural edges
+- Zoom into the Canvas while editing detailed mask areas
 - Save transparent-background PNGs using the subject mask
 - AI processing runs on your PC; images are not sent to external servers for AI processing
 - Model and license details: [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md), [AI Model License Review](./docs/ai-model-license-review.md)
@@ -127,6 +130,7 @@ In addition to photo management by date and world, it includes image adjustments
 The latest version is available from GitHub Releases.
 
 - [Releases](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases)
+- [v2.5.0 Release Notes](./release-notes/v2.5.0.md)
 - [v2.4.2 Release Notes](./release-notes/v2.4.2.md)
 - [v2.4.1 Release Notes](./release-notes/v2.4.1.md)
 - [v2.4.0 Release Notes](./release-notes/v2.4.0.md)

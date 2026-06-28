@@ -57,6 +57,7 @@ WorldShot Log는 VRChat 사진을 정리하고, 다시 보고, 게시하기 좋�
 - 투명 이미지 등을 겹칠 수 있는 이미지 오버레이
 - 오버레이 소재 관리, 삭제, 여러 레이어 배치
 - 투명도, 합성 방식, 적용 범위, 앞뒤 순서, 크기 조정
+- 확대 표시 중에도 텍스트와 이미지 오버레이 선택 테두리를 보기 쉽게 표시
 - 룰러와 그리드에 가볍게 스냅
 
 ### 자르기와 구도 조정
@@ -74,6 +75,8 @@ WorldShot Log는 VRChat 사진을 정리하고, 다시 보고, 게시하기 좋�
 - 경량 AI로 로컬 피사체 마스크 생성
 - 표준 AI withoutBG Snap, 고정밀 AI withoutBG Focus OSS는 필요할 때만 최초 다운로드
 - 생성한 피사체 마스크를 보정, 흐림, 텍스트, 이미지 오버레이의 적용 범위로 사용
+- 브러시, 농도 조정, 스포이트로 피사체 마스크를 직접 다듬어 자연스러운 경계를 조정
+- Canvas를 확대하면서 세부 마스크 영역을 편집
 - 피사체 마스크를 사용한 배경 투명 PNG 저장
 - AI 처리는 PC 안에서 실행되며, AI 처리를 위해 이미지가 외부 서버로 전송되지 않습니다
 - 사용 모델 및 라이선스 확인: [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md), [AI Model License Review](./docs/ai-model-license-review.md)
@@ -127,6 +130,7 @@ WorldShot Log는 VRChat 사진을 정리하고, 다시 보고, 게시하기 좋�
 최신 버전은 GitHub Releases에서 다운로드할 수 있습니다.
 
 - [Releases](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases)
+- [v2.5.0 릴리스 노트](./release-notes/v2.5.0.md)
 - [v2.4.2 릴리스 노트](./release-notes/v2.4.2.md)
 - [v2.4.1 릴리스 노트](./release-notes/v2.4.1.md)
 - [v2.4.0 릴리스 노트](./release-notes/v2.4.0.md)
