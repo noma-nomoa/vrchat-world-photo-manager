@@ -5204,6 +5204,10 @@ body[data-theme='light'] .danger-button:hover {
   max-width: 460px;
 }
 
+#confirm-modal {
+  z-index: 13000;
+}
+
 .confirm-modal-content .sub-modal-description {
   white-space: pre-line;
 }
