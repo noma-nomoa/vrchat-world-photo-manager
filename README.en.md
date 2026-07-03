@@ -130,6 +130,7 @@ In addition to photo management by date and world, it includes image adjustments
 The latest version is available from GitHub Releases.
 
 - [Releases](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases)
+- [v2.5.1 Release Notes](./release-notes/v2.5.1.md)
 - [v2.5.0 Release Notes](./release-notes/v2.5.0.md)
 - [v2.4.2 Release Notes](./release-notes/v2.4.2.md)
 - [v2.4.1 Release Notes](./release-notes/v2.4.1.md)
