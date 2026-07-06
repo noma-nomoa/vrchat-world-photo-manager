@@ -188,6 +188,7 @@ WorldShot Log는 개인 제작 앱이며, 설계, 구현, 문서 정리 일부�
 
 - [RELEASE.md](./RELEASE.md): 릴리스 절차
 - [AI_MAINTENANCE_GUIDE.md](./AI_MAINTENANCE_GUIDE.md): 유지보수 및 수정 가이드
+- [docs/github-io-app-summary-v2.5.1.md](./docs/github-io-app-summary-v2.5.1.md): LP / 소개 사이트용 기능 정리
 - [release-notes/](./release-notes): 버전별 변경 내용
 
 ## 제한 사항

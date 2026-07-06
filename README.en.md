@@ -188,6 +188,7 @@ WorldShot Log is an independently created app. AI assistance is used for parts o
 
 - [RELEASE.md](./RELEASE.md): Release workflow
 - [AI_MAINTENANCE_GUIDE.md](./AI_MAINTENANCE_GUIDE.md): Maintenance and modification guide
+- [docs/github-io-app-summary-v2.5.1.md](./docs/github-io-app-summary-v2.5.1.md): Feature summary for the landing page / app website
 - [release-notes/](./release-notes): Version history
 
 ## Limitations
