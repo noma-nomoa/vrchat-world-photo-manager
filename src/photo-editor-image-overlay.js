@@ -40,6 +40,10 @@
     return MASK_MODES.includes(value) ? value : 'normal';
   }
 
+  function normalizeCoordinateSpace(value) {
+    return value === 'output' ? 'output' : 'source';
+  }
+
   function normalizeOverlayAsset(rawAsset = {}) {
     const id =
       typeof rawAsset?.id === 'string' && rawAsset.id.trim()
@@ -155,6 +159,7 @@
       opacity: 1,
       blendMode: 'source-over',
       maskMode: 'normal',
+      space: 'source',
       naturalWidth: normalizedAsset.width || 0,
       naturalHeight: normalizedAsset.height || 0,
       ...stateOverrides,
@@ -204,6 +209,7 @@
         overlay?.blendMode || defaults.blendMode
       ),
       maskMode: normalizeMaskMode(overlay?.maskMode),
+      space: normalizeCoordinateSpace(overlay?.space ?? defaults.space),
       naturalWidth,
       naturalHeight,
     };

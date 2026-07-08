@@ -7091,6 +7091,10 @@ function normalizePhotoEditorAdjustmentTarget(value) {
   return PHOTO_EDITOR_ADJUSTMENT_TARGETS.includes(value) ? value : 'whole';
 }
 
+function normalizePhotoEditorCoordinateSpace(value) {
+  return value === 'output' ? 'output' : 'source';
+}
+
 function getDefaultPhotoEditorSubjectMaskState(overrides = {}) {
   return PhotoEditorSubjectMask.getDefaultSubjectMaskState(overrides);
 }
@@ -7119,6 +7123,7 @@ function getDefaultPhotoEditorTextState(overrides = {}) {
     strokeColor: '#111827',
     fillTransparent: false,
     maskMode: 'normal',
+    space: 'source',
     letterSpacing: 0,
     ...overrides,
   };
@@ -7164,6 +7169,7 @@ function normalizePhotoEditorTextState(textState = {}) {
     ),
     fillTransparent: Boolean(textState?.fillTransparent),
     maskMode: normalizePhotoEditorMaskMode(textState?.maskMode),
+    space: normalizePhotoEditorCoordinateSpace(textState?.space ?? defaults.space),
     letterSpacing: clampNumber(
       textState?.letterSpacing,
       -10,
@@ -7458,6 +7464,7 @@ function getDefaultPhotoEditorBlurState() {
     centerY: 0.5,
     radius: 0.34,
     outerRadius: 0.52,
+    space: 'source',
     isConfirmed: false,
   };
 }
@@ -7493,6 +7500,7 @@ function normalizePhotoEditorBlurState(blur = {}) {
     centerY: clampNumber(blur?.centerY, 0, 1, defaults.centerY),
     radius,
     outerRadius,
+    space: normalizePhotoEditorCoordinateSpace(blur?.space ?? defaults.space),
     isConfirmed: Boolean(blur?.isConfirmed),
   };
 }
@@ -10776,11 +10784,21 @@ function addPhotoEditorTextOverlay(overrides = {}) {
   }
 
   const collection = getPhotoEditorTextCollectionFromState();
+  const outputPoint = {
+    x: 0.5,
+    y: clampNumber(0.5 + collection.textOverlays.length * 0.06, 0.12, 0.88, 0.5),
+  };
+  const sourcePoint = getPhotoEditorCurrentOutputPointAsSpace(outputPoint, 'source');
+  const sourceScale = getPhotoEditorCurrentSourceScaleAtPoint(outputPoint).scale;
   const nextText = normalizePhotoEditorTextState(
     getDefaultPhotoEditorTextState({
       enabled: true,
       text: translateUiText('テキスト'),
-      y: clampNumber(0.5 + collection.textOverlays.length * 0.06, 0.12, 0.88, 0.5),
+      x: sourcePoint.x,
+      y: sourcePoint.y,
+      size: 64 / Math.max(0.05, sourceScale),
+      strokeWidth: 4 / Math.max(0.05, sourceScale),
+      space: 'source',
       ...overrides,
     })
   );
@@ -11112,12 +11130,24 @@ function addPhotoEditorImageOverlayFromAsset(asset) {
     outputSize?.width > 0 && outputSize?.height > 0
       ? outputSize.width / outputSize.height
       : 1;
+  const outputPoint = {
+    x: clampNumber(0.5 + offset, 0.12, 0.88, 0.5),
+    y: clampNumber(0.5 + offset, 0.12, 0.88, 0.5),
+  };
+  const sourcePoint = getPhotoEditorCurrentOutputPointAsSpace(outputPoint, 'source');
+  const sourceScale = getPhotoEditorCurrentSourceScaleAtPoint(outputPoint);
+  const defaultOverlay = getDefaultPhotoEditorImageOverlayState(normalizedAsset, {
+    x: sourcePoint.x,
+    y: sourcePoint.y,
+    canvasAspectRatio,
+    space: 'source',
+  });
   const nextOverlay = normalizePhotoEditorImageOverlayState(
-    getDefaultPhotoEditorImageOverlayState(normalizedAsset, {
-      x: clampNumber(0.5 + offset, 0.12, 0.88, 0.5),
-      y: clampNumber(0.5 + offset, 0.12, 0.88, 0.5),
-      canvasAspectRatio,
-    })
+    {
+      ...defaultOverlay,
+      width: defaultOverlay.width / Math.max(0.05, sourceScale.scaleX),
+      height: defaultOverlay.height / Math.max(0.05, sourceScale.scaleY),
+    }
   );
 
   beginPhotoEditorHistoryMutation();
@@ -11728,6 +11758,305 @@ function drawPhotoEditorCroppedSourceToCanvas(
   ctx.restore();
 }
 
+function getPhotoEditorRenderSourceContext(
+  sourceRect = null,
+  sourceImage = null,
+  outputSize = null
+) {
+  const image = sourceImage || photoEditorState?.sourceImage || null;
+  const rect = sourceRect || (image ? getPhotoEditorSourceRect(image) : null);
+  const size =
+    outputSize ||
+    photoEditorPreviewOverlayMeta?.outputSize ||
+    (photoEditorCanvas?.width && photoEditorCanvas?.height
+      ? { width: photoEditorCanvas.width, height: photoEditorCanvas.height }
+      : null);
+  const imageSize = getPhotoEditorImageSize(image);
+
+  if (
+    !image ||
+    !rect ||
+    rect.width <= 0 ||
+    rect.height <= 0 ||
+    !size ||
+    size.width <= 0 ||
+    size.height <= 0 ||
+    imageSize.width <= 0 ||
+    imageSize.height <= 0
+  ) {
+    return null;
+  }
+
+  return {
+    sourceImage: image,
+    sourceRect: rect,
+    outputSize: size,
+    imageSize,
+    geometry: getPhotoEditorCropRenderGeometry(
+      rect,
+      size.width,
+      size.height,
+      photoEditorState?.crop || getDefaultPhotoEditorCropState()
+    ),
+  };
+}
+
+function mapPhotoEditorSourcePointToOutputPixel(
+  point,
+  sourceRect = null,
+  sourceImage = null,
+  outputSize = null
+) {
+  const context = getPhotoEditorRenderSourceContext(
+    sourceRect,
+    sourceImage,
+    outputSize
+  );
+
+  if (!context) {
+    return null;
+  }
+
+  const { imageSize, sourceRect: rect, outputSize: size, geometry } = context;
+  const sourceX = (Number(point?.x) || 0) * imageSize.width;
+  const sourceY = (Number(point?.y) || 0) * imageSize.height;
+  const localX =
+    ((sourceX - rect.x) / rect.width - 0.5) *
+    geometry.drawWidth *
+    geometry.coverScale;
+  const localY =
+    ((sourceY - rect.y) / rect.height - 0.5) *
+    geometry.drawHeight *
+    geometry.coverScale;
+  const flippedX = geometry.flipX ? -localX : localX;
+  const flippedY = geometry.flipY ? -localY : localY;
+  const cos = Math.cos(geometry.rotationRadians);
+  const sin = Math.sin(geometry.rotationRadians);
+
+  return {
+    x: size.width / 2 + geometry.translateX + flippedX * cos - flippedY * sin,
+    y: size.height / 2 + geometry.translateY + flippedX * sin + flippedY * cos,
+  };
+}
+
+function mapPhotoEditorSourcePointToOutput(
+  point,
+  sourceRect = null,
+  sourceImage = null,
+  outputSize = null
+) {
+  const context = getPhotoEditorRenderSourceContext(
+    sourceRect,
+    sourceImage,
+    outputSize
+  );
+  const pixel = context
+    ? mapPhotoEditorSourcePointToOutputPixel(
+        point,
+        context.sourceRect,
+        context.sourceImage,
+        context.outputSize
+      )
+    : null;
+
+  if (!context || !pixel) {
+    return {
+      x: clampNumber(point?.x, -2, 3, 0.5),
+      y: clampNumber(point?.y, -2, 3, 0.5),
+    };
+  }
+
+  return {
+    x: pixel.x / context.outputSize.width,
+    y: pixel.y / context.outputSize.height,
+  };
+}
+
+function getPhotoEditorSourceLayerTransform(
+  layer,
+  width,
+  height,
+  sourceRect = null,
+  sourceImage = null,
+  outputSize = null
+) {
+  const context = getPhotoEditorRenderSourceContext(sourceRect, sourceImage, {
+    width,
+    height,
+    ...(outputSize || {}),
+  });
+
+  if (!context) {
+    return null;
+  }
+
+  const centerPoint = {
+    x: Number(layer?.x) || 0,
+    y: Number(layer?.y) || 0,
+  };
+  const center = mapPhotoEditorSourcePointToOutputPixel(
+    centerPoint,
+    context.sourceRect,
+    context.sourceImage,
+    context.outputSize
+  );
+  const imageSize = context.imageSize;
+  const deltaX = 1 / Math.max(1, imageSize.width);
+  const deltaY = 1 / Math.max(1, imageSize.height);
+  const xStep = mapPhotoEditorSourcePointToOutputPixel(
+    { x: centerPoint.x + deltaX, y: centerPoint.y },
+    context.sourceRect,
+    context.sourceImage,
+    context.outputSize
+  );
+  const yStep = mapPhotoEditorSourcePointToOutputPixel(
+    { x: centerPoint.x, y: centerPoint.y + deltaY },
+    context.sourceRect,
+    context.sourceImage,
+    context.outputSize
+  );
+
+  if (!center || !xStep || !yStep) {
+    return null;
+  }
+
+  const xAxis = {
+    x: (xStep.x - center.x) * imageSize.width,
+    y: (xStep.y - center.y) * imageSize.width,
+  };
+  const yAxis = {
+    x: (yStep.x - center.x) * imageSize.height,
+    y: (yStep.y - center.y) * imageSize.height,
+  };
+  const scaleX = Math.hypot(xAxis.x, xAxis.y) / Math.max(1, width);
+  const scaleY = Math.hypot(yAxis.x, yAxis.y) / Math.max(1, height);
+
+  return {
+    centerX: center.x,
+    centerY: center.y,
+    scaleX,
+    scaleY,
+    scale: Math.max(0.0001, (scaleX + scaleY) / 2),
+    rotationRadians: Math.atan2(xAxis.y, xAxis.x),
+  };
+}
+
+function getPhotoEditorLayerOutputPoint(
+  layer,
+  width,
+  height,
+  sourceRect = null,
+  sourceImage = null,
+  outputSize = null
+) {
+  if (normalizePhotoEditorCoordinateSpace(layer?.space) === 'source') {
+    const transform = getPhotoEditorSourceLayerTransform(
+      layer,
+      width,
+      height,
+      sourceRect,
+      sourceImage,
+      outputSize
+    );
+
+    if (transform) {
+      return {
+        x: transform.centerX / Math.max(1, width),
+        y: transform.centerY / Math.max(1, height),
+      };
+    }
+  }
+
+  return {
+    x: clampNumber(layer?.x, -2, 3, 0.5),
+    y: clampNumber(layer?.y, -2, 3, 0.5),
+  };
+}
+
+function getPhotoEditorCurrentOutputPointAsSpace(point, space = 'source') {
+  const normalizedSpace = normalizePhotoEditorCoordinateSpace(space);
+
+  if (normalizedSpace !== 'source' || !photoEditorState?.sourceImage) {
+    return {
+      x: clampNumber(point?.x, 0, 1, 0.5),
+      y: clampNumber(point?.y, 0, 1, 0.5),
+    };
+  }
+
+  return mapPhotoEditorOutputPointToSource(
+    point,
+    getPhotoEditorSourceRect(photoEditorState.sourceImage),
+    photoEditorState.sourceImage
+  );
+}
+
+function getPhotoEditorCurrentSourceScaleAtPoint(point = { x: 0.5, y: 0.5 }) {
+  if (!photoEditorState?.sourceImage) {
+    return { scaleX: 1, scaleY: 1, scale: 1 };
+  }
+
+  const sourcePoint = getPhotoEditorCurrentOutputPointAsSpace(point, 'source');
+  const outputSize =
+    photoEditorPreviewOverlayMeta?.outputSize ||
+    (photoEditorCanvas?.width && photoEditorCanvas?.height
+      ? { width: photoEditorCanvas.width, height: photoEditorCanvas.height }
+      : null);
+  const width = Math.max(1, Number(outputSize?.width) || Number(photoEditorCanvas?.width) || 1);
+  const height = Math.max(1, Number(outputSize?.height) || Number(photoEditorCanvas?.height) || 1);
+  const transform = getPhotoEditorSourceLayerTransform(
+    { ...sourcePoint, space: 'source' },
+    width,
+    height,
+    getPhotoEditorSourceRect(photoEditorState.sourceImage),
+    photoEditorState.sourceImage,
+    outputSize
+  );
+
+  return transform
+    ? {
+        scaleX: transform.scaleX,
+        scaleY: transform.scaleY,
+        scale: transform.scale,
+      }
+    : { scaleX: 1, scaleY: 1, scale: 1 };
+}
+
+function movePhotoEditorLayerToOutputPoint(layer, outputPoint) {
+  if (normalizePhotoEditorCoordinateSpace(layer?.space) === 'source') {
+    const sourcePoint = getPhotoEditorCurrentOutputPointAsSpace(
+      outputPoint,
+      'source'
+    );
+
+    return {
+      ...layer,
+      x: sourcePoint.x,
+      y: sourcePoint.y,
+      space: 'source',
+    };
+  }
+
+  return {
+    ...layer,
+    x: clampNumber(outputPoint?.x, -2, 3, layer?.x ?? 0.5),
+    y: clampNumber(outputPoint?.y, -2, 3, layer?.y ?? 0.5),
+  };
+}
+
+function translatePhotoEditorLayerByOutputDelta(layer, deltaX, deltaY) {
+  const displaySize = getPhotoEditorCanvasDisplaySize();
+  const outputPoint = getPhotoEditorLayerOutputPoint(
+    layer,
+    displaySize.width,
+    displaySize.height
+  );
+
+  return movePhotoEditorLayerToOutputPoint(layer, {
+    x: outputPoint.x + deltaX,
+    y: outputPoint.y + deltaY,
+  });
+}
+
 function syncPhotoEditorPreviewCanvasDisplaySize(outputSize) {
   if (!photoEditorCanvas || !photoEditorCanvasWrap || !outputSize) {
     return;
@@ -12010,7 +12339,13 @@ function drawPhotoEditorOverlayGroup(
     outputSize.width,
     outputSize.height,
     textOverlays,
-    { textScale, maskMode }
+    {
+      textScale,
+      maskMode,
+      sourceRect,
+      sourceImage: photoEditorState?.sourceImage,
+      outputSize,
+    }
   );
 }
 
@@ -12032,14 +12367,23 @@ function applyPhotoEditorMaskedOverlaysToCanvas(
       ctx,
       outputSize.width,
       outputSize.height,
-      imageOverlays
+      imageOverlays,
+      {
+        outputSize,
+        sourceRect,
+      }
     );
     applyPhotoEditorTextOverlayToCanvas(
       ctx,
       outputSize.width,
       outputSize.height,
       textOverlays,
-      { textScale }
+      {
+        textScale,
+        sourceRect,
+        sourceImage: photoEditorState?.sourceImage,
+        outputSize,
+      }
     );
     return;
   }
@@ -12115,7 +12459,7 @@ function applyPhotoEditorMaskedOverlaysToCanvas(
     textOverlays,
     imageOverlays,
     'normal',
-    { textScale }
+    { textScale, sourceRect }
   );
 }
 
@@ -12840,23 +13184,48 @@ function applyPhotoEditorVignette(ctx, width, height, value) {
   ctx.restore();
 }
 
-function getPhotoEditorBlurGeometry(width, height, blurState = null) {
+function getPhotoEditorBlurGeometry(
+  width,
+  height,
+  blurState = null,
+  { sourceRect = null, sourceImage = null, outputSize = null } = {}
+) {
   const blur = normalizePhotoEditorBlurState(blurState);
+  const transform =
+    blur.space === 'source'
+      ? getPhotoEditorSourceLayerTransform(
+          {
+            x: blur.centerX,
+            y: blur.centerY,
+            space: 'source',
+          },
+          width,
+          height,
+          sourceRect,
+          sourceImage,
+          outputSize
+        )
+      : null;
   const minEdge = Math.max(1, Math.min(width, height));
-  const centerX = clampNumber(blur.centerX, 0, 1, 0.5) * width;
-  const centerY = clampNumber(blur.centerY, 0, 1, 0.5) * height;
+  const centerX = transform
+    ? transform.centerX
+    : clampNumber(blur.centerX, 0, 1, 0.5) * width;
+  const centerY = transform
+    ? transform.centerY
+    : clampNumber(blur.centerY, 0, 1, 0.5) * height;
+  const radiusScale = transform?.scale || 1;
   const radius = clampNumber(
     blur.radius,
     PHOTO_EDITOR_RADIAL_BLUR_MIN_RADIUS,
     PHOTO_EDITOR_RADIAL_BLUR_MAX_RADIUS - PHOTO_EDITOR_RADIAL_BLUR_MIN_FEATHER,
     0.34
-  ) * minEdge;
+  ) * minEdge * radiusScale;
   const outerRadius = clampNumber(
     blur.outerRadius,
     blur.radius + PHOTO_EDITOR_RADIAL_BLUR_MIN_FEATHER,
     PHOTO_EDITOR_RADIAL_BLUR_MAX_RADIUS,
     Math.max(blur.radius + 0.18, 0.52)
-  ) * minEdge;
+  ) * minEdge * radiusScale;
 
   return {
     centerX,
@@ -13048,7 +13417,12 @@ function applyPhotoEditorBlurEffectToCanvas(
   const { centerX, centerY, radius, outerRadius } = getPhotoEditorBlurGeometry(
     width,
     height,
-    blur
+    blur,
+    {
+      sourceRect,
+      sourceImage: photoEditorState?.sourceImage,
+      outputSize: { width, height },
+    }
   );
   const maskCanvas = document.createElement('canvas');
   maskCanvas.width = width;
@@ -13544,6 +13918,8 @@ function syncPhotoEditorCssControlOverlays(ctx, outputSize) {
   }
 
   const cssMetrics = getPhotoEditorCanvasCssMetrics(outputSize);
+  const sourceImage = photoEditorState?.sourceImage || null;
+  const sourceRect = sourceImage ? getPhotoEditorSourceRect(sourceImage) : null;
 
   if (!cssMetrics) {
     return;
@@ -13554,13 +13930,21 @@ function syncPhotoEditorCssControlOverlays(ctx, outputSize) {
     const imageMetrics = getPhotoEditorImageOverlayCanvasMetrics(
       outputSize.width,
       outputSize.height,
-      imageOverlay
+      imageOverlay,
+      {
+        sourceRect,
+        sourceImage,
+        outputSize,
+      }
     );
     if (imageMetrics) {
       applyPhotoEditorCssOutlineGeometry(
         photoEditorImageOverlayOutline,
         imageMetrics,
-        cssMetrics
+        cssMetrics,
+        {
+          rotationRadians: imageMetrics.rotationRadians,
+        }
       );
     }
   }
@@ -13571,7 +13955,12 @@ function syncPhotoEditorCssControlOverlays(ctx, outputSize) {
       ctx,
       outputSize.width,
       outputSize.height,
-      activeText
+      activeText,
+      {
+        sourceRect,
+        sourceImage,
+        outputSize,
+      }
     );
     if (textMetrics) {
       applyPhotoEditorCssOutlineGeometry(
@@ -14364,20 +14753,42 @@ function drawPhotoEditorSingleTextOverlay(
   width,
   height,
   textOverlay,
-  { textScale = 1 } = {}
+  { textScale = 1, sourceRect = null, sourceImage = null, outputSize = null } = {}
 ) {
+  const baseTextState = normalizePhotoEditorTextState(textOverlay);
+  const layerTransform =
+    baseTextState.space === 'source'
+      ? getPhotoEditorSourceLayerTransform(
+          baseTextState,
+          width,
+          height,
+          sourceRect,
+          sourceImage,
+          outputSize
+        )
+      : null;
   const textState = getPhotoEditorTextRenderState(textOverlay, {
-    textScale: getPhotoEditorTextCanvasRenderScale(width, height, textScale),
+    textScale: getPhotoEditorTextCanvasRenderScale(
+      width,
+      height,
+      textScale * (layerTransform?.scale || 1)
+    ),
   });
 
   if (!textState.enabled || !textState.text.trim()) {
     return;
   }
 
-  const x = clampNumber(textState.x, 0, 1, 0.5) * width;
-  const y = clampNumber(textState.y, 0, 1, 0.5) * height;
+  const x = layerTransform
+    ? layerTransform.centerX
+    : clampNumber(textState.x, 0, 1, 0.5) * width;
+  const y = layerTransform
+    ? layerTransform.centerY
+    : clampNumber(textState.y, 0, 1, 0.5) * height;
   const size = clampNumber(textState.size, 1, 4096, 64);
   const strokeWidth = clampNumber(textState.strokeWidth, 0, 1024, 4);
+  const rotationRadians =
+    textState.rotation * Math.PI / 180 + (layerTransform?.rotationRadians || 0);
 
   ctx.save();
   ctx.font = `${textState.weight} ${size}px ${textState.fontFamily}`;
@@ -14389,7 +14800,7 @@ function drawPhotoEditorSingleTextOverlay(
   }
 
   ctx.translate(x, y);
-  ctx.rotate(textState.rotation * Math.PI / 180);
+  ctx.rotate(rotationRadians);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = textState.color;
@@ -14429,7 +14840,7 @@ function applyPhotoEditorTextOverlayToCanvas(
   width,
   height,
   textOverlays,
-  { textScale = 1, maskMode = null } = {}
+  { textScale = 1, maskMode = null, sourceRect = null, sourceImage = null, outputSize = null } = {}
 ) {
   const overlays = Array.isArray(textOverlays)
     ? textOverlays
@@ -14450,11 +14861,20 @@ function applyPhotoEditorTextOverlayToCanvas(
 
     drawPhotoEditorSingleTextOverlay(ctx, width, height, textOverlay, {
       textScale,
+      sourceRect,
+      sourceImage,
+      outputSize,
     });
   }
 }
 
-function drawPhotoEditorSingleImageOverlay(ctx, width, height, overlay) {
+function drawPhotoEditorSingleImageOverlay(
+  ctx,
+  width,
+  height,
+  overlay,
+  { sourceRect = null, sourceImage = null, outputSize = null } = {}
+) {
   const imageOverlay = normalizePhotoEditorImageOverlayState(overlay);
   const cacheEntry = getPhotoEditorOverlayImageCacheEntry(imageOverlay);
 
@@ -14463,15 +14883,26 @@ function drawPhotoEditorSingleImageOverlay(ctx, width, height, overlay) {
   }
 
   const image = cacheEntry.image;
-  const centerX = imageOverlay.x * width;
-  const centerY = imageOverlay.y * height;
+  const transform =
+    imageOverlay.space === 'source'
+      ? getPhotoEditorSourceLayerTransform(
+          imageOverlay,
+          width,
+          height,
+          sourceRect,
+          sourceImage,
+          outputSize
+        )
+      : null;
+  const centerX = transform ? transform.centerX : imageOverlay.x * width;
+  const centerY = transform ? transform.centerY : imageOverlay.y * height;
   const drawWidth = Math.max(
     1,
-    Math.abs(imageOverlay.width) * width
+    Math.abs(imageOverlay.width) * width * (transform?.scaleX || 1)
   );
   const drawHeight = Math.max(
     1,
-    Math.abs(imageOverlay.height) * height
+    Math.abs(imageOverlay.height) * height * (transform?.scaleY || 1)
   );
 
   ctx.save();
@@ -14479,10 +14910,14 @@ function drawPhotoEditorSingleImageOverlay(ctx, width, height, overlay) {
   ctx.globalCompositeOperation = normalizePhotoEditorImageOverlayBlendMode(
     imageOverlay.blendMode
   );
+  ctx.translate(centerX, centerY);
+  if (transform?.rotationRadians) {
+    ctx.rotate(transform.rotationRadians);
+  }
   ctx.drawImage(
     image,
-    centerX - drawWidth / 2,
-    centerY - drawHeight / 2,
+    -drawWidth / 2,
+    -drawHeight / 2,
     drawWidth,
     drawHeight
   );
@@ -14513,10 +14948,27 @@ function drawPhotoEditorSingleMaskedImageOverlay(
   }
 
   const image = cacheEntry.image;
-  const centerX = imageOverlay.x * width;
-  const centerY = imageOverlay.y * height;
-  const drawWidth = Math.max(1, Math.abs(imageOverlay.width) * width);
-  const drawHeight = Math.max(1, Math.abs(imageOverlay.height) * height);
+  const transform =
+    imageOverlay.space === 'source'
+      ? getPhotoEditorSourceLayerTransform(
+          imageOverlay,
+          width,
+          height,
+          sourceRect,
+          null,
+          outputSize
+        )
+      : null;
+  const centerX = transform ? transform.centerX : imageOverlay.x * width;
+  const centerY = transform ? transform.centerY : imageOverlay.y * height;
+  const drawWidth = Math.max(
+    1,
+    Math.abs(imageOverlay.width) * width * (transform?.scaleX || 1)
+  );
+  const drawHeight = Math.max(
+    1,
+    Math.abs(imageOverlay.height) * height * (transform?.scaleY || 1)
+  );
   const layerCanvas = document.createElement('canvas');
   layerCanvas.width = width;
   layerCanvas.height = height;
@@ -14528,10 +14980,14 @@ function drawPhotoEditorSingleMaskedImageOverlay(
 
   layerCtx.save();
   layerCtx.globalAlpha = clampNumber(imageOverlay.opacity, 0, 1, 1);
+  layerCtx.translate(centerX, centerY);
+  if (transform?.rotationRadians) {
+    layerCtx.rotate(transform.rotationRadians);
+  }
   layerCtx.drawImage(
     image,
-    centerX - drawWidth / 2,
-    centerY - drawHeight / 2,
+    -drawWidth / 2,
+    -drawHeight / 2,
     drawWidth,
     drawHeight
   );
@@ -14591,23 +15047,47 @@ function applyPhotoEditorImageOverlayToCanvas(
       continue;
     }
 
-    drawPhotoEditorSingleImageOverlay(ctx, width, height, overlay);
+    drawPhotoEditorSingleImageOverlay(ctx, width, height, overlay, {
+      sourceRect,
+      sourceImage: photoEditorState?.sourceImage,
+      outputSize,
+    });
   }
 }
 
-function getPhotoEditorImageOverlayCanvasMetrics(width, height, overlay) {
+function getPhotoEditorImageOverlayCanvasMetrics(
+  width,
+  height,
+  overlay,
+  { sourceRect = null, sourceImage = null, outputSize = null } = {}
+) {
   const imageOverlay = normalizePhotoEditorImageOverlayState(overlay);
 
   if (!imageOverlay.fileUrl) {
     return null;
   }
 
+  const transform =
+    imageOverlay.space === 'source'
+      ? getPhotoEditorSourceLayerTransform(
+          imageOverlay,
+          width,
+          height,
+          sourceRect,
+          sourceImage,
+          outputSize
+        )
+      : null;
+
   return {
     overlay: imageOverlay,
-    centerX: imageOverlay.x * width,
-    centerY: imageOverlay.y * height,
-    width: Math.max(1, imageOverlay.width * width),
-    height: Math.max(1, imageOverlay.height * height),
+    centerX: transform ? transform.centerX : imageOverlay.x * width,
+    centerY: transform ? transform.centerY : imageOverlay.y * height,
+    width: Math.max(1, imageOverlay.width * width * (transform?.scaleX || 1)),
+    height: Math.max(1, imageOverlay.height * height * (transform?.scaleY || 1)),
+    scaleX: transform?.scaleX || 1,
+    scaleY: transform?.scaleY || 1,
+    rotationRadians: transform?.rotationRadians || 0,
   };
 }
 
@@ -14616,11 +15096,20 @@ function getPhotoEditorImageOverlayHandles(metrics) {
     return null;
   }
 
+  const center = {
+    x: metrics.centerX,
+    y: metrics.centerY,
+  };
+
   return {
-    resize: {
-      x: metrics.centerX + metrics.width / 2,
-      y: metrics.centerY + metrics.height / 2,
-    },
+    resize: rotatePhotoEditorCanvasPoint(
+      {
+        x: metrics.centerX + metrics.width / 2,
+        y: metrics.centerY + metrics.height / 2,
+      },
+      center,
+      metrics.rotationRadians || 0
+    ),
   };
 }
 
@@ -14652,19 +15141,21 @@ function drawPhotoEditorImageOverlayControls(ctx, width, height) {
   );
 
   ctx.save();
+  ctx.translate(metrics.centerX, metrics.centerY);
+  ctx.rotate(metrics.rotationRadians || 0);
   ctx.fillStyle = 'rgba(79, 140, 255, 0.08)';
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.94)';
   ctx.lineWidth = Math.max(2, Math.round(Math.max(width, height) / 950));
   ctx.setLineDash([8, 6]);
   ctx.fillRect(
-    metrics.centerX - metrics.width / 2,
-    metrics.centerY - metrics.height / 2,
+    -metrics.width / 2,
+    -metrics.height / 2,
     metrics.width,
     metrics.height
   );
   ctx.strokeRect(
-    metrics.centerX - metrics.width / 2,
-    metrics.centerY - metrics.height / 2,
+    -metrics.width / 2,
+    -metrics.height / 2,
     metrics.width,
     metrics.height
   );
@@ -14678,8 +15169,8 @@ function drawPhotoEditorImageOverlayControls(ctx, width, height) {
     ctx.strokeStyle = 'rgba(79, 140, 255, 0.96)';
     ctx.beginPath();
     ctx.rect(
-      handles.resize.x - handleSize / 2,
-      handles.resize.y - handleSize / 2,
+      metrics.width / 2 - handleSize / 2,
+      metrics.height / 2 - handleSize / 2,
       handleSize,
       handleSize
     );
@@ -14690,9 +15181,31 @@ function drawPhotoEditorImageOverlayControls(ctx, width, height) {
   ctx.restore();
 }
 
-function getPhotoEditorTextCanvasMetrics(ctx, width, height, textOverlay) {
+function getPhotoEditorTextCanvasMetrics(
+  ctx,
+  width,
+  height,
+  textOverlay,
+  { sourceRect = null, sourceImage = null, outputSize = null } = {}
+) {
+  const baseTextState = normalizePhotoEditorTextState(textOverlay);
+  const layerTransform =
+    baseTextState.space === 'source'
+      ? getPhotoEditorSourceLayerTransform(
+          baseTextState,
+          width,
+          height,
+          sourceRect,
+          sourceImage,
+          outputSize
+        )
+      : null;
   const textState = getPhotoEditorTextRenderState(textOverlay, {
-    textScale: getPhotoEditorTextCanvasRenderScale(width, height),
+    textScale: getPhotoEditorTextCanvasRenderScale(
+      width,
+      height,
+      layerTransform?.scale || 1
+    ),
   });
 
   if (!textState.enabled || !textState.text.trim()) {
@@ -14712,11 +15225,16 @@ function getPhotoEditorTextCanvasMetrics(ctx, width, height, textOverlay) {
 
   return {
     textState,
-    centerX: clampNumber(textState.x, 0, 1, 0.5) * width,
-    centerY: clampNumber(textState.y, 0, 1, 0.5) * height,
+    centerX: layerTransform
+      ? layerTransform.centerX
+      : clampNumber(textState.x, 0, 1, 0.5) * width,
+    centerY: layerTransform
+      ? layerTransform.centerY
+      : clampNumber(textState.y, 0, 1, 0.5) * height,
     width: metrics.width + padding * 2,
     height: metrics.height + padding * 2,
-    rotationRadians: textState.rotation * Math.PI / 180,
+    rotationRadians:
+      textState.rotation * Math.PI / 180 + (layerTransform?.rotationRadians || 0),
     handleOffset: Math.max(30, metrics.size * 0.52),
   };
 }
@@ -14923,11 +15441,19 @@ function snapPhotoEditorTextToGuides(textOverlay) {
     return textState;
   }
 
-  return normalizePhotoEditorTextState({
-    ...textState,
-    x: textState.x + (snapX ? snapX.value - snapX.originalValue : 0),
-    y: textState.y + (snapY ? snapY.value - snapY.originalValue : 0),
-  });
+  const displaySize = getPhotoEditorCanvasDisplaySize();
+  const outputPoint = getPhotoEditorLayerOutputPoint(
+    textState,
+    displaySize.width,
+    displaySize.height
+  );
+
+  return normalizePhotoEditorTextState(
+    movePhotoEditorLayerToOutputPoint(textState, {
+      x: outputPoint.x + (snapX ? snapX.value - snapX.originalValue : 0),
+      y: outputPoint.y + (snapY ? snapY.value - snapY.originalValue : 0),
+    })
+  );
 }
 
 function drawPhotoEditorSnapGuides(ctx, width, height) {
@@ -15426,7 +15952,11 @@ function applyPhotoEditorEffectsToCanvas(
           ctx,
           outputSize.width,
           outputSize.height,
-          photoEditorState.imageOverlays
+          photoEditorState.imageOverlays,
+          {
+            outputSize,
+            sourceRect,
+          }
         );
       }
 
@@ -15436,7 +15966,12 @@ function applyPhotoEditorEffectsToCanvas(
           outputSize.width,
           outputSize.height,
           getPhotoEditorTextCollectionFromState().textOverlays,
-          { textScale }
+          {
+            textScale,
+            sourceRect,
+            sourceImage: photoEditorState?.sourceImage,
+            outputSize,
+          }
         );
       }
     }
@@ -16019,6 +16554,17 @@ function updatePhotoEditorBlur(nextBlur = {}) {
 
   beginPhotoEditorHistoryMutation();
   const currentBlur = normalizePhotoEditorBlurState(photoEditorState.blur);
+  const shouldInitializeRadialCenter =
+    nextBlur.mode === 'radial' &&
+    currentBlur.mode !== 'radial' &&
+    nextBlur.centerX === undefined &&
+    nextBlur.centerY === undefined;
+  const initialRadialPoint = shouldInitializeRadialCenter
+    ? getPhotoEditorCurrentOutputPointAsSpace({ x: 0.5, y: 0.5 }, 'source')
+    : null;
+  const initialRadialScale = shouldInitializeRadialCenter
+    ? getPhotoEditorCurrentSourceScaleAtPoint({ x: 0.5, y: 0.5 }).scale
+    : 1;
   const shouldReopenRadialControl =
     nextBlur.mode === 'radial' ||
     nextBlur.centerX !== undefined ||
@@ -16029,6 +16575,15 @@ function updatePhotoEditorBlur(nextBlur = {}) {
   photoEditorState.blur = normalizePhotoEditorBlurState({
     ...currentBlur,
     ...nextBlur,
+    ...(initialRadialPoint
+      ? {
+          centerX: initialRadialPoint.x,
+          centerY: initialRadialPoint.y,
+          radius: currentBlur.radius / Math.max(0.05, initialRadialScale),
+          outerRadius: currentBlur.outerRadius / Math.max(0.05, initialRadialScale),
+          space: 'source',
+        }
+      : null),
     isConfirmed: shouldReopenRadialControl
       ? false
       : nextBlur.isConfirmed ?? currentBlur.isConfirmed,
@@ -17442,10 +17997,15 @@ function getPhotoEditorImageOverlayLocalPoint(point, metrics) {
   const displaySize = getPhotoEditorCanvasDisplaySize();
   const pointX = clampNumber(point?.x, -2, 3, 0) * displaySize.width;
   const pointY = clampNumber(point?.y, -2, 3, 0) * displaySize.height;
+  const rotation = -(metrics?.rotationRadians || 0);
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  const deltaX = pointX - metrics.centerX;
+  const deltaY = pointY - metrics.centerY;
 
   return {
-    x: pointX - metrics.centerX,
-    y: pointY - metrics.centerY,
+    x: deltaX * cos - deltaY * sin,
+    y: deltaX * sin + deltaY * cos,
     canvasX: pointX,
     canvasY: pointY,
   };
@@ -17509,11 +18069,9 @@ function translatePhotoEditorImageOverlay(overlay, deltaX, deltaY) {
     return null;
   }
 
-  return normalizePhotoEditorImageOverlayState({
-    ...overlay,
-    x: overlay.x + deltaX,
-    y: overlay.y + deltaY,
-  });
+  return normalizePhotoEditorImageOverlayState(
+    translatePhotoEditorLayerByOutputDelta(overlay, deltaX, deltaY)
+  );
 }
 
 function snapPhotoEditorImageOverlayToGuides(overlay) {
@@ -17526,30 +18084,45 @@ function snapPhotoEditorImageOverlayToGuides(overlay) {
   }
 
   const normalizedOverlay = normalizePhotoEditorImageOverlayState(overlay);
+  const displaySize = getPhotoEditorCanvasDisplaySize();
+  const outputPoint = getPhotoEditorLayerOutputPoint(
+    normalizedOverlay,
+    displaySize.width,
+    displaySize.height
+  );
   const halfWidth = normalizedOverlay.width / 2;
   const halfHeight = normalizedOverlay.height / 2;
   const snapX = getPhotoEditorBestAxisSnap(
     [
-      normalizedOverlay.x,
-      normalizedOverlay.x - halfWidth,
-      normalizedOverlay.x + halfWidth,
+      outputPoint.x,
+      outputPoint.x - halfWidth * (normalizedOverlay.space === 'source'
+        ? getPhotoEditorCurrentSourceScaleAtPoint(outputPoint).scaleX
+        : 1),
+      outputPoint.x + halfWidth * (normalizedOverlay.space === 'source'
+        ? getPhotoEditorCurrentSourceScaleAtPoint(outputPoint).scaleX
+        : 1),
     ],
     'x'
   );
   const snapY = getPhotoEditorBestAxisSnap(
     [
-      normalizedOverlay.y,
-      normalizedOverlay.y - halfHeight,
-      normalizedOverlay.y + halfHeight,
+      outputPoint.y,
+      outputPoint.y - halfHeight * (normalizedOverlay.space === 'source'
+        ? getPhotoEditorCurrentSourceScaleAtPoint(outputPoint).scaleY
+        : 1),
+      outputPoint.y + halfHeight * (normalizedOverlay.space === 'source'
+        ? getPhotoEditorCurrentSourceScaleAtPoint(outputPoint).scaleY
+        : 1),
     ],
     'y'
   );
   const snappedOverlay =
     snapX || snapY
-      ? translatePhotoEditorImageOverlay(
-          normalizedOverlay,
-          snapX ? snapX.value - snapX.originalValue : 0,
-          snapY ? snapY.value - snapY.originalValue : 0
+      ? normalizePhotoEditorImageOverlayState(
+          movePhotoEditorLayerToOutputPoint(normalizedOverlay, {
+            x: outputPoint.x + (snapX ? snapX.value - snapX.originalValue : 0),
+            y: outputPoint.y + (snapY ? snapY.value - snapY.originalValue : 0),
+          })
         )
       : normalizedOverlay;
 
@@ -17578,15 +18151,14 @@ function resizePhotoEditorImageOverlay(
     return normalizedOverlay;
   }
 
-  const displaySize = getPhotoEditorCanvasDisplaySize();
   const localPoint = getPhotoEditorImageOverlayLocalPoint(point, metrics);
   let nextWidth = Math.max(
     PHOTO_EDITOR_IMAGE_OVERLAY_MIN_SIZE,
-    Math.abs(localPoint.x) * 2 / displaySize.width
+    Math.abs(localPoint.x) * 2 / (displaySize.width * (metrics.scaleX || 1))
   );
   let nextHeight = Math.max(
     PHOTO_EDITOR_IMAGE_OVERLAY_MIN_SIZE,
-    Math.abs(localPoint.y) * 2 / displaySize.height
+    Math.abs(localPoint.y) * 2 / (displaySize.height * (metrics.scaleY || 1))
   );
 
   if (keepRatio) {
@@ -18072,8 +18644,13 @@ function updatePhotoEditorTextDrag(point) {
   if (photoEditorState.dragMode === 'text-rotate') {
     photoEditorState.snapGuide = null;
     const displaySize = getPhotoEditorCanvasDisplaySize();
-    const centerX = photoEditorState.dragInitialText.x * displaySize.width;
-    const centerY = photoEditorState.dragInitialText.y * displaySize.height;
+    const outputPoint = getPhotoEditorLayerOutputPoint(
+      photoEditorState.dragInitialText,
+      displaySize.width,
+      displaySize.height
+    );
+    const centerX = outputPoint.x * displaySize.width;
+    const centerY = outputPoint.y * displaySize.height;
     const getAngle = (targetPoint) =>
       Math.atan2(
         targetPoint.y * displaySize.height - centerY,
@@ -18089,11 +18666,13 @@ function updatePhotoEditorTextDrag(point) {
   } else {
     const deltaX = point.x - photoEditorState.dragStart.x;
     const deltaY = point.y - photoEditorState.dragStart.y;
-    nextText = snapPhotoEditorTextToGuides({
-      ...photoEditorState.dragInitialText,
-      x: photoEditorState.dragInitialText.x + deltaX,
-      y: photoEditorState.dragInitialText.y + deltaY,
-    });
+    nextText = snapPhotoEditorTextToGuides(
+      translatePhotoEditorLayerByOutputDelta(
+        photoEditorState.dragInitialText,
+        deltaX,
+        deltaY
+      )
+    );
   }
 
   setPhotoEditorTextCollection(
@@ -18219,14 +18798,27 @@ function getPhotoEditorRadialBlurDragMode(point) {
 
   const blur = normalizePhotoEditorBlurState(photoEditorState.blur);
   const displaySize = getPhotoEditorCanvasDisplaySize();
+  const outputPoint = getPhotoEditorLayerOutputPoint(
+    {
+      x: blur.centerX,
+      y: blur.centerY,
+      space: blur.space,
+    },
+    displaySize.width,
+    displaySize.height
+  );
+  const sourceScale =
+    blur.space === 'source'
+      ? getPhotoEditorCurrentSourceScaleAtPoint(outputPoint).scale
+      : 1;
   const minEdge = Math.max(1, Math.min(displaySize.width, displaySize.height));
-  const centerX = blur.centerX * displaySize.width;
-  const centerY = blur.centerY * displaySize.height;
+  const centerX = outputPoint.x * displaySize.width;
+  const centerY = outputPoint.y * displaySize.height;
   const pointX = clampNumber(point?.x, 0, 1, 0) * displaySize.width;
   const pointY = clampNumber(point?.y, 0, 1, 0) * displaySize.height;
   const distance = Math.hypot(pointX - centerX, pointY - centerY);
-  const radius = blur.radius * minEdge;
-  const outerRadius = blur.outerRadius * minEdge;
+  const radius = blur.radius * minEdge * sourceScale;
+  const outerRadius = blur.outerRadius * minEdge * sourceScale;
   const edgeTolerance = Math.max(14, minEdge * 0.025);
 
   if (Math.abs(distance - outerRadius) <= edgeTolerance) {
@@ -18248,10 +18840,15 @@ function beginPhotoEditorBlurDrag(point, dragMode) {
   beginPhotoEditorHistoryMutation();
 
   if (dragMode === 'blur-center-snap') {
+    const blur = normalizePhotoEditorBlurState(photoEditorState.blur);
+    const centerPoint =
+      blur.space === 'source'
+        ? getPhotoEditorCurrentOutputPointAsSpace(point, 'source')
+        : point;
     photoEditorState.blur = normalizePhotoEditorBlurState({
-      ...photoEditorState.blur,
-      centerX: point.x,
-      centerY: point.y,
+      ...blur,
+      centerX: centerPoint.x,
+      centerY: centerPoint.y,
     });
   }
 
@@ -18279,35 +18876,47 @@ function updatePhotoEditorBlurDrag(point) {
   }
 
   const initialBlur = photoEditorState.dragInitialBlur;
+  const displaySize = getPhotoEditorCanvasDisplaySize();
+  const initialOutputPoint = getPhotoEditorLayerOutputPoint(
+    {
+      x: initialBlur.centerX,
+      y: initialBlur.centerY,
+      space: initialBlur.space,
+    },
+    displaySize.width,
+    displaySize.height
+  );
+  const sourceScale =
+    initialBlur.space === 'source'
+      ? getPhotoEditorCurrentSourceScaleAtPoint(initialOutputPoint).scale
+      : 1;
 
   if (photoEditorState.dragMode === 'blur-inner-radius') {
-    const displaySize = getPhotoEditorCanvasDisplaySize();
     const minEdge = Math.max(1, Math.min(displaySize.width, displaySize.height));
     const distance = Math.hypot(
-      (point.x - initialBlur.centerX) * displaySize.width,
-      (point.y - initialBlur.centerY) * displaySize.height
+      (point.x - initialOutputPoint.x) * displaySize.width,
+      (point.y - initialOutputPoint.y) * displaySize.height
     );
 
     photoEditorState.blur = normalizePhotoEditorBlurState({
       ...photoEditorState.blur,
       radius: Math.min(
-        distance / minEdge,
+        distance / (minEdge * sourceScale),
         initialBlur.outerRadius - PHOTO_EDITOR_RADIAL_BLUR_MIN_FEATHER
       ),
       outerRadius: initialBlur.outerRadius,
     });
   } else if (photoEditorState.dragMode === 'blur-outer-radius') {
-    const displaySize = getPhotoEditorCanvasDisplaySize();
     const minEdge = Math.max(1, Math.min(displaySize.width, displaySize.height));
     const distance = Math.hypot(
-      (point.x - initialBlur.centerX) * displaySize.width,
-      (point.y - initialBlur.centerY) * displaySize.height
+      (point.x - initialOutputPoint.x) * displaySize.width,
+      (point.y - initialOutputPoint.y) * displaySize.height
     );
 
     photoEditorState.blur = normalizePhotoEditorBlurState({
       ...photoEditorState.blur,
       outerRadius: Math.max(
-        distance / minEdge,
+        distance / (minEdge * sourceScale),
         initialBlur.radius + PHOTO_EDITOR_RADIAL_BLUR_MIN_FEATHER
       ),
       radius: initialBlur.radius,
@@ -18315,11 +18924,15 @@ function updatePhotoEditorBlurDrag(point) {
   } else {
     const deltaX = point.x - photoEditorState.dragStart.x;
     const deltaY = point.y - photoEditorState.dragStart.y;
+    const nextBlur = movePhotoEditorLayerToOutputPoint(initialBlur, {
+      x: initialOutputPoint.x + deltaX,
+      y: initialOutputPoint.y + deltaY,
+    });
 
     photoEditorState.blur = normalizePhotoEditorBlurState({
       ...photoEditorState.blur,
-      centerX: initialBlur.centerX + deltaX,
-      centerY: initialBlur.centerY + deltaY,
+      centerX: nextBlur.x,
+      centerY: nextBlur.y,
     });
   }
 
@@ -19928,13 +20541,22 @@ async function renderPhotoEditorExportDataUrl(
         renderBase.ctx,
         renderBase.outputSize.width,
         renderBase.outputSize.height,
-        imageOverlays
+        imageOverlays,
+        {
+          outputSize: renderBase.outputSize,
+          sourceRect: renderBase.sourceRect,
+        }
       );
       applyPhotoEditorTextOverlayToCanvas(
         renderBase.ctx,
         renderBase.outputSize.width,
         renderBase.outputSize.height,
-        textOverlays
+        textOverlays,
+        {
+          sourceRect: renderBase.sourceRect,
+          sourceImage: photoEditorState?.sourceImage,
+          outputSize: renderBase.outputSize,
+        }
       );
 
       return buildPhotoEditorExportRenderResult(

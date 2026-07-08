@@ -554,28 +554,33 @@ async function dispatchMiddleButtonScroll(win) {
 async function assertTextCssOutlineFollowsPreviewZoom(win) {
   const result = await runInPage(
     win,
-    `new Promise((resolve) => {
+    `new Promise((resolve, reject) => {
       updatePhotoEditorPreviewZoom(1);
       setPhotoEditorAccordionOpen('text', true);
+      const outputPoint = { x: 0.72, y: 0.46 };
+      const sourcePoint = getPhotoEditorCurrentOutputPointAsSpace(outputPoint, 'source');
+      const sourceScale = getPhotoEditorCurrentSourceScaleAtPoint(outputPoint);
       const text = addPhotoEditorTextOverlay({
         text: 'テキスト',
         enabled: true,
-        x: 0.72,
-        y: 0.46,
-        size: 90,
+        x: sourcePoint.x,
+        y: sourcePoint.y,
+        size: 90 / sourceScale.scale,
+        space: 'source',
       });
       updatePhotoEditorTextOverlay(
         {
           id: text.id,
           text: 'テキスト',
           enabled: true,
-          x: 0.72,
-          y: 0.46,
-          size: 90,
+          x: sourcePoint.x,
+          y: sourcePoint.y,
+          size: 90 / sourceScale.scale,
+          space: 'source',
         },
         { interactive: false }
       );
-      requestAnimationFrame(() => {
+      const waitForOutline = (attempt = 0) => {
         const readCenter = () => {
           const canvas = document.getElementById('photo-editor-canvas');
           const outline = document.getElementById('photo-editor-text-outline');
@@ -590,12 +595,21 @@ async function assertTextCssOutlineFollowsPreviewZoom(win) {
           };
         };
         const before = readCenter();
+        if (!before.visible && attempt < 20) {
+          requestAnimationFrame(() => waitForOutline(attempt + 1));
+          return;
+        }
+        if (!before.visible) {
+          reject(new Error('Text outline did not become visible before preview zoom.'));
+          return;
+        }
         updatePhotoEditorPreviewZoom(4);
         requestAnimationFrame(() => {
           const after = readCenter();
           resolve({ before, after });
         });
-      });
+      };
+      requestAnimationFrame(() => waitForOutline());
     })`
   );
 
