@@ -9,6 +9,7 @@ const { initDatabase } = require('../src/db');
 const REPO_ROOT = path.resolve(__dirname, '..');
 const VIEWPORT = { width: 1440, height: 920 };
 const RUN_ID = createRunId();
+const SKIP_SCREENSHOTS = process.argv.includes('--skip-screenshots');
 const SMOKE_ROOT = path.join(os.tmpdir(), `worldshot-mask-brush-${RUN_ID}`);
 const SMOKE_APPDATA = path.join(SMOKE_ROOT, 'AppData', 'Roaming');
 const SMOKE_LOCALAPPDATA = path.join(SMOKE_ROOT, 'AppData', 'Local');
@@ -230,6 +231,10 @@ function attachWindowDiagnostics(win) {
 }
 
 async function capture(win, name) {
+  if (SKIP_SCREENSHOTS) {
+    return null;
+  }
+
   await wait(300);
   const image = await win.capturePage();
   const screenshotPath = path.join(OUTPUT_DIR, `${name}.png`);

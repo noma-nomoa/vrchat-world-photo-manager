@@ -130,6 +130,7 @@ In addition to photo management by date and world, it includes image adjustments
 The latest version is available from GitHub Releases.
 
 - [Releases](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases)
+- [v2.5.3 Release Notes](./release-notes/v2.5.3.md)
 - [v2.5.2 Release Notes](./release-notes/v2.5.2.md)
 - [v2.5.1 Release Notes](./release-notes/v2.5.1.md)
 - [v2.5.0 Release Notes](./release-notes/v2.5.0.md)
@@ -189,7 +190,7 @@ WorldShot Log is an independently created app. AI assistance is used for parts o
 
 - [RELEASE.md](./RELEASE.md): Release workflow
 - [AI_MAINTENANCE_GUIDE.md](./AI_MAINTENANCE_GUIDE.md): Maintenance and modification guide
-- [docs/github-io-app-summary-v2.5.2.md](./docs/github-io-app-summary-v2.5.2.md): Feature summary for the landing page / app website
+- [docs/github-io-app-summary-v2.5.3.md](./docs/github-io-app-summary-v2.5.3.md): Feature summary for the landing page / app website
 - [release-notes/](./release-notes): Version history
 
 ## Limitations

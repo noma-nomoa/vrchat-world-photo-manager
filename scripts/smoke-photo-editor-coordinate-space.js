@@ -9,6 +9,7 @@ const { initDatabase } = require('../src/db');
 const REPO_ROOT = path.resolve(__dirname, '..');
 const VIEWPORT = { width: 1440, height: 920 };
 const RUN_ID = createRunId();
+const SKIP_SCREENSHOTS = process.argv.includes('--skip-screenshots');
 const SMOKE_ROOT = path.join(os.tmpdir(), `worldshot-coordinate-space-${RUN_ID}`);
 const SMOKE_APPDATA = path.join(SMOKE_ROOT, 'AppData', 'Roaming');
 const SMOKE_LOCALAPPDATA = path.join(SMOKE_ROOT, 'AppData', 'Local');
@@ -230,6 +231,10 @@ function attachWindowDiagnostics(win) {
 }
 
 async function capture(win, name) {
+  if (SKIP_SCREENSHOTS) {
+    return null;
+  }
+
   await wait(300);
   const image = await win.capturePage();
   const screenshotPath = path.join(OUTPUT_DIR, `${name}.png`);
@@ -375,6 +380,82 @@ async function readCoordinateState(win) {
   );
 }
 
+async function assertImageOverlayResizeWorks(win) {
+  const result = await runInPage(
+    win,
+    `new Promise((resolve) => {
+      setPhotoEditorAccordionOpen('imageOverlay', true);
+      requestAnimationFrame(() => {
+        const canvas = document.getElementById('photo-editor-canvas');
+        const width = Math.max(1, canvas.width || 1);
+        const height = Math.max(1, canvas.height || 1);
+        const beforeOverlay = getPhotoEditorActiveImageOverlay();
+        const beforeMetrics = getPhotoEditorImageOverlayCanvasMetrics(
+          width,
+          height,
+          beforeOverlay
+        );
+        const handle = getPhotoEditorImageOverlayHandles(beforeMetrics).resize;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = rect.width / width;
+        const scaleY = rect.height / height;
+        const startX = rect.left + handle.x * scaleX;
+        const startY = rect.top + handle.y * scaleY;
+        const options = {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 91,
+          pointerType: 'mouse',
+          isPrimary: true,
+        };
+        canvas.dispatchEvent(new PointerEvent('pointerdown', {
+          ...options,
+          clientX: startX,
+          clientY: startY,
+          buttons: 1,
+          button: 0,
+        }));
+        canvas.dispatchEvent(new PointerEvent('pointermove', {
+          ...options,
+          clientX: startX + 90,
+          clientY: startY + 60,
+          buttons: 1,
+          button: 0,
+        }));
+        canvas.dispatchEvent(new PointerEvent('pointerup', {
+          ...options,
+          clientX: startX + 90,
+          clientY: startY + 60,
+          buttons: 0,
+          button: 0,
+        }));
+        requestAnimationFrame(() => {
+          const afterOverlay = getPhotoEditorActiveImageOverlay();
+          resolve({
+            before: {
+              width: beforeOverlay.width,
+              height: beforeOverlay.height,
+            },
+            after: {
+              width: afterOverlay.width,
+              height: afterOverlay.height,
+            },
+          });
+        });
+      });
+    })`
+  );
+
+  if (
+    result.after.width <= result.before.width * 1.05 ||
+    result.after.height <= result.before.height * 1.05
+  ) {
+    throw new Error(
+      `Image overlay resize did not increase size: ${JSON.stringify(result)}`
+    );
+  }
+}
+
 function assertMovedWithImage(before, after, key) {
   const deltaX = Math.abs(after[key].x - before[key].x);
   const deltaY = Math.abs(after[key].y - before[key].y);
@@ -443,6 +524,8 @@ async function main() {
     }
     assertMovedWithImage(before, after, key);
   }
+  await assertImageOverlayResizeWorks(win);
+  console.log('[coordinate-smoke] image overlay resize passed');
 
   const result = {
     ok: true,
