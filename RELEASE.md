@@ -93,15 +93,22 @@ WorldShot Log は、現状次の構成で配布しています。
 - 画像取り込み
 - 追加した機能の動作
 
-必要に応じて、構文確認も行います。
-
-例:
+改修後は、構文・単体・画像演算・翻訳・レタッチ・データ保全の回帰検証をまとめて実行します。手動での主要画面確認と併せて結果を確認してください。
 
 ```powershell
-node --check src/index.js src/preload.js src/renderer.js src/i18n.js src/photo-editor-worker.js
-npm run audit:i18n
-npm run smoke:data
+npm.cmd run check
+git diff --check
 ```
+
+チェック別のログと結果は `out/regression-checks/` に保存されます。失敗した項目や未実行の後続がある場合は、全体の確認完了とは扱いません。個別の実行方法は [保守用ハーネス](./docs/maintenance-harness.md) を参照してください。
+
+公開前の作者確認には、合格した全体結果を指定して専用候補を生成できます。検証時のソースと現在のソースを照合し、独立した出力先にアプリ・インストーラ・隔離したサンプル環境を作ります。このコマンドは公開やインストールを行いません。
+
+```powershell
+npm.cmd run review:build -- --checks-result=out/regression-checks/<今回の結果>/result.json
+```
+
+今回の候補・検証結果・公開前の残確認は [v2.5.4 の公開準備](./docs/release-preparation-v2.5.4.md) を参照してください。以前の確認記録は [リリース前の確認](./docs/release-candidate-review-2026-09-10.md) に残しています。バージョンを更新した後はソースが変わるため、全体検証と候補生成を再実行します。
 
 ---
 
@@ -127,7 +134,8 @@ npm run make:win
 
 - `.exe` だけでは自動アップデート配布は成立しません
 - **`.nupkg` と `RELEASES` が必須**です
-- ビルド後は `npm run smoke:packaged` で配布版の起動確認を行います
+- ビルド後は `npm run smoke:packaged` で配布版の起動、ASAR内のコード一致、DB/IPC、Worker出力、同梱軽量AIの実推論を確認します。検証は一時profileを使い、通常利用中のDBやサムネイルから隔離します。
+- `smoke:packaged` は現在のソースと一致し、home隔離に対応したビルドを対象とします。起動だけの確認とは異なり、古いビルドは拒否します。インストーラの新規導入・更新動作は別に確認してください。
 
 ---
 
@@ -345,13 +353,15 @@ GitHub Release に配布物があっても、更新サービスが古いキャ�
 
 ## 12. 現在の公開版
 
-現時点の公開版:
+2026年9月11日に GitHub Releases API で確認した公開版:
 
-- `v2.4.2`
+- `v2.5.3`
 
 対応する変更点ファイル:
 
-- `release-notes/v2.4.2.md`
+- `release-notes/v2.5.3.md`
+
+次の `v2.5.4` はローカルで公開準備中です。ビルドの成功とリリースの公開は区別し、公開前に [今回の検証記録](./docs/release-preparation-v2.5.4.md) の未確認項目を解消してください。
 
 ---
 

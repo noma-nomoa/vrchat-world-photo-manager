@@ -1,0 +1,40 @@
+{
+  "sourceSha256": "1a041bdb564796fa37fca30f7b75ee70f09220f94642d5bd4caae00da0f6612e",
+  "goodOutputs": {
+    "plain": {
+      "width": 64,
+      "height": 48,
+      "rgbaSha256": "eaf93f865d281d67502e2aa8dbec0f4bffa2808224432796dda6a049d625cd2a"
+    },
+    "overlay": {
+      "width": 64,
+      "height": 48,
+      "rgbaSha256": "45327371428b88e8c0e4c39c47e999a72f6e8cc45b89598d6814b733d0d43982"
+    },
+    "transparent-overlay": {
+      "width": 64,
+      "height": 48,
+      "rgbaSha256": "eaf93f865d281d67502e2aa8dbec0f4bffa2808224432796dda6a049d625cd2a"
+    },
+    "disabled-mask": {
+      "width": 64,
+      "height": 48,
+      "rgbaSha256": "eaf93f865d281d67502e2aa8dbec0f4bffa2808224432796dda6a049d625cd2a"
+    },
+    "hidden-mask-subject-adjustment": {
+      "width": 64,
+      "height": 48,
+      "rgbaSha256": "72d9640527b1ba7ab40ae0046afd646a22ecca26a88cc94945c849ff356cf63a"
+    },
+    "subject-only-overlay": {
+      "width": 64,
+      "height": 48,
+      "rgbaSha256": "ec0644808193b885819e20a6c6deda40b2e5aeba9db2294fc75b025311e009f7"
+    },
+    "background-only-overlay": {
+      "width": 64,
+      "height": 48,
+      "rgbaSha256": "d741c798c8e58a80970855cb05e7ea9097890acb5e64a0d02eb7037d2070fca8"
+    }
+  }
+}

@@ -1,0 +1,2509 @@
+{
+  "version": 1,
+  "timezone": "Asia/Tokyo",
+  "sourceSha256": "b599f490fd14891e96ba77497ce248b44872d717d729d1485d93af4d3a1585d4",
+  "metadata": [
+    {
+      "name": "normalizePhotoPrintNoteText/text-0",
+      "value": null
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-1",
+      "value": null
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-2",
+      "value": null
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-3",
+      "value": null
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-4",
+      "value": "夜の海 🐈"
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-5",
+      "value": "Café"
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-6",
+      "value": "A B C D"
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-7",
+      "value": null
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-8",
+      "value": null
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-9",
+      "value": null
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-10",
+      "value": null
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-11",
+      "value": "［海］／山（夜）ǃ \"Cafe\""
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-12",
+      "value": "\"title\" / 'note'"
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-13",
+      "value": "bad?value"
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-14",
+      "value": "x-default, text"
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-15",
+      "value": "日本語の写真"
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-16",
+      "value": null
+    },
+    {
+      "name": "normalizePhotoPrintNoteText/text-17",
+      "value": null
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-0",
+      "value": null
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-1",
+      "value": null
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-2",
+      "value": null
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-3",
+      "value": null
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-4",
+      "value": "夜の海 🐈"
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-5",
+      "value": "Café"
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-6",
+      "value": "A B C D"
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-7",
+      "value": null
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-8",
+      "value": "[]"
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-9",
+      "value": "{\"x-default\":\"\"}"
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-10",
+      "value": null
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-11",
+      "value": "[海]/山(夜)! \"Cafe\""
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-12",
+      "value": "“title” / ‘note’"
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-13",
+      "value": "badvalue"
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-14",
+      "value": "x-default, text"
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-15",
+      "value": "æ¥æ¬èªã®åç"
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-16",
+      "value": null
+    },
+    {
+      "name": "normalizeDisplayWorldName/text-17",
+      "value": null
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-0",
+      "value": null
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-1",
+      "value": null
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-2",
+      "value": null
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-3",
+      "value": null
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-4",
+      "value": "夜の海 🐈"
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-5",
+      "value": "Café"
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-6",
+      "value": "A B C D"
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-7",
+      "value": "{}"
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-8",
+      "value": "[]"
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-9",
+      "value": "{\"x-default\":\"\"}"
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-10",
+      "value": null
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-11",
+      "value": "［海］／山（夜）ǃ \"Cafe\""
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-12",
+      "value": "\"title\" / 'note'"
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-13",
+      "value": "bad?value"
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-14",
+      "value": "x-default, text"
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-15",
+      "value": "日本語の写真"
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-16",
+      "value": null
+    },
+    {
+      "name": "normalizeOfficialWorldText/text-17",
+      "value": null
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-0",
+      "value": false
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-1",
+      "value": false
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-2",
+      "value": false
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-3",
+      "value": false
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-4",
+      "value": false
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-5",
+      "value": false
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-6",
+      "value": false
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-7",
+      "value": true
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-8",
+      "value": true
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-9",
+      "value": true
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-10",
+      "value": true
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-11",
+      "value": false
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-12",
+      "value": false
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-13",
+      "value": false
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-14",
+      "value": true
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-15",
+      "value": false
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-16",
+      "value": false
+    },
+    {
+      "name": "shouldRepairStoredPrintNote/text-17",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-0",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-1",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-2",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-3",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-4",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-5",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-6",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-7",
+      "value": true
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-8",
+      "value": true
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-9",
+      "value": true
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-10",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-11",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-12",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-13",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-14",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-15",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-16",
+      "value": false
+    },
+    {
+      "name": "isEmptyPrintNotePlaceholder/text-17",
+      "value": false
+    },
+    {
+      "name": "normalizeWorldId/id-0",
+      "value": null
+    },
+    {
+      "name": "normalizeWorldId/id-1",
+      "value": null
+    },
+    {
+      "name": "normalizeWorldId/id-2",
+      "value": null
+    },
+    {
+      "name": "normalizeWorldId/id-3",
+      "value": null
+    },
+    {
+      "name": "normalizeWorldId/id-4",
+      "value": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    },
+    {
+      "name": "normalizeWorldId/id-5",
+      "value": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    },
+    {
+      "name": "normalizeWorldId/id-6",
+      "value": "WRLD_AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"
+    },
+    {
+      "name": "normalizeWorldId/id-7",
+      "value": "wrld_abc"
+    },
+    {
+      "name": "normalizeWorldId/id-8",
+      "value": "wrld_123-456"
+    },
+    {
+      "name": "normalizeWorldId/id-9",
+      "value": null
+    },
+    {
+      "name": "normalizeWorldId/id-10",
+      "value": null
+    },
+    {
+      "name": "normalizeWorldId/id-11",
+      "value": null
+    },
+    {
+      "name": "normalizeOfficialWorldTags/tags-0",
+      "value": []
+    },
+    {
+      "name": "normalizeOfficialWorldTags/tags-1",
+      "value": []
+    },
+    {
+      "name": "normalizeOfficialWorldTags/tags-2",
+      "value": [
+        "海",
+        "Café",
+        "Caf?",
+        "{}"
+      ]
+    },
+    {
+      "name": "normalizeOfficialWorldTags/tags-3",
+      "value": [
+        "\"Moon\""
+      ]
+    },
+    {
+      "name": "normalizeOfficialWorldTags/tags-4",
+      "value": []
+    },
+    {
+      "name": "getResolutionTier/size-0",
+      "value": "8K"
+    },
+    {
+      "name": "getResolutionTier/size-1",
+      "value": "8K"
+    },
+    {
+      "name": "getResolutionTier/size-2",
+      "value": "4K"
+    },
+    {
+      "name": "getResolutionTier/size-3",
+      "value": "4K"
+    },
+    {
+      "name": "getResolutionTier/size-4",
+      "value": "QHD"
+    },
+    {
+      "name": "getResolutionTier/size-5",
+      "value": "FHD"
+    },
+    {
+      "name": "getResolutionTier/size-6",
+      "value": "HD"
+    },
+    {
+      "name": "getResolutionTier/size-7",
+      "value": null
+    },
+    {
+      "name": "getResolutionTier/size-8",
+      "value": null
+    },
+    {
+      "name": "getResolutionTier/size-9",
+      "value": null
+    },
+    {
+      "name": "getResolutionTier/size-10",
+      "value": null
+    },
+    {
+      "name": "getResolutionTier/size-11",
+      "value": null
+    },
+    {
+      "name": "getResolutionTier/size-12",
+      "value": null
+    },
+    {
+      "name": "getResolutionTier/size-13",
+      "value": null
+    },
+    {
+      "name": "getResolutionTier/size-14",
+      "value": null
+    },
+    {
+      "name": "getResolutionTier/size-15",
+      "value": null
+    },
+    {
+      "name": "getResolutionTier/size-16",
+      "value": null
+    },
+    {
+      "name": "getOrientationTier/size-0",
+      "value": "landscape"
+    },
+    {
+      "name": "getOrientationTier/size-1",
+      "value": "portrait"
+    },
+    {
+      "name": "getOrientationTier/size-2",
+      "value": "landscape"
+    },
+    {
+      "name": "getOrientationTier/size-3",
+      "value": "landscape"
+    },
+    {
+      "name": "getOrientationTier/size-4",
+      "value": "landscape"
+    },
+    {
+      "name": "getOrientationTier/size-5",
+      "value": "landscape"
+    },
+    {
+      "name": "getOrientationTier/size-6",
+      "value": "landscape"
+    },
+    {
+      "name": "getOrientationTier/size-7",
+      "value": "landscape"
+    },
+    {
+      "name": "getOrientationTier/size-8",
+      "value": "landscape"
+    },
+    {
+      "name": "getOrientationTier/size-9",
+      "value": "landscape"
+    },
+    {
+      "name": "getOrientationTier/size-10",
+      "value": "square"
+    },
+    {
+      "name": "getOrientationTier/size-11",
+      "value": "square"
+    },
+    {
+      "name": "getOrientationTier/size-12",
+      "value": "portrait"
+    },
+    {
+      "name": "getOrientationTier/size-13",
+      "value": null
+    },
+    {
+      "name": "getOrientationTier/size-14",
+      "value": null
+    },
+    {
+      "name": "getOrientationTier/size-15",
+      "value": null
+    },
+    {
+      "name": "getOrientationTier/size-16",
+      "value": null
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-0",
+      "value": {
+        "date": "2026-06-07T13:20:00.000Z"
+      }
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-1",
+      "value": {
+        "date": "2024-02-29T14:59:59.000Z"
+      }
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-2",
+      "value": {
+        "date": "2027-02-01T17:02:01.000Z"
+      }
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-3",
+      "value": {
+        "date": "1998-12-31T15:00:00.000Z"
+      }
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-4",
+      "value": null
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-5",
+      "value": null
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-6",
+      "value": null
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-7",
+      "value": null
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-8",
+      "value": null
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-9",
+      "value": null
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-10",
+      "value": null
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-11",
+      "value": null
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-12",
+      "value": null
+    },
+    {
+      "name": "parseVrchatFilenameDate/file-13",
+      "value": null
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-0",
+      "value": {
+        "imageWidth": 320,
+        "imageHeight": 180,
+        "resolutionTier": null,
+        "orientationTier": "landscape"
+      }
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-1",
+      "value": {
+        "imageWidth": 1920,
+        "imageHeight": 1080,
+        "resolutionTier": "FHD",
+        "orientationTier": "landscape"
+      }
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-2",
+      "value": null
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-3",
+      "value": null
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-4",
+      "value": {
+        "imageWidth": 2560,
+        "imageHeight": 1440,
+        "resolutionTier": "QHD",
+        "orientationTier": "landscape"
+      }
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-5",
+      "value": {
+        "imageWidth": 3840,
+        "imageHeight": 2160,
+        "resolutionTier": "4K",
+        "orientationTier": "landscape"
+      }
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-6",
+      "value": {
+        "imageWidth": 2048,
+        "imageHeight": 1440,
+        "resolutionTier": "FHD",
+        "orientationTier": "landscape"
+      }
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-7",
+      "value": {
+        "imageWidth": 1920,
+        "imageHeight": 1080,
+        "resolutionTier": "FHD",
+        "orientationTier": "landscape"
+      }
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-8",
+      "value": null
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-9",
+      "value": null
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-10",
+      "value": null
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-11",
+      "value": null
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-12",
+      "value": {
+        "imageWidth": 1080,
+        "imageHeight": 1920,
+        "resolutionTier": "FHD",
+        "orientationTier": "portrait"
+      }
+    },
+    {
+      "name": "parseImageDimensionsFromFilename/file-13",
+      "value": null
+    },
+    {
+      "name": "formatDateTime/date-0",
+      "value": "2026/06/07 22:20:00"
+    },
+    {
+      "name": "formatDateTime/date-1",
+      "value": "2000/03/01 08:59:59"
+    },
+    {
+      "name": "formatDateTime/date-2",
+      "value": "NaN/NaN/NaN NaN:NaN:NaN"
+    },
+    {
+      "name": "formatGroupDate/date-0",
+      "value": "2026/06/07"
+    },
+    {
+      "name": "formatGroupDate/date-1",
+      "value": "2000/03/01"
+    },
+    {
+      "name": "formatGroupDate/date-2",
+      "value": "NaN/NaN/NaN"
+    },
+    {
+      "name": "pad2/pad-0",
+      "value": "00"
+    },
+    {
+      "name": "pad2/pad-1",
+      "value": "03"
+    },
+    {
+      "name": "pad2/pad-2",
+      "value": "10"
+    },
+    {
+      "name": "pad2/pad-3",
+      "value": "-1"
+    },
+    {
+      "name": "pad2/pad-4",
+      "value": "123"
+    },
+    {
+      "name": "pad2/pad-5",
+      "value": "undefined"
+    },
+    {
+      "name": "extractTakenAtFromTags/tags-0",
+      "value": null
+    },
+    {
+      "name": "extractTakenAtFromTags/tags-1",
+      "value": {
+        "date": "2026-06-07T13:20:00.000Z"
+      }
+    },
+    {
+      "name": "extractTakenAtFromTags/tags-2",
+      "value": {
+        "date": "2026-06-07T13:20:00.000Z"
+      }
+    },
+    {
+      "name": "extractTakenAtFromTags/tags-3",
+      "value": {
+        "date": "2025-02-02T19:05:06.000Z"
+      }
+    },
+    {
+      "name": "extractTakenAtFromTags/tags-4",
+      "value": {
+        "date": "2025-01-01T18:04:05.000Z"
+      }
+    },
+    {
+      "name": "extractTakenAtFromTags/tags-5",
+      "value": null
+    },
+    {
+      "name": "extractTakenAtFromTags/tags-6",
+      "value": {
+        "date": "2019-12-31T15:00:00.000Z"
+      }
+    },
+    {
+      "name": "extractPhotoPrintNote/tags-0",
+      "value": null
+    },
+    {
+      "name": "extractPhotoPrintNote/tags-1",
+      "value": "思い出の写真"
+    },
+    {
+      "name": "extractPhotoPrintNote/tags-2",
+      "value": "星の海"
+    },
+    {
+      "name": "extractPhotoPrintNote/tags-3",
+      "value": "Numeric title fallback"
+    },
+    {
+      "name": "extractPhotoPrintNote/tags-4",
+      "value": null
+    },
+    {
+      "name": "extractPhotoPrintNote/tags-5",
+      "value": null
+    },
+    {
+      "name": "extractPhotoPrintNote/tags-6",
+      "value": "日本語の写真"
+    },
+    {
+      "name": "extractPhotoPrintNote/tags-7",
+      "value": "Legacy headline"
+    },
+    {
+      "name": "extractPhotoPrintNote/tags-8",
+      "value": null
+    },
+    {
+      "name": "extractPhotoPrintNote/tags-9",
+      "value": "最初の候補"
+    },
+    {
+      "name": "extractWorldInfoFromRawBuffer/raw-0",
+      "value": {
+        "worldId": null,
+        "worldName": null
+      }
+    },
+    {
+      "name": "extractWorldInfo/raw-0",
+      "value": {
+        "worldId": null,
+        "worldName": null,
+        "worldUrl": null
+      }
+    },
+    {
+      "name": "extractWorldInfoFromRawBuffer/raw-1",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "夜の海 & Café 🐈"
+      }
+    },
+    {
+      "name": "extractWorldInfo/raw-1",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "夜の海 & Café 🐈",
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfoFromRawBuffer/raw-2",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "海 & 山"
+      }
+    },
+    {
+      "name": "extractWorldInfo/raw-2",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "海 & 山",
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfoFromRawBuffer/raw-3",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "🐈 あ"
+      }
+    },
+    {
+      "name": "extractWorldInfo/raw-3",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "🐈 あ",
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfoFromRawBuffer/raw-4",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "Incomplete packet"
+      }
+    },
+    {
+      "name": "extractWorldInfo/raw-4",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "Incomplete packet",
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfoFromRawBuffer/raw-5",
+      "error": {
+        "name": "RangeError",
+        "message": "Invalid code point 1114112"
+      }
+    },
+    {
+      "name": "extractWorldInfo/raw-5",
+      "error": {
+        "name": "RangeError",
+        "message": "Invalid code point 1114112"
+      }
+    },
+    {
+      "name": "extractWorldInfoFromRawBuffer/raw-6",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "遠いメタデータ"
+      }
+    },
+    {
+      "name": "extractWorldInfo/raw-6",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "遠いメタデータ",
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfo/tag-only-0",
+      "value": {
+        "worldId": null,
+        "worldName": null,
+        "worldUrl": null
+      }
+    },
+    {
+      "name": "extractWorldInfo/raw-precedence-0",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "夜の海 & Café 🐈",
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfo/tag-only-1",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "現行タグ",
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfo/raw-precedence-1",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "現行タグ",
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfo/tag-only-2",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "旧タグ",
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfo/raw-precedence-2",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "旧タグ",
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfo/tag-only-3",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": null,
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfo/raw-precedence-3",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "夜の海 & Café 🐈",
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfo/tag-only-4",
+      "value": {
+        "worldId": "wrld_bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "worldName": null,
+        "worldUrl": "https://vrchat.com/home/world/wrld_bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "extractWorldInfo/raw-precedence-4",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "夜の海 & Café 🐈",
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfo/tag-only-5",
+      "value": {
+        "worldId": null,
+        "worldName": "海",
+        "worldUrl": null
+      }
+    },
+    {
+      "name": "extractWorldInfo/raw-precedence-5",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "夜の海 & Café 🐈",
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      }
+    },
+    {
+      "name": "extractWorldInfo/preparsed-invalid-id-remains-preferred",
+      "value": {
+        "worldId": null,
+        "worldName": "Raw name",
+        "worldUrl": null
+      }
+    },
+    {
+      "name": "loadExifTagsSafely/plain.png",
+      "value": {
+        "Image Width": {
+          "value": 320,
+          "description": "320px"
+        },
+        "Image Height": {
+          "value": 180,
+          "description": "180px"
+        },
+        "Bit Depth": {
+          "value": 8,
+          "description": "8"
+        },
+        "Color Type": {
+          "value": 2,
+          "description": "RGB"
+        },
+        "Compression": {
+          "value": 0,
+          "description": "Deflate/Inflate"
+        },
+        "Filter": {
+          "value": 0,
+          "description": "Adaptive"
+        },
+        "Interlace": {
+          "value": 0,
+          "description": "Noninterlaced"
+        },
+        "FileType": {
+          "value": "png",
+          "description": "PNG"
+        }
+      }
+    },
+    {
+      "name": "extractWorldInfoFromRawBuffer/plain.png",
+      "value": {
+        "worldId": null,
+        "worldName": null
+      }
+    },
+    {
+      "name": "loadExifTagsSafely/plain.jpg",
+      "value": {
+        "Bits Per Sample": {
+          "value": 8,
+          "description": "8"
+        },
+        "Image Height": {
+          "value": 180,
+          "description": "180px"
+        },
+        "Image Width": {
+          "value": 320,
+          "description": "320px"
+        },
+        "Color Components": {
+          "value": 3,
+          "description": "3"
+        },
+        "Subsampling": {
+          "value": [
+            [
+              1,
+              34,
+              0
+            ],
+            [
+              2,
+              17,
+              1
+            ],
+            [
+              3,
+              17,
+              1
+            ]
+          ],
+          "description": "YCbCr4:2:0 (2 2)"
+        },
+        "JFIF Version": {
+          "value": 257,
+          "description": "1.1"
+        },
+        "Resolution Unit": {
+          "value": 0,
+          "description": "None"
+        },
+        "XResolution": {
+          "value": 1,
+          "description": "1"
+        },
+        "YResolution": {
+          "value": 1,
+          "description": "1"
+        },
+        "JFIF Thumbnail Width": {
+          "value": 0,
+          "description": "0px"
+        },
+        "JFIF Thumbnail Height": {
+          "value": 0,
+          "description": "0px"
+        },
+        "Preferred CMM type": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Profile Version": {
+          "value": "4.3.0",
+          "description": "4.3.0"
+        },
+        "Profile/Device class": {
+          "value": "mntr",
+          "description": "Display Device profile"
+        },
+        "Color Space": {
+          "value": "RGB ",
+          "description": "RGB "
+        },
+        "Connection Space": {
+          "value": "XYZ ",
+          "description": "XYZ "
+        },
+        "ICC Profile Date": {
+          "value": "2016-01-01T00:00:00.000Z",
+          "description": "2016-01-01T00:00:00.000Z"
+        },
+        "ICC Signature": {
+          "value": "acsp",
+          "description": "acsp"
+        },
+        "Primary Platform": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Device Manufacturer": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Device Model Number": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Rendering Intent": {
+          "value": 1,
+          "description": "Relative Colorimetric"
+        },
+        "Profile Creator": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "ICC Description": {
+          "value": "sRGB",
+          "description": "sRGB"
+        },
+        "ICC Copyright": {
+          "value": "Google Inc. 2016",
+          "description": "Google Inc. 2016"
+        },
+        "FileType": {
+          "value": "jpeg",
+          "description": "JPEG"
+        }
+      }
+    },
+    {
+      "name": "extractWorldInfoFromRawBuffer/plain.jpg",
+      "value": {
+        "worldId": null,
+        "worldName": null
+      }
+    },
+    {
+      "name": "loadExifTagsSafely/plain.webp",
+      "value": {
+        "Preferred CMM type": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Profile Version": {
+          "value": "4.3.0",
+          "description": "4.3.0"
+        },
+        "Profile/Device class": {
+          "value": "mntr",
+          "description": "Display Device profile"
+        },
+        "Color Space": {
+          "value": "RGB ",
+          "description": "RGB "
+        },
+        "Connection Space": {
+          "value": "XYZ ",
+          "description": "XYZ "
+        },
+        "ICC Profile Date": {
+          "value": "2016-01-01T00:00:00.000Z",
+          "description": "2016-01-01T00:00:00.000Z"
+        },
+        "ICC Signature": {
+          "value": "acsp",
+          "description": "acsp"
+        },
+        "Primary Platform": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Device Manufacturer": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Device Model Number": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Rendering Intent": {
+          "value": 1,
+          "description": "Relative Colorimetric"
+        },
+        "Profile Creator": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "ICC Description": {
+          "value": "sRGB",
+          "description": "sRGB"
+        },
+        "ICC Copyright": {
+          "value": "Google Inc. 2016",
+          "description": "Google Inc. 2016"
+        },
+        "Alpha": {
+          "value": 0,
+          "description": "No"
+        },
+        "Animation": {
+          "value": 0,
+          "description": "No"
+        },
+        "ImageWidth": {
+          "value": 320,
+          "description": "320px"
+        },
+        "ImageHeight": {
+          "value": 180,
+          "description": "180px"
+        },
+        "FileType": {
+          "value": "webp",
+          "description": "WebP"
+        }
+      }
+    },
+    {
+      "name": "extractWorldInfoFromRawBuffer/plain.webp",
+      "value": {
+        "worldId": null,
+        "worldName": null
+      }
+    },
+    {
+      "name": "loadExifTagsSafely/world.png",
+      "value": {
+        "WorldID": {
+          "value": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          "attributes": {},
+          "description": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        },
+        "WorldDisplayName": {
+          "value": "夜の海 & Café 🐈",
+          "attributes": {},
+          "description": "夜の海 & Café 🐈"
+        },
+        "title": {
+          "value": [
+            {
+              "value": "思い出の一枚",
+              "attributes": {
+                "lang": "x-default"
+              },
+              "description": "思い出の一枚"
+            }
+          ],
+          "attributes": {},
+          "description": "思い出の一枚"
+        },
+        "Image Width": {
+          "value": 320,
+          "description": "320px"
+        },
+        "Image Height": {
+          "value": 180,
+          "description": "180px"
+        },
+        "Bit Depth": {
+          "value": 8,
+          "description": "8"
+        },
+        "Color Type": {
+          "value": 2,
+          "description": "RGB"
+        },
+        "Compression": {
+          "value": 0,
+          "description": "Deflate/Inflate"
+        },
+        "Filter": {
+          "value": 0,
+          "description": "Adaptive"
+        },
+        "Interlace": {
+          "value": 0,
+          "description": "Noninterlaced"
+        },
+        "FileType": {
+          "value": "png",
+          "description": "PNG"
+        }
+      }
+    },
+    {
+      "name": "extractWorldInfoFromRawBuffer/world.png",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "夜の海 & Café 🐈"
+      }
+    },
+    {
+      "name": "loadExifTagsSafely/world.jpg",
+      "value": {
+        "Bits Per Sample": {
+          "value": 8,
+          "description": "8"
+        },
+        "Image Height": {
+          "value": 180,
+          "description": "180px"
+        },
+        "Image Width": {
+          "value": 320,
+          "description": "320px"
+        },
+        "Color Components": {
+          "value": 3,
+          "description": "3"
+        },
+        "Subsampling": {
+          "value": [
+            [
+              1,
+              34,
+              0
+            ],
+            [
+              2,
+              17,
+              1
+            ],
+            [
+              3,
+              17,
+              1
+            ]
+          ],
+          "description": "YCbCr4:2:0 (2 2)"
+        },
+        "JFIF Version": {
+          "value": 257,
+          "description": "1.1"
+        },
+        "Resolution Unit": {
+          "value": 0,
+          "description": "None"
+        },
+        "XResolution": {
+          "value": 1,
+          "description": "1"
+        },
+        "YResolution": {
+          "value": 1,
+          "description": "1"
+        },
+        "JFIF Thumbnail Width": {
+          "value": 0,
+          "description": "0px"
+        },
+        "JFIF Thumbnail Height": {
+          "value": 0,
+          "description": "0px"
+        },
+        "WorldID": {
+          "value": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          "attributes": {},
+          "description": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        },
+        "WorldDisplayName": {
+          "value": "夜の海 & Café 🐈",
+          "attributes": {},
+          "description": "夜の海 & Café 🐈"
+        },
+        "title": {
+          "value": [
+            {
+              "value": "思い出の一枚",
+              "attributes": {
+                "lang": "x-default"
+              },
+              "description": "思い出の一枚"
+            }
+          ],
+          "attributes": {},
+          "description": "思い出の一枚"
+        },
+        "Preferred CMM type": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Profile Version": {
+          "value": "4.3.0",
+          "description": "4.3.0"
+        },
+        "Profile/Device class": {
+          "value": "mntr",
+          "description": "Display Device profile"
+        },
+        "Color Space": {
+          "value": "RGB ",
+          "description": "RGB "
+        },
+        "Connection Space": {
+          "value": "XYZ ",
+          "description": "XYZ "
+        },
+        "ICC Profile Date": {
+          "value": "2016-01-01T00:00:00.000Z",
+          "description": "2016-01-01T00:00:00.000Z"
+        },
+        "ICC Signature": {
+          "value": "acsp",
+          "description": "acsp"
+        },
+        "Primary Platform": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Device Manufacturer": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Device Model Number": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Rendering Intent": {
+          "value": 1,
+          "description": "Relative Colorimetric"
+        },
+        "Profile Creator": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "ICC Description": {
+          "value": "sRGB",
+          "description": "sRGB"
+        },
+        "ICC Copyright": {
+          "value": "Google Inc. 2016",
+          "description": "Google Inc. 2016"
+        },
+        "FileType": {
+          "value": "jpeg",
+          "description": "JPEG"
+        }
+      }
+    },
+    {
+      "name": "extractWorldInfoFromRawBuffer/world.jpg",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "夜の海 & Café 🐈"
+      }
+    },
+    {
+      "name": "loadExifTagsSafely/dated-world.jpg",
+      "value": {
+        "Bits Per Sample": {
+          "value": 8,
+          "description": "8"
+        },
+        "Image Height": {
+          "value": 180,
+          "description": "180px"
+        },
+        "Image Width": {
+          "value": 320,
+          "description": "320px"
+        },
+        "Color Components": {
+          "value": 3,
+          "description": "3"
+        },
+        "Subsampling": {
+          "value": [
+            [
+              1,
+              34,
+              0
+            ],
+            [
+              2,
+              17,
+              1
+            ],
+            [
+              3,
+              17,
+              1
+            ]
+          ],
+          "description": "YCbCr4:2:0 (2 2)"
+        },
+        "JFIF Version": {
+          "value": 257,
+          "description": "1.1"
+        },
+        "Resolution Unit": {
+          "value": 0,
+          "description": "None"
+        },
+        "XResolution": {
+          "value": 1,
+          "description": "1"
+        },
+        "YResolution": {
+          "value": 1,
+          "description": "1"
+        },
+        "JFIF Thumbnail Width": {
+          "value": 0,
+          "description": "0px"
+        },
+        "JFIF Thumbnail Height": {
+          "value": 0,
+          "description": "0px"
+        },
+        "DateTimeOriginal": {
+          "id": 36867,
+          "value": [
+            "2024:03:04 05:06:07"
+          ],
+          "description": "2024:03:04 05:06:07"
+        },
+        "WorldID": {
+          "value": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          "attributes": {},
+          "description": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        },
+        "WorldDisplayName": {
+          "value": "夜の海 & Café 🐈",
+          "attributes": {},
+          "description": "夜の海 & Café 🐈"
+        },
+        "title": {
+          "value": [
+            {
+              "value": "思い出の一枚",
+              "attributes": {
+                "lang": "x-default"
+              },
+              "description": "思い出の一枚"
+            }
+          ],
+          "attributes": {},
+          "description": "思い出の一枚"
+        },
+        "Preferred CMM type": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Profile Version": {
+          "value": "4.3.0",
+          "description": "4.3.0"
+        },
+        "Profile/Device class": {
+          "value": "mntr",
+          "description": "Display Device profile"
+        },
+        "Color Space": {
+          "value": "RGB ",
+          "description": "RGB "
+        },
+        "Connection Space": {
+          "value": "XYZ ",
+          "description": "XYZ "
+        },
+        "ICC Profile Date": {
+          "value": "2016-01-01T00:00:00.000Z",
+          "description": "2016-01-01T00:00:00.000Z"
+        },
+        "ICC Signature": {
+          "value": "acsp",
+          "description": "acsp"
+        },
+        "Primary Platform": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Device Manufacturer": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Device Model Number": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "Rendering Intent": {
+          "value": 1,
+          "description": "Relative Colorimetric"
+        },
+        "Profile Creator": {
+          "value": "\u0000\u0000\u0000\u0000",
+          "description": "\u0000\u0000\u0000\u0000"
+        },
+        "ICC Description": {
+          "value": "sRGB",
+          "description": "sRGB"
+        },
+        "ICC Copyright": {
+          "value": "Google Inc. 2016",
+          "description": "Google Inc. 2016"
+        },
+        "FileType": {
+          "value": "jpeg",
+          "description": "JPEG"
+        }
+      }
+    },
+    {
+      "name": "extractWorldInfoFromRawBuffer/dated-world.jpg",
+      "value": {
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "夜の海 & Café 🐈"
+      }
+    },
+    {
+      "name": "loadExifTagsSafely/malformed-0",
+      "value": {}
+    },
+    {
+      "name": "loadExifTagsSafely/malformed-1",
+      "value": {}
+    },
+    {
+      "name": "loadExifTagsSafely/malformed-2",
+      "value": {
+        "Image Width": {
+          "value": 320,
+          "description": "320px"
+        },
+        "Image Height": {
+          "undefined": true
+        },
+        "Bit Depth": {
+          "undefined": true
+        },
+        "Color Type": {
+          "undefined": true
+        },
+        "Compression": {
+          "undefined": true
+        },
+        "Filter": {
+          "undefined": true
+        },
+        "Interlace": {
+          "undefined": true
+        },
+        "FileType": {
+          "value": "png",
+          "description": "PNG"
+        }
+      }
+    }
+  ],
+  "records": [
+    {
+      "name": "png-filename-capture",
+      "value": {
+        "filePath": "C:/fixture/VRChat_2026-06-07_22-20-00.000_320x180.png",
+        "fileName": "VRChat_2026-06-07_22-20-00.000_320x180.png",
+        "fileHash": "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+        "takenAt": "2026/06/07 22:20:00",
+        "takenAtTimestamp": 1780838400000,
+        "groupDate": "2026/06/07",
+        "year": 2026,
+        "month": 6,
+        "day": 7,
+        "worldId": null,
+        "worldName": null,
+        "worldNameManual": null,
+        "worldUrl": null,
+        "thumbnailPath": "C:/fixture/thumbnail.jpg",
+        "imageWidth": 320,
+        "imageHeight": 180,
+        "resolutionTier": "fixture-resolution",
+        "orientationTier": "fixture-orientation",
+        "printNoteText": null,
+        "memoText": null,
+        "createdAt": "2026-09-10T00:00:00.000Z",
+        "updatedAt": "2026-09-10T00:00:00.000Z"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/VRChat_2026-06-07_22-20-00.000_320x180.png"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/VRChat_2026-06-07_22-20-00.000_320x180.png",
+          "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+          {
+            "sourceImage": {
+              "fixture": "plain.png"
+            }
+          }
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    },
+    {
+      "name": "jpeg-world-xmp",
+      "value": {
+        "filePath": "C:/fixture/world.jpg",
+        "fileName": "world.jpg",
+        "fileHash": "e65dd0a6daf42453c9a9bed8eb1fb38743c233d516bdebca3582a43be8374b43",
+        "takenAt": "2026/01/02 12:04:05",
+        "takenAtTimestamp": 1767323045000,
+        "groupDate": "2026/01/02",
+        "year": 2026,
+        "month": 1,
+        "day": 2,
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "夜の海 & Café 🐈",
+        "worldNameManual": null,
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "thumbnailPath": "C:/fixture/thumbnail.jpg",
+        "imageWidth": 320,
+        "imageHeight": 180,
+        "resolutionTier": "fixture-resolution",
+        "orientationTier": "fixture-orientation",
+        "printNoteText": "思い出の一枚",
+        "memoText": null,
+        "createdAt": "2026-09-10T00:00:00.000Z",
+        "updatedAt": "2026-09-10T00:00:00.000Z"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/world.jpg"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/world.jpg",
+          "e65dd0a6daf42453c9a9bed8eb1fb38743c233d516bdebca3582a43be8374b43",
+          {
+            "sourceImage": {
+              "fixture": "world.jpg"
+            }
+          }
+        ],
+        [
+          "stat",
+          "C:/fixture/world.jpg"
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    },
+    {
+      "name": "jpeg-exif-before-stat",
+      "value": {
+        "filePath": "C:/fixture/dated.jpg",
+        "fileName": "dated.jpg",
+        "fileHash": "94c1aab161dcbae9556150fe83ea1de877a58d8289fcf790b59c23a6ec7be70d",
+        "takenAt": "2024/03/04 05:06:07",
+        "takenAtTimestamp": 1709496367000,
+        "groupDate": "2024/03/04",
+        "year": 2024,
+        "month": 3,
+        "day": 4,
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "夜の海 & Café 🐈",
+        "worldNameManual": null,
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "thumbnailPath": "C:/fixture/thumbnail.jpg",
+        "imageWidth": 320,
+        "imageHeight": 180,
+        "resolutionTier": "fixture-resolution",
+        "orientationTier": "fixture-orientation",
+        "printNoteText": "思い出の一枚",
+        "memoText": null,
+        "createdAt": "2026-09-10T00:00:00.000Z",
+        "updatedAt": "2026-09-10T00:00:00.000Z"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/dated.jpg"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/dated.jpg",
+          "94c1aab161dcbae9556150fe83ea1de877a58d8289fcf790b59c23a6ec7be70d",
+          {
+            "sourceImage": {
+              "fixture": "dated-world.jpg"
+            }
+          }
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    },
+    {
+      "name": "filename-before-exif",
+      "value": {
+        "filePath": "C:/fixture/VRChat_2025-01-02_03-04-05.jpg",
+        "fileName": "VRChat_2025-01-02_03-04-05.jpg",
+        "fileHash": "94c1aab161dcbae9556150fe83ea1de877a58d8289fcf790b59c23a6ec7be70d",
+        "takenAt": "2025/01/02 03:04:05",
+        "takenAtTimestamp": 1735754645000,
+        "groupDate": "2025/01/02",
+        "year": 2025,
+        "month": 1,
+        "day": 2,
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "夜の海 & Café 🐈",
+        "worldNameManual": null,
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "thumbnailPath": "C:/fixture/thumbnail.jpg",
+        "imageWidth": 320,
+        "imageHeight": 180,
+        "resolutionTier": "fixture-resolution",
+        "orientationTier": "fixture-orientation",
+        "printNoteText": "思い出の一枚",
+        "memoText": null,
+        "createdAt": "2026-09-10T00:00:00.000Z",
+        "updatedAt": "2026-09-10T00:00:00.000Z"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/VRChat_2025-01-02_03-04-05.jpg"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/VRChat_2025-01-02_03-04-05.jpg",
+          "94c1aab161dcbae9556150fe83ea1de877a58d8289fcf790b59c23a6ec7be70d",
+          {
+            "sourceImage": {
+              "fixture": "dated-world.jpg"
+            }
+          }
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    },
+    {
+      "name": "png-world-xmp",
+      "value": {
+        "filePath": "C:/fixture/world.png",
+        "fileName": "world.png",
+        "fileHash": "f14255b0fcd7bdc2a2c28bd4bd96c48d697df16cb773fce68d99875f1ff69d6e",
+        "takenAt": "2026/01/02 12:04:05",
+        "takenAtTimestamp": 1767323045000,
+        "groupDate": "2026/01/02",
+        "year": 2026,
+        "month": 1,
+        "day": 2,
+        "worldId": "wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "worldName": "夜の海 & Café 🐈",
+        "worldNameManual": null,
+        "worldUrl": "https://vrchat.com/home/world/wrld_aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "thumbnailPath": "C:/fixture/thumbnail.jpg",
+        "imageWidth": 320,
+        "imageHeight": 180,
+        "resolutionTier": "fixture-resolution",
+        "orientationTier": "fixture-orientation",
+        "printNoteText": "思い出の一枚",
+        "memoText": null,
+        "createdAt": "2026-09-10T00:00:00.000Z",
+        "updatedAt": "2026-09-10T00:00:00.000Z"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/world.png"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/world.png",
+          "f14255b0fcd7bdc2a2c28bd4bd96c48d697df16cb773fce68d99875f1ff69d6e",
+          {
+            "sourceImage": {
+              "fixture": "world.png"
+            }
+          }
+        ],
+        [
+          "stat",
+          "C:/fixture/world.png"
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    },
+    {
+      "name": "webp-header-over-filename",
+      "value": {
+        "filePath": "C:/fixture/wrong_999x888.webp",
+        "fileName": "wrong_999x888.webp",
+        "fileHash": "5aea56de41da30d3f52ec18a12a38f6b7d5229b1e5ec5a9f1ae27e3be699b920",
+        "takenAt": "2026/01/02 12:04:05",
+        "takenAtTimestamp": 1767323045000,
+        "groupDate": "2026/01/02",
+        "year": 2026,
+        "month": 1,
+        "day": 2,
+        "worldId": null,
+        "worldName": null,
+        "worldNameManual": null,
+        "worldUrl": null,
+        "thumbnailPath": "C:/fixture/thumbnail.jpg",
+        "imageWidth": 320,
+        "imageHeight": 180,
+        "resolutionTier": null,
+        "orientationTier": "landscape",
+        "printNoteText": null,
+        "memoText": null,
+        "createdAt": "2026-09-10T00:00:00.000Z",
+        "updatedAt": "2026-09-10T00:00:00.000Z"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/wrong_999x888.webp"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/wrong_999x888.webp",
+          "5aea56de41da30d3f52ec18a12a38f6b7d5229b1e5ec5a9f1ae27e3be699b920",
+          {
+            "sourceImage": {
+              "fixture": "plain.webp"
+            }
+          }
+        ],
+        [
+          "stat",
+          "C:/fixture/wrong_999x888.webp"
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    },
+    {
+      "name": "webp-native-over-header",
+      "value": {
+        "filePath": "C:/fixture/wrong_999x888.webp",
+        "fileName": "wrong_999x888.webp",
+        "fileHash": "5aea56de41da30d3f52ec18a12a38f6b7d5229b1e5ec5a9f1ae27e3be699b920",
+        "takenAt": "2026/01/02 12:04:05",
+        "takenAtTimestamp": 1767323045000,
+        "groupDate": "2026/01/02",
+        "year": 2026,
+        "month": 1,
+        "day": 2,
+        "worldId": null,
+        "worldName": null,
+        "worldNameManual": null,
+        "worldUrl": null,
+        "thumbnailPath": "C:/fixture/thumbnail.jpg",
+        "imageWidth": 640,
+        "imageHeight": 360,
+        "resolutionTier": "fixture-resolution",
+        "orientationTier": "fixture-orientation",
+        "printNoteText": null,
+        "memoText": null,
+        "createdAt": "2026-09-10T00:00:00.000Z",
+        "updatedAt": "2026-09-10T00:00:00.000Z"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/wrong_999x888.webp"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/wrong_999x888.webp",
+          "5aea56de41da30d3f52ec18a12a38f6b7d5229b1e5ec5a9f1ae27e3be699b920",
+          {
+            "sourceImage": {
+              "fixture": "plain.webp"
+            }
+          }
+        ],
+        [
+          "stat",
+          "C:/fixture/wrong_999x888.webp"
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    },
+    {
+      "name": "unknown-filename-size-fallback",
+      "value": {
+        "filePath": "C:/fixture/unknown_1920x1080.png",
+        "fileName": "unknown_1920x1080.png",
+        "fileHash": "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+        "takenAt": "2026/01/02 12:04:05",
+        "takenAtTimestamp": 1767323045000,
+        "groupDate": "2026/01/02",
+        "year": 2026,
+        "month": 1,
+        "day": 2,
+        "worldId": null,
+        "worldName": null,
+        "worldNameManual": null,
+        "worldUrl": null,
+        "thumbnailPath": "C:/fixture/thumbnail.jpg",
+        "imageWidth": 1920,
+        "imageHeight": 1080,
+        "resolutionTier": "FHD",
+        "orientationTier": "landscape",
+        "printNoteText": null,
+        "memoText": null,
+        "createdAt": "2026-09-10T00:00:00.000Z",
+        "updatedAt": "2026-09-10T00:00:00.000Z"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/unknown_1920x1080.png"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/unknown_1920x1080.png",
+          "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+          {
+            "sourceImage": {
+              "fixture": "plain.png"
+            }
+          }
+        ],
+        [
+          "stat",
+          "C:/fixture/unknown_1920x1080.png"
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    },
+    {
+      "name": "unknown-without-size",
+      "value": {
+        "filePath": "C:/fixture/unknown.png",
+        "fileName": "unknown.png",
+        "fileHash": "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+        "takenAt": "2026/01/02 12:04:05",
+        "takenAtTimestamp": 1767323045000,
+        "groupDate": "2026/01/02",
+        "year": 2026,
+        "month": 1,
+        "day": 2,
+        "worldId": null,
+        "worldName": null,
+        "worldNameManual": null,
+        "worldUrl": null,
+        "thumbnailPath": "C:/fixture/thumbnail.jpg",
+        "imageWidth": null,
+        "imageHeight": null,
+        "resolutionTier": null,
+        "orientationTier": null,
+        "printNoteText": null,
+        "memoText": null,
+        "createdAt": "2026-09-10T00:00:00.000Z",
+        "updatedAt": "2026-09-10T00:00:00.000Z"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/unknown.png"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/unknown.png",
+          "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+          {
+            "sourceImage": {
+              "fixture": "plain.png"
+            }
+          }
+        ],
+        [
+          "stat",
+          "C:/fixture/unknown.png"
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    },
+    {
+      "name": "decoded-size-over-filename",
+      "value": {
+        "filePath": "C:/fixture/VRChat_2025-01-02_03-04-05_999x888.jpg",
+        "fileName": "VRChat_2025-01-02_03-04-05_999x888.jpg",
+        "fileHash": "327b980e944f330c0eb58eddbcae7dd6fcc1ccad9a3a932d6df42bb0950a3a42",
+        "takenAt": "2025/01/02 03:04:05",
+        "takenAtTimestamp": 1735754645000,
+        "groupDate": "2025/01/02",
+        "year": 2025,
+        "month": 1,
+        "day": 2,
+        "worldId": null,
+        "worldName": null,
+        "worldNameManual": null,
+        "worldUrl": null,
+        "thumbnailPath": "C:/fixture/thumbnail.jpg",
+        "imageWidth": 320,
+        "imageHeight": 180,
+        "resolutionTier": "fixture-resolution",
+        "orientationTier": "fixture-orientation",
+        "printNoteText": null,
+        "memoText": null,
+        "createdAt": "2026-09-10T00:00:00.000Z",
+        "updatedAt": "2026-09-10T00:00:00.000Z"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/VRChat_2025-01-02_03-04-05_999x888.jpg"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/VRChat_2025-01-02_03-04-05_999x888.jpg",
+          "327b980e944f330c0eb58eddbcae7dd6fcc1ccad9a3a932d6df42bb0950a3a42",
+          {
+            "sourceImage": {
+              "fixture": "plain.jpg"
+            }
+          }
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    },
+    {
+      "name": "invalid-decoded-size-falls-back",
+      "value": {
+        "filePath": "C:/fixture/fallback_1080x1920.png",
+        "fileName": "fallback_1080x1920.png",
+        "fileHash": "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+        "takenAt": "2026/01/02 12:04:05",
+        "takenAtTimestamp": 1767323045000,
+        "groupDate": "2026/01/02",
+        "year": 2026,
+        "month": 1,
+        "day": 2,
+        "worldId": null,
+        "worldName": null,
+        "worldNameManual": null,
+        "worldUrl": null,
+        "thumbnailPath": "C:/fixture/thumbnail.jpg",
+        "imageWidth": 1080,
+        "imageHeight": 1920,
+        "resolutionTier": "FHD",
+        "orientationTier": "portrait",
+        "printNoteText": null,
+        "memoText": null,
+        "createdAt": "2026-09-10T00:00:00.000Z",
+        "updatedAt": "2026-09-10T00:00:00.000Z"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/fallback_1080x1920.png"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/fallback_1080x1920.png",
+          "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+          {
+            "sourceImage": {
+              "fixture": "plain.png"
+            }
+          }
+        ],
+        [
+          "stat",
+          "C:/fixture/fallback_1080x1920.png"
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    },
+    {
+      "name": "read-failure",
+      "error": {
+        "name": "Error",
+        "message": "fixture read failure"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/photo.png"
+        ]
+      ]
+    },
+    {
+      "name": "decode-failure",
+      "error": {
+        "name": "Error",
+        "message": "fixture decode failure"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/photo.png"
+        ],
+        [
+          "decode",
+          true
+        ]
+      ]
+    },
+    {
+      "name": "stat-failure",
+      "error": {
+        "name": "Error",
+        "message": "fixture stat failure"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/photo.png"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/photo.png",
+          "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+          {
+            "sourceImage": {
+              "fixture": "plain.png"
+            }
+          }
+        ],
+        [
+          "stat",
+          "C:/fixture/photo.png"
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    },
+    {
+      "name": "thumbnail-sync-failure",
+      "error": {
+        "name": "Error",
+        "message": "fixture thumbnail sync failure"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/photo.png"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/photo.png",
+          "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+          {
+            "sourceImage": {
+              "fixture": "plain.png"
+            }
+          }
+        ]
+      ]
+    },
+    {
+      "name": "thumbnail-async-failure",
+      "error": {
+        "name": "Error",
+        "message": "fixture thumbnail async failure"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/VRChat_2026-06-07_22-20-00.png"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/VRChat_2026-06-07_22-20-00.png",
+          "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+          {
+            "sourceImage": {
+              "fixture": "plain.png"
+            }
+          }
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    },
+    {
+      "name": "thumbnail-unavailable",
+      "value": {
+        "filePath": "C:/fixture/photo.png",
+        "fileName": "photo.png",
+        "fileHash": "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+        "takenAt": "2026/01/02 12:04:05",
+        "takenAtTimestamp": 1767323045000,
+        "groupDate": "2026/01/02",
+        "year": 2026,
+        "month": 1,
+        "day": 2,
+        "worldId": null,
+        "worldName": null,
+        "worldNameManual": null,
+        "worldUrl": null,
+        "thumbnailPath": null,
+        "imageWidth": null,
+        "imageHeight": null,
+        "resolutionTier": null,
+        "orientationTier": null,
+        "printNoteText": null,
+        "memoText": null,
+        "createdAt": "2026-09-10T00:00:00.000Z",
+        "updatedAt": "2026-09-10T00:00:00.000Z"
+      },
+      "trace": [
+        [
+          "read",
+          "C:/fixture/photo.png"
+        ],
+        [
+          "decode",
+          true
+        ],
+        [
+          "thumbnail:start",
+          "C:/fixture/photo.png",
+          "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+          {
+            "sourceImage": {
+              "fixture": "plain.png"
+            }
+          }
+        ],
+        [
+          "stat",
+          "C:/fixture/photo.png"
+        ],
+        [
+          "thumbnail:done"
+        ]
+      ]
+    }
+  ]
+}

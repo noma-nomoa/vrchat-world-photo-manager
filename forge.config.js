@@ -11,11 +11,13 @@ const WINDOWS_ICON_PATH = './img/logo.ico';
 // builds so release output stays lean and predictable.
 const PACKAGER_IGNORE_PATTERNS = [
   /^\/\.git($|\/)/,
+  /^\/\.github($|\/)/,
   /^\/\.gitignore$/,
   /^\/assets($|\/)/,
   /^\/docs($|\/)/,
   /^\/index\.html$/,
   /^\/release-notes($|\/)/,
+  /^\/scripts($|\/)/,
   /^\/test_pic($|\/)/,
   /^\/tmp($|\/)/,
   /^\/thumbnails($|\/)/,
@@ -29,6 +31,7 @@ const PACKAGER_IGNORE_PATTERNS = [
   /^\/img\/usecase($|\/)/,
   /^\/img\/vrc($|\/)/,
   /^\/src\/renderer\.js\.bak-corrupt$/,
+  /^\/node_modules\/better-sqlite3\/prebuilds\/(?!win32-x64\.node$)/,
 ];
 
 module.exports = {
@@ -48,7 +51,9 @@ module.exports = {
       ProductName: 'WorldShot Log',
     },
   },
-  rebuildConfig: {},
+  // better-sqlite3 13 ships a portable N-API prebuild; rebuilding it for an
+  // Electron ABI is unnecessary and would replace the reviewed binary.
+  rebuildConfig: { ignoreModules: ['better-sqlite3'] },
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
@@ -57,6 +62,10 @@ module.exports = {
         noMsi: true,
         setupExe: WINDOWS_SETUP_EXE_NAME,
         setupIcon: WINDOWS_ICON_PATH,
+        additionalFiles: [
+          { src: 'LICENSES.chromium.html', target: 'lib\\net45\\LICENSES.chromium.html' },
+          { src: 'version', target: 'lib\\net45\\version' },
+        ],
       },
     },
   ],

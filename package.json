@@ -1,7 +1,7 @@
 {
   "name": "worldshot-log",
   "productName": "WorldShot Log",
-  "version": "2.5.3",
+  "version": "2.5.4",
   "description": "VRChatで撮影した写真を整理し、見返し、投稿しやすく整えるWindows向けデスクトップアプリです。",
   "main": "src/index.js",
   "private": true,
@@ -14,6 +14,12 @@
     "url": "https://github.com/noma-nomoa/vrchat-world-photo-manager/issues"
   },
   "scripts": {
+    "test": "npm run test:unit && npm run test:color",
+    "test:unit": "node --test scripts/test-photo-editor-session.js scripts/test-photo-editor-save.js scripts/test-app-data-backup-service.js scripts/test-regression-runner.js scripts/test-concurrency.js scripts/test-photo-import-service.js scripts/test-photo-list-query.js scripts/test-photo-metadata.js scripts/test-photo-record.js scripts/test-ai-subject-model-store.js scripts/test-photo-editor-image-resources.js scripts/test-review-candidate.js scripts/test-review-launcher.js",
+    "test:color": "node scripts/test-photo-editor-color-core.js",
+    "check": "node scripts/run-regression-checks.js",
+    "check:syntax": "node scripts/check-syntax.js",
+    "check:security": "node scripts/check-runtime-security.js",
     "start": "electron-forge start",
     "patch:electron-winstaller": "node scripts/patch-electron-winstaller.js",
     "postinstall": "npm run patch:electron-winstaller",
@@ -26,19 +32,37 @@
     "audit:i18n": "node scripts/audit-i18n.js",
     "capture:ui": "electron scripts/capture-ui-screenshots.js",
     "smoke:data": "electron scripts/smoke-data-compat.js",
+    "smoke:backup-validation": "electron scripts/smoke-backup-validation.js",
+    "smoke:backup-restore": "electron scripts/smoke-backup-restore.js",
+    "smoke:world-identity": "electron scripts/smoke-world-identity.js",
+    "smoke:data-safety": "node scripts/run-regression-checks.js --suite=data",
+    "smoke:library": "node scripts/run-regression-checks.js --suite=library",
+    "smoke:photo-list": "electron scripts/smoke-photo-list.js",
+    "smoke:subject-session": "electron scripts/smoke-photo-editor-subject-session.js",
+    "smoke:save-session": "electron scripts/smoke-photo-editor-save-session.js",
+    "smoke:overlay-session": "electron scripts/smoke-photo-editor-overlay-session.js",
+    "smoke:worker": "electron scripts/smoke-photo-editor-worker.js",
+    "smoke:export": "electron scripts/smoke-photo-editor-export.js && electron scripts/smoke-photo-editor-export.js --legacy-world",
+    "smoke:retouch": "node scripts/run-regression-checks.js --suite=retouch",
+    "benchmark:backup": "electron scripts/benchmark-backup-restore.js",
+    "benchmark:history": "node scripts/benchmark-photo-editor-history.js",
     "smoke:coordinates": "electron scripts/smoke-photo-editor-coordinate-space.js",
     "smoke:presets": "electron scripts/smoke-photo-editor-presets.js",
     "smoke:mask-brush": "electron scripts/smoke-photo-editor-mask-brush.js",
     "smoke:packaged": "node scripts/smoke-packaged-app.js",
-    "lint": "echo \"No linting configured\""
+    "lint": "echo \"No linting configured\"",
+    "smoke:thumbnail-store": "electron scripts/smoke-thumbnail-store.js",
+    "smoke:resource-readiness": "electron scripts/smoke-photo-editor-resource-readiness.js",
+    "smoke:app-update": "electron scripts/smoke-app-update.js",
+    "review:build": "node scripts/build-review-candidate.js"
   },
   "keywords": [],
   "author": "nooma",
   "license": "MIT",
   "dependencies": {
-    "better-sqlite3": "^12.8.0",
+    "better-sqlite3": "^13.0.3",
     "electron-squirrel-startup": "^1.0.1",
-    "exifreader": "^4.37.0",
+    "exifreader": "^4.52.0",
     "iconv-lite": "^0.7.2",
     "onnxruntime-web": "^1.26.0"
   },
@@ -48,6 +72,6 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
     "@electron-forge/plugin-fuses": "^7.11.1",
     "@electron/fuses": "^1.8.0",
-    "electron": "41.0.2"
+    "electron": "45.0.0"
   }
 }

@@ -11,16 +11,26 @@ const VIEWPORT = { width: 1440, height: 920 };
 const RUN_ID = createRunId();
 const SKIP_SCREENSHOTS = process.argv.includes('--skip-screenshots');
 const SMOKE_ROOT = path.join(os.tmpdir(), `worldshot-mask-brush-${RUN_ID}`);
+const SMOKE_HOME = path.join(SMOKE_ROOT, 'Home');
 const SMOKE_APPDATA = path.join(SMOKE_ROOT, 'AppData', 'Roaming');
 const SMOKE_LOCALAPPDATA = path.join(SMOKE_ROOT, 'AppData', 'Local');
 const OUTPUT_DIR = path.join(REPO_ROOT, 'out', 'smoke-mask-brush', RUN_ID);
 
 ensureDir(SMOKE_APPDATA);
 ensureDir(SMOKE_LOCALAPPDATA);
+ensureDir(path.join(SMOKE_HOME, 'Documents'));
+ensureDir(path.join(SMOKE_HOME, 'Pictures'));
 ensureDir(OUTPUT_DIR);
 
 process.env.APPDATA = SMOKE_APPDATA;
 process.env.LOCALAPPDATA = SMOKE_LOCALAPPDATA;
+process.env.WORLDSHOT_APPDATA_ROOT = SMOKE_APPDATA;
+process.env.WORLDSHOT_HOME_ROOT = SMOKE_HOME;
+process.env.WORLDSHOT_LOCALAPPDATA_ROOT = SMOKE_LOCALAPPDATA;
+// Thumbnail migration uses home independently of the Electron appData paths.
+app.setPath('home', SMOKE_HOME);
+app.setPath('documents', path.join(SMOKE_HOME, 'Documents'));
+app.setPath('pictures', path.join(SMOKE_HOME, 'Pictures'));
 app.setPath('appData', SMOKE_APPDATA);
 app.setPath('userData', path.join(SMOKE_APPDATA, 'WorldShot Log'));
 
@@ -132,7 +142,17 @@ async function waitForWindow() {
 }
 
 async function runInPage(win, script) {
-  return win.webContents.executeJavaScript(script);
+  let timeout;
+  try {
+    return await Promise.race([
+      win.webContents.executeJavaScript(script),
+      new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(new Error('Renderer operation timed out after 30 seconds')), 30000);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function waitForRendererReady(win) {
@@ -644,6 +664,8 @@ async function main() {
   require('../src/index.js');
 
   const win = await waitForWindow();
+  // Keep preview and test animation frames running when another window covers the app.
+  win.webContents.setBackgroundThrottling(false);
   attachWindowDiagnostics(win);
   win.setSize(VIEWPORT.width, VIEWPORT.height);
   await waitForRendererReady(win);

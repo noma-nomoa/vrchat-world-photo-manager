@@ -1,0 +1,96 @@
+name: Verify Windows release installation
+
+on:
+  push:
+    branches: [codex/retouch-session-safety]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-artifacts:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # Draft releases require push access. This job only downloads and hashes
+      # their assets; it never installs dependencies or executes release files.
+      - name: Download and authenticate release artifacts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($version -ne '2.5.4') { throw 'This release gate targets v2.5.4.' }
+          foreach ($tag in @('v2.5.3', "v$version")) {
+            $destination = Join-Path $env:RUNNER_TEMP "release-downloads/$tag"
+            New-Item -ItemType Directory -Path $destination -Force | Out-Null
+            gh release download $tag --repo $env:GITHUB_REPOSITORY --dir $destination --pattern WorldShotLogSetup.exe --pattern '*.nupkg' --pattern RELEASES
+            if ($LASTEXITCODE -ne 0) { throw "Release asset download failed: $tag. Upload the verified draft before pushing this branch." }
+            $metadata = gh release view $tag --repo $env:GITHUB_REPOSITORY --json tagName,assets
+            if ($LASTEXITCODE -ne 0) { throw "Release metadata failed: $tag" }
+            $metadata | Set-Content -LiteralPath (Join-Path $destination 'release-metadata.json') -Encoding utf8
+            foreach ($asset in ($metadata | ConvertFrom-Json).assets) {
+              $file = Join-Path $destination $asset.name
+              if (Test-Path -LiteralPath $file -PathType Leaf) {
+                $digest = 'sha256:' + (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+                if ($asset.digest -ne $digest) { throw "GitHub asset digest mismatch: $tag/$($asset.name)" }
+              }
+            }
+          }
+      - name: Pass authenticated inputs to installation jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-inputs
+          path: ${{ runner.temp }}/release-downloads/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
+          overwrite: true
+
+  installation:
+    needs: prepare-artifacts
+    runs-on: windows-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [fresh, setup-overwrite, squirrel-update]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+          cache: npm
+      - name: Install verification dependencies
+        run: npm ci
+      - name: Download authenticated release inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: release-inputs
+          path: ${{ runner.temp }}/release-downloads/
+      - name: Verify actual Windows install and application data
+        shell: pwsh
+        run: |
+          ./scripts/verify-windows-install.ps1 -Scenario '${{ matrix.scenario }}' -CandidateDirectory "$env:RUNNER_TEMP/release-downloads/v2.5.4" -BaselineDirectory "$env:RUNNER_TEMP/release-downloads/v2.5.3" -OutputDirectory "$env:GITHUB_WORKSPACE/out/windows-install/${{ matrix.scenario }}"
+      - name: Upload verification results and failure logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-install-${{ matrix.scenario }}-${{ github.run_attempt }}
+          path: |
+            out/windows-install/
+            out/smoke-packaged/
+            ${{ runner.temp }}/release-downloads/*/release-metadata.json
+          if-no-files-found: warn
+          retention-days: 14

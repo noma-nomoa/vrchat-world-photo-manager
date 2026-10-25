@@ -1,6 +1,7 @@
 const Database = require('better-sqlite3');
 
 const SQLITE_VARIABLE_LIMIT = 900;
+const BACKUP_SCHEMA_VERSION = 1;
 
 const BACKUP_TABLE_COLUMNS = Object.freeze({
   photos: [
@@ -18,6 +19,7 @@ const BACKUP_TABLE_COLUMNS = Object.freeze({
     'world_name',
     'world_name_manual',
     'world_url',
+    'world_identity_source',
     'thumbnail_path',
     'image_width',
     'image_height',
@@ -73,6 +75,10 @@ const PHOTO_LISTING_COLUMNS = BACKUP_TABLE_COLUMNS.photos
   .filter((columnName) => !['created_at', 'updated_at'].includes(columnName))
   .map(quoteSqlIdentifier)
   .join(',\n      ');
+
+function normalizeWorldIdentitySource(value, fallback = 'legacy') {
+  return ['legacy', 'automatic', 'manual'].includes(value) ? value : fallback;
+}
 
 const DEFAULT_TAG_COLOR_PALETTE = [
   '#6D5EF6',
@@ -244,6 +250,9 @@ function initDatabase(dbPath) {
   `);
 
   ensureColumn(db, 'photos', 'world_name_manual TEXT');
+  // Old rows do not record whether their world link was set by the user.
+  // Preserve those identities until the user explicitly changes them.
+  ensureColumn(db, 'photos', "world_identity_source TEXT NOT NULL DEFAULT 'legacy'");
   ensureColumn(db, 'photos', 'is_favorite INTEGER NOT NULL DEFAULT 0');
   ensureColumn(db, 'photos', 'image_width INTEGER');
   ensureColumn(db, 'photos', 'image_height INTEGER');
@@ -321,6 +330,10 @@ function initDatabase(dbPath) {
     WHERE id = ?
   `);
 
+  const canReplaceWorldIdentity = `(photos.world_identity_source = 'automatic' OR (
+    photos.world_identity_source = 'legacy'
+    AND COALESCE(photos.world_id, '') = '' AND COALESCE(photos.world_url, '') = ''
+  ))`;
   const insertOrUpdatePhotoStmt = db.prepare(`
     INSERT INTO photos (
       file_path,
@@ -337,6 +350,7 @@ function initDatabase(dbPath) {
       world_name_manual,
       world_url,
       thumbnail_path,
+      world_identity_source,
       image_width,
       image_height,
       resolution_tier,
@@ -360,6 +374,7 @@ function initDatabase(dbPath) {
       @worldNameManual,
       @worldUrl,
       @thumbnailPath,
+      @worldIdentitySource,
       @imageWidth,
       @imageHeight,
       @resolutionTier,
@@ -378,9 +393,10 @@ function initDatabase(dbPath) {
       year = excluded.year,
       month = excluded.month,
       day = excluded.day,
-      world_id = excluded.world_id,
-      world_name = excluded.world_name,
-      world_url = excluded.world_url,
+      world_id = CASE WHEN ${canReplaceWorldIdentity} THEN excluded.world_id ELSE photos.world_id END,
+      world_name = CASE WHEN ${canReplaceWorldIdentity} THEN excluded.world_name ELSE photos.world_name END,
+      world_url = CASE WHEN ${canReplaceWorldIdentity} THEN excluded.world_url ELSE photos.world_url END,
+      world_identity_source = CASE WHEN ${canReplaceWorldIdentity} THEN excluded.world_identity_source ELSE photos.world_identity_source END,
       thumbnail_path = CASE
         WHEN excluded.thumbnail_path IS NULL OR excluded.thumbnail_path = ''
           THEN thumbnail_path
@@ -655,6 +671,10 @@ function initDatabase(dbPath) {
       world_name_manual = ?,
       world_id = ?,
       world_url = ?,
+      world_identity_source = CASE
+        WHEN world_id IS NOT ? OR world_url IS NOT ? THEN 'manual'
+        ELSE world_identity_source
+      END,
       updated_at = ?
     WHERE id = ?
   `);
@@ -691,6 +711,7 @@ function initDatabase(dbPath) {
       world_name = ?,
       world_name_manual = ?,
       world_url = ?,
+      world_identity_source = ?,
       print_note_text = ?,
       memo_text = ?,
       is_favorite = ?,
@@ -784,6 +805,8 @@ function initDatabase(dbPath) {
   });
 
   function updateAutoWorldInfo(photoId, payload) {
+    // This API is used by the explicit world reread action, which may use a
+    // user-supplied URL. Reimport must retain that choice too.
     db.prepare(`
       UPDATE photos
       SET
@@ -791,6 +814,7 @@ function initDatabase(dbPath) {
         world_name = ?,
         world_name_manual = NULL,
         world_url = ?,
+        world_identity_source = 'manual',
         updated_at = ?
       WHERE id = ?
     `).run(
@@ -805,13 +829,19 @@ function initDatabase(dbPath) {
   }
 
   function insertOrUpdatePhoto(photo) {
-    insertOrUpdatePhotoStmt.run(photo);
+    insertOrUpdatePhotoStmt.run({
+      ...photo,
+      worldIdentitySource: normalizeWorldIdentitySource(photo.worldIdentitySource, 'automatic'),
+    });
     return getPhotoByHashStmt.get(photo.fileHash);
   }
 
   const insertOrUpdatePhotosTxn = db.transaction((photos) => {
     for (const photo of photos) {
-      insertOrUpdatePhotoStmt.run(photo);
+      insertOrUpdatePhotoStmt.run({
+        ...photo,
+        worldIdentitySource: normalizeWorldIdentitySource(photo.worldIdentitySource, 'automatic'),
+      });
     }
   });
 
@@ -1182,6 +1212,7 @@ function initDatabase(dbPath) {
       payload.worldName || null,
       payload.worldNameManual || null,
       payload.worldUrl || null,
+      normalizeWorldIdentitySource(payload.worldIdentitySource),
       payload.printNoteText || null,
       payload.memoText || null,
       payload.isFavorite ? 1 : 0,
@@ -1302,6 +1333,8 @@ function initDatabase(dbPath) {
       normalizedWorldName,
       normalizedWorldId,
       normalizedWorldUrl,
+      normalizedWorldId,
+      normalizedWorldUrl,
       new Date().toISOString(),
       photoId
     );
@@ -1409,7 +1442,7 @@ function initDatabase(dbPath) {
 
   function createBackupSnapshot() {
     return {
-      schemaVersion: 1,
+      schemaVersion: BACKUP_SCHEMA_VERSION,
       tables: {
         photos: getBackupTableRows('photos', 'id ASC'),
         tracked_folders: getBackupTableRows('tracked_folders', 'id ASC'),
@@ -1424,6 +1457,75 @@ function initDatabase(dbPath) {
     };
   }
 
+  // Validate the complete snapshot before deleting any existing rows. Missing
+  // tables must never be interpreted as an intentionally empty backup.
+  function validateBackupSnapshot(input) {
+    const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+    const has = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+    const invalid = () => { throw new Error('バックアップデータの形式が正しくありません'); };
+
+    if (!isRecord(input)) invalid();
+    if (has(input, 'appName') && input.appName !== 'WorldShot Log') invalid();
+    if (has(input, 'backupSchemaVersion') && input.backupSchemaVersion !== BACKUP_SCHEMA_VERSION) invalid();
+    if (has(input, 'preferences') && !isRecord(input.preferences)) invalid();
+
+    const snapshot = has(input, 'tables') ? input : input.data;
+    if (!isRecord(snapshot) || snapshot.schemaVersion !== BACKUP_SCHEMA_VERSION || !isRecord(snapshot.tables)) invalid();
+
+    for (const [tableName, allowedColumns] of Object.entries(BACKUP_TABLE_COLUMNS)) {
+      const rows = snapshot.tables[tableName];
+      if (!Array.isArray(rows)) invalid();
+      const columns = db.prepare(`PRAGMA table_info(${quoteSqlIdentifier(tableName)})`).all()
+        .filter((column) => allowedColumns.includes(column.name));
+      const primaryKey = columns.filter((column) => column.pk).sort((a, b) => a.pk - b.pk)
+        .map((column) => column.name);
+      const uniqueKeys = [primaryKey];
+      for (const index of db.prepare(`PRAGMA index_list(${quoteSqlIdentifier(tableName)})`).all()) {
+        if (index.unique && !index.partial) {
+          const key = db.prepare(`PRAGMA index_info(${quoteSqlIdentifier(index.name)})`).all()
+            .map((column) => column.name);
+          if (key.length && key.every((name) => allowedColumns.includes(name))) uniqueKeys.push(key);
+        }
+      }
+      const seenKeys = uniqueKeys.map(() => new Set());
+
+      for (const row of rows) {
+        if (!isRecord(row)) invalid();
+        for (const column of columns) {
+          if (!has(row, column.name)) {
+            // Older backups may omit nullable columns or columns with defaults.
+            if (column.pk || (column.notnull && column.dflt_value === null)) invalid();
+            continue;
+          }
+          const value = row[column.name];
+          if (value === null) {
+            if (column.pk || column.notnull) invalid();
+          } else if (column.type === 'INTEGER') {
+            if (!Number.isSafeInteger(value)) invalid();
+          } else if (column.type === 'TEXT') {
+            if (typeof value !== 'string') invalid();
+          } else {
+            invalid();
+          }
+        }
+        uniqueKeys.forEach((key, index) => {
+          const values = key.map((name) => row[name]);
+          if (!key.length || values.some((value) => value === null || value === undefined)) return;
+          const encoded = JSON.stringify(values);
+          if (seenKeys[index].has(encoded)) invalid();
+          seenKeys[index].add(encoded);
+        });
+      }
+    }
+
+    const photoIds = new Set(snapshot.tables.photos.map((row) => row.id));
+    const tagIds = new Set(snapshot.tables.tags.map((row) => row.id));
+    for (const row of snapshot.tables.photo_tags) {
+      if (!photoIds.has(row.photo_id) || !tagIds.has(row.tag_id)) invalid();
+    }
+    return snapshot;
+  }
+
   function insertBackupRows(tableName, rows) {
     const allowedColumns = BACKUP_TABLE_COLUMNS[tableName];
 
@@ -1432,28 +1534,26 @@ function initDatabase(dbPath) {
     }
 
     const quotedTableName = quoteSqlIdentifier(tableName);
+    const statementsByColumns = new Map();
     let insertedCount = 0;
 
     for (const row of rows) {
-      if (!row || typeof row !== 'object') {
-        continue;
-      }
-
       const columns = allowedColumns.filter((columnName) =>
         Object.prototype.hasOwnProperty.call(row, columnName)
       );
 
-      if (columns.length === 0) {
-        continue;
-      }
-
       const values = columns.map((columnName) => row[columnName]);
-      const quotedColumns = columns.map(quoteSqlIdentifier).join(', ');
-      const placeholders = columns.map(() => '?').join(', ');
-
-      db.prepare(
-        `INSERT INTO ${quotedTableName} (${quotedColumns}) VALUES (${placeholders})`
-      ).run(...values);
+      const columnKey = columns.join(',');
+      let statement = statementsByColumns.get(columnKey);
+      if (!statement) {
+        const quotedColumns = columns.map(quoteSqlIdentifier).join(', ');
+        const placeholders = columns.map(() => '?').join(', ');
+        statement = db.prepare(
+          `INSERT INTO ${quotedTableName} (${quotedColumns}) VALUES (${placeholders})`
+        );
+        statementsByColumns.set(columnKey, statement);
+      }
+      statement.run(...values);
       insertedCount += 1;
     }
 
@@ -1461,23 +1561,12 @@ function initDatabase(dbPath) {
   }
 
   function restoreBackupSnapshot(snapshot) {
-    const tables = snapshot?.tables || snapshot?.data?.tables || {};
-
-    if (!tables || typeof tables !== 'object') {
-      throw new Error('バックアップデータの形式が正しくありません');
-    }
-
-    const photoRows = Array.isArray(tables.photos) ? tables.photos : [];
-    const trackedFolderRows = Array.isArray(tables.tracked_folders)
-      ? tables.tracked_folders
-      : [];
-    const worldMetadataRows = Array.isArray(tables.world_metadata_cache)
-      ? tables.world_metadata_cache
-      : [];
-    const tagRows = Array.isArray(tables.tags) ? tables.tags : [];
-    const photoTagRows = Array.isArray(tables.photo_tags)
-      ? tables.photo_tags
-      : [];
+    const { tables } = validateBackupSnapshot(snapshot);
+    const photoRows = tables.photos;
+    const trackedFolderRows = tables.tracked_folders;
+    const worldMetadataRows = tables.world_metadata_cache;
+    const tagRows = tables.tags;
+    const photoTagRows = tables.photo_tags;
 
     const beforeCounts = getApplicationDataSummary();
     const restoreTxn = db.transaction(() => {
@@ -1567,6 +1656,7 @@ function initDatabase(dbPath) {
     updatePhotoPrintNote,
     getApplicationDataSummary,
     createBackupSnapshot,
+    validateBackupSnapshot,
     restoreBackupSnapshot,
     resetApplicationData,
   };

@@ -1,0 +1,741 @@
+{
+  "cases": [
+    {
+      "name": "paths-and-sizing",
+      "value": {
+        "managed": [
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "rebased": [
+          null,
+          null,
+          "paths/home/Current/thumbnails",
+          "paths/home/Current/thumbnails/海.jpg",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "roots": [
+          "paths/home/Current",
+          "paths/home/Legacy"
+        ],
+        "directories": [
+          "paths/home/Current/thumbnails",
+          "paths/home/Legacy/thumbnails"
+        ],
+        "fitSizes": [
+          {
+            "width": 320,
+            "height": 180
+          },
+          {
+            "width": 320,
+            "height": 180
+          },
+          {
+            "width": 180,
+            "height": 320
+          },
+          {
+            "width": 100,
+            "height": 100
+          },
+          {
+            "width": 1,
+            "height": 320
+          },
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      "calls": [],
+      "updates": []
+    },
+    {
+      "name": "same-root-migration-is-noop",
+      "value": true,
+      "calls": [],
+      "updates": []
+    },
+    {
+      "name": "missing-legacy-is-noop",
+      "value": true,
+      "calls": [
+        [
+          "access",
+          "no-legacy/home/Legacy"
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "whole-root-rename-preserves-content",
+      "value": true,
+      "calls": [
+        [
+          "access",
+          "whole-root/home/Legacy"
+        ],
+        [
+          "access",
+          "whole-root/home/Current"
+        ],
+        [
+          "rename",
+          "whole-root/home/Legacy",
+          "whole-root/home/Current"
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "existing-current-root-is-never-merged",
+      "value": true,
+      "calls": [
+        [
+          "access",
+          "prefer-current/home/Legacy"
+        ],
+        [
+          "access",
+          "prefer-current/home/Current"
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "migration-fallback-success",
+      "value": true,
+      "calls": [
+        [
+          "access",
+          "migration-fallback-success/home/Legacy"
+        ],
+        [
+          "access",
+          "migration-fallback-success/home/Current"
+        ],
+        [
+          "rename",
+          "migration-fallback-success/home/Legacy",
+          "migration-fallback-success/home/Current"
+        ],
+        [
+          "mkdir",
+          "migration-fallback-success/home/Current",
+          {
+            "recursive": true
+          }
+        ],
+        [
+          "mkdir",
+          "migration-fallback-success/home/Current/thumbnails",
+          {
+            "recursive": true
+          }
+        ],
+        [
+          "readdir",
+          "migration-fallback-success/home/Legacy/thumbnails",
+          {
+            "withFileTypes": true
+          }
+        ],
+        [
+          "access",
+          "migration-fallback-success/home/Current/thumbnails/old.jpg"
+        ],
+        [
+          "rename",
+          "migration-fallback-success/home/Legacy/thumbnails/old.jpg",
+          "migration-fallback-success/home/Current/thumbnails/old.jpg"
+        ],
+        [
+          "rm",
+          "migration-fallback-success/home/Legacy",
+          {
+            "recursive": true,
+            "force": true,
+            "maxRetries": 2,
+            "retryDelay": 120
+          }
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "migration-fallback-collision",
+      "value": true,
+      "calls": [
+        [
+          "access",
+          "migration-fallback-collision/home/Legacy"
+        ],
+        [
+          "access",
+          "migration-fallback-collision/home/Current"
+        ],
+        [
+          "rename",
+          "migration-fallback-collision/home/Legacy",
+          "migration-fallback-collision/home/Current"
+        ],
+        [
+          "mkdir",
+          "migration-fallback-collision/home/Current",
+          {
+            "recursive": true
+          }
+        ],
+        [
+          "mkdir",
+          "migration-fallback-collision/home/Current/thumbnails",
+          {
+            "recursive": true
+          }
+        ],
+        [
+          "readdir",
+          "migration-fallback-collision/home/Legacy/thumbnails",
+          {
+            "withFileTypes": true
+          }
+        ],
+        [
+          "access",
+          "migration-fallback-collision/home/Current/thumbnails/old.jpg"
+        ],
+        [
+          "rm",
+          "migration-fallback-collision/home/Legacy",
+          {
+            "recursive": true,
+            "force": true,
+            "maxRetries": 2,
+            "retryDelay": 120
+          }
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "migration-fallback-missing-directory",
+      "value": true,
+      "calls": [
+        [
+          "access",
+          "migration-fallback-missing-directory/home/Legacy"
+        ],
+        [
+          "access",
+          "migration-fallback-missing-directory/home/Current"
+        ],
+        [
+          "rename",
+          "migration-fallback-missing-directory/home/Legacy",
+          "migration-fallback-missing-directory/home/Current"
+        ],
+        [
+          "mkdir",
+          "migration-fallback-missing-directory/home/Current",
+          {
+            "recursive": true
+          }
+        ],
+        [
+          "mkdir",
+          "migration-fallback-missing-directory/home/Current/thumbnails",
+          {
+            "recursive": true
+          }
+        ],
+        [
+          "readdir",
+          "migration-fallback-missing-directory/home/Legacy/thumbnails",
+          {
+            "withFileTypes": true
+          }
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "migration-fallback-entry-failure",
+      "value": true,
+      "calls": [
+        [
+          "access",
+          "migration-fallback-entry-failure/home/Legacy"
+        ],
+        [
+          "access",
+          "migration-fallback-entry-failure/home/Current"
+        ],
+        [
+          "rename",
+          "migration-fallback-entry-failure/home/Legacy",
+          "migration-fallback-entry-failure/home/Current"
+        ],
+        [
+          "mkdir",
+          "migration-fallback-entry-failure/home/Current",
+          {
+            "recursive": true
+          }
+        ],
+        [
+          "mkdir",
+          "migration-fallback-entry-failure/home/Current/thumbnails",
+          {
+            "recursive": true
+          }
+        ],
+        [
+          "readdir",
+          "migration-fallback-entry-failure/home/Legacy/thumbnails",
+          {
+            "withFileTypes": true
+          }
+        ],
+        [
+          "access",
+          "migration-fallback-entry-failure/home/Current/thumbnails/old.jpg"
+        ],
+        [
+          "rename",
+          "migration-fallback-entry-failure/home/Legacy/thumbnails/old.jpg",
+          "migration-fallback-entry-failure/home/Current/thumbnails/old.jpg"
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "reconcile-only-existing-rebased-files",
+      "value": true,
+      "calls": [
+        [
+          "access",
+          "reconcile/home/Current/thumbnails/found.jpg"
+        ],
+        [
+          "access",
+          "reconcile/home/Current/thumbnails/missing.jpg"
+        ]
+      ],
+      "updates": [
+        [
+          1,
+          "reconcile/home/Current/thumbnails/found.jpg"
+        ]
+      ]
+    },
+    {
+      "name": "reconcile-db-error-keeps-startup-running",
+      "value": true,
+      "calls": [
+        [
+          "access",
+          "reconcile-db-error/home/Current/thumbnails/found.jpg"
+        ]
+      ],
+      "updates": [
+        [
+          1,
+          "reconcile-db-error/home/Current/thumbnails/found.jpg"
+        ]
+      ]
+    },
+    {
+      "name": "reset-removes-only-managed-directories",
+      "value": true,
+      "calls": [
+        [
+          "rm",
+          "reset/home/Current/thumbnails",
+          {
+            "recursive": true,
+            "force": true,
+            "maxRetries": 2,
+            "retryDelay": 120
+          }
+        ],
+        [
+          "rm",
+          "reset/home/Legacy/thumbnails",
+          {
+            "recursive": true,
+            "force": true,
+            "maxRetries": 2,
+            "retryDelay": 120
+          }
+        ],
+        [
+          "mkdir",
+          "reset/home/Current/thumbnails",
+          {
+            "recursive": true
+          }
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "create-plain.png",
+      "value": {
+        "path": "create-plain.png/home/Current/thumbnails/52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686.jpg",
+        "sha256": "3e3abd6223f571ca4239831825cf4c3ef0a092a87f601650fd0c2b738aab88e8",
+        "size": {
+          "width": 320,
+          "height": 180
+        }
+      },
+      "calls": [
+        [
+          "access",
+          "create-plain.png/home/Current/thumbnails/52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686.jpg"
+        ],
+        [
+          "writeFile",
+          "create-plain.png/home/Current/thumbnails/52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686.jpg",
+          {
+            "bytes": 1189,
+            "sha256": "3e3abd6223f571ca4239831825cf4c3ef0a092a87f601650fd0c2b738aab88e8"
+          }
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "create-plain.jpg",
+      "value": {
+        "path": "create-plain.jpg/home/Current/thumbnails/327b980e944f330c0eb58eddbcae7dd6fcc1ccad9a3a932d6df42bb0950a3a42.jpg",
+        "sha256": "edb6b68041e0e4dd494a64e994a1c18ba5381997b40fcb903642784ca020494e",
+        "size": {
+          "width": 320,
+          "height": 180
+        }
+      },
+      "calls": [
+        [
+          "access",
+          "create-plain.jpg/home/Current/thumbnails/327b980e944f330c0eb58eddbcae7dd6fcc1ccad9a3a932d6df42bb0950a3a42.jpg"
+        ],
+        [
+          "writeFile",
+          "create-plain.jpg/home/Current/thumbnails/327b980e944f330c0eb58eddbcae7dd6fcc1ccad9a3a932d6df42bb0950a3a42.jpg",
+          {
+            "bytes": 830,
+            "sha256": "edb6b68041e0e4dd494a64e994a1c18ba5381997b40fcb903642784ca020494e"
+          }
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "create-plain.webp",
+      "value": {
+        "path": "create-plain.webp/home/Current/thumbnails/5aea56de41da30d3f52ec18a12a38f6b7d5229b1e5ec5a9f1ae27e3be699b920.jpg",
+        "sha256": "4fc514bfec2bc8ebdef13d7e4c9aef7c33d4386d4bb85266b6c212b2d4cdde37",
+        "size": {
+          "width": 320,
+          "height": 180
+        }
+      },
+      "calls": [
+        [
+          "access",
+          "create-plain.webp/home/Current/thumbnails/5aea56de41da30d3f52ec18a12a38f6b7d5229b1e5ec5a9f1ae27e3be699b920.jpg"
+        ],
+        [
+          "writeFile",
+          "create-plain.webp/home/Current/thumbnails/5aea56de41da30d3f52ec18a12a38f6b7d5229b1e5ec5a9f1ae27e3be699b920.jpg",
+          {
+            "bytes": 876,
+            "sha256": "4fc514bfec2bc8ebdef13d7e4c9aef7c33d4386d4bb85266b6c212b2d4cdde37"
+          }
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "native-image-resize",
+      "value": {
+        "path": "resize/home/Current/thumbnails/large.jpg",
+        "sha256": "fdb9a3ab605472b4f962a4d0ffcc698db9c7f5c47973b265dacf02d16c73c549",
+        "size": {
+          "width": 320,
+          "height": 180
+        }
+      },
+      "calls": [
+        [
+          "access",
+          "resize/home/Current/thumbnails/large.jpg"
+        ],
+        [
+          "writeFile",
+          "resize/home/Current/thumbnails/large.jpg",
+          {
+            "bytes": 1287,
+            "sha256": "fdb9a3ab605472b4f962a4d0ffcc698db9c7f5c47973b265dacf02d16c73c549"
+          }
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "existing-cache-is-reused-without-reencoding",
+      "value": true,
+      "calls": [
+        [
+          "access",
+          "reuse/home/Current/thumbnails/existing.jpg"
+        ],
+        [
+          "access",
+          "reuse/home/Current/thumbnails/existing.jpg"
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "force-regenerates-existing-cache",
+      "value": {
+        "path": "force/home/Current/thumbnails/existing.jpg",
+        "sha256": "3e3abd6223f571ca4239831825cf4c3ef0a092a87f601650fd0c2b738aab88e8",
+        "size": {
+          "width": 320,
+          "height": 180
+        }
+      },
+      "calls": [
+        [
+          "writeFile",
+          "force/home/Current/thumbnails/existing.jpg",
+          {
+            "bytes": 1189,
+            "sha256": "3e3abd6223f571ca4239831825cf4c3ef0a092a87f601650fd0c2b738aab88e8"
+          }
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "failure-empty-native",
+      "value": null,
+      "calls": [
+        [
+          "access",
+          "failure-empty-native/home/Current/thumbnails/empty-native.jpg"
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "failure-invalid-size",
+      "value": null,
+      "calls": [
+        [
+          "access",
+          "failure-invalid-size/home/Current/thumbnails/invalid-size.jpg"
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "failure-encoder-error",
+      "value": null,
+      "calls": [
+        [
+          "access",
+          "failure-encoder-error/home/Current/thumbnails/encoder-error.jpg"
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "failure-empty-encoding",
+      "value": null,
+      "calls": [
+        [
+          "access",
+          "failure-empty-encoding/home/Current/thumbnails/empty-encoding.jpg"
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "failure-write-error",
+      "value": null,
+      "calls": [
+        [
+          "access",
+          "failure-write-error/home/Current/thumbnails/write-error.jpg"
+        ],
+        [
+          "writeFile",
+          "failure-write-error/home/Current/thumbnails/write-error.jpg",
+          {
+            "bytes": 1189,
+            "sha256": "3e3abd6223f571ca4239831825cf4c3ef0a092a87f601650fd0c2b738aab88e8"
+          }
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "failure-shell-error",
+      "value": null,
+      "calls": [
+        [
+          "access",
+          "failure-shell-error/home/Current/thumbnails/shell-error.jpg"
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "native-failure-recovers-through-shell",
+      "value": {
+        "path": "native-error-shell-recovery/home/Current/thumbnails/recovered.jpg",
+        "sha256": "36fc4240ff596742bb8cc77bde22b733477f60452c21729c9d28e99f177b1806",
+        "size": {
+          "width": 320,
+          "height": 180
+        }
+      },
+      "calls": [
+        [
+          "access",
+          "native-error-shell-recovery/home/Current/thumbnails/recovered.jpg"
+        ],
+        [
+          "access",
+          "native-error-shell-recovery/home/Current/thumbnails/recovered.jpg"
+        ],
+        [
+          "writeFile",
+          "native-error-shell-recovery/home/Current/thumbnails/recovered.jpg",
+          {
+            "bytes": 715,
+            "sha256": "36fc4240ff596742bb8cc77bde22b733477f60452c21729c9d28e99f177b1806"
+          }
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "invalid-rows-are-unchanged",
+      "value": true,
+      "calls": [],
+      "updates": []
+    },
+    {
+      "name": "existing-row-thumbnail-is-kept",
+      "value": true,
+      "calls": [
+        [
+          "access",
+          "sources/plain.png"
+        ]
+      ],
+      "updates": []
+    },
+    {
+      "name": "row-recovery-false",
+      "value": {
+        "thumbnail": {
+          "path": "row-recovery-false/home/Current/thumbnails/hash.jpg",
+          "sha256": "4a0902dd445c6ddf0b0c540cd714ada93d6d47b9108aa8c3e645e84a47e00511",
+          "size": {
+            "width": 320,
+            "height": 180
+          }
+        },
+        "usedDatabaseResult": false
+      },
+      "calls": [
+        [
+          "access",
+          "row-recovery-false/home/missing.jpg"
+        ],
+        [
+          "writeFile",
+          "row-recovery-false/home/Current/thumbnails/hash.jpg",
+          {
+            "bytes": 828,
+            "sha256": "4a0902dd445c6ddf0b0c540cd714ada93d6d47b9108aa8c3e645e84a47e00511"
+          }
+        ]
+      ],
+      "updates": [
+        [
+          1,
+          "row-recovery-false/home/Current/thumbnails/hash.jpg"
+        ]
+      ]
+    },
+    {
+      "name": "row-recovery-true",
+      "value": {
+        "thumbnail": {
+          "path": "row-recovery-true/home/Current/thumbnails/hash.jpg",
+          "sha256": "4a0902dd445c6ddf0b0c540cd714ada93d6d47b9108aa8c3e645e84a47e00511",
+          "size": {
+            "width": 320,
+            "height": 180
+          }
+        },
+        "usedDatabaseResult": true
+      },
+      "calls": [
+        [
+          "access",
+          "row-recovery-true/home/missing.jpg"
+        ],
+        [
+          "writeFile",
+          "row-recovery-true/home/Current/thumbnails/hash.jpg",
+          {
+            "bytes": 828,
+            "sha256": "4a0902dd445c6ddf0b0c540cd714ada93d6d47b9108aa8c3e645e84a47e00511"
+          }
+        ]
+      ],
+      "updates": [
+        [
+          1,
+          "row-recovery-true/home/Current/thumbnails/hash.jpg"
+        ]
+      ]
+    },
+    {
+      "name": "failed-row-recovery-keeps-database",
+      "value": true,
+      "calls": [],
+      "updates": []
+    }
+  ],
+  "sourceHashes": {
+    "plain.png": "52785edcb35feb637d0198c12f0c082e8d688dfde499cea2480c0f2ac770c686",
+    "plain.jpg": "327b980e944f330c0eb58eddbcae7dd6fcc1ccad9a3a932d6df42bb0950a3a42",
+    "plain.webp": "5aea56de41da30d3f52ec18a12a38f6b7d5229b1e5ec5a9f1ae27e3be699b920"
+  }
+}

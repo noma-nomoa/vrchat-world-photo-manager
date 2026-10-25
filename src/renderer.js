@@ -2260,74 +2260,19 @@ function splitTakenAtForCard(value) {
 }
 
 function parsePhotoSortTimestamp(value) {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    return null;
-  }
-
-  const match = value
-    .trim()
-    .match(
-      /^(\d{4})[/-](\d{2})[/-](\d{2})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/
-    );
-
-  if (!match) {
-    return null;
-  }
-
-  const [
-    ,
-    yearText,
-    monthText,
-    dayText,
-    hourText = '00',
-    minuteText = '00',
-    secondText = '00',
-  ] = match;
-
-  const timestamp = new Date(
-    Number(yearText),
-    Number(monthText) - 1,
-    Number(dayText),
-    Number(hourText),
-    Number(minuteText),
-    Number(secondText)
-  ).getTime();
-
-  return Number.isFinite(timestamp) ? timestamp : null;
+  return PhotoListQuery.parsePhotoSortTimestamp(value);
 }
 
 function getPhotoSortTimestamp(photo) {
-  return (
-    parsePhotoSortTimestamp(photo?.takenAt) ??
-    parsePhotoSortTimestamp(photo?.groupDate) ??
-    0
-  );
+  return PhotoListQuery.getPhotoSortTimestamp(photo);
 }
 
 function comparePhotosForCurrentSortOrder(leftPhoto, rightPhoto) {
-  const timestampDiff =
-    getPhotoSortTimestamp(leftPhoto) - getPhotoSortTimestamp(rightPhoto);
-
-  if (timestampDiff !== 0) {
-    return currentPhotoSortOrder === 'asc' ? timestampDiff : -timestampDiff;
-  }
-
-  const idDiff = Number(leftPhoto?.id || 0) - Number(rightPhoto?.id || 0);
-
-  if (idDiff !== 0) {
-    return currentPhotoSortOrder === 'asc' ? idDiff : -idDiff;
-  }
-
-  return String(leftPhoto?.fileName || '').localeCompare(
-    String(rightPhoto?.fileName || ''),
-    'ja'
-  );
+  return PhotoListQuery.comparePhotos(leftPhoto, rightPhoto, currentPhotoSortOrder);
 }
 
 function sortPhotosForCurrentSortOrder(photos) {
-  return [...(Array.isArray(photos) ? photos : [])].sort(
-    comparePhotosForCurrentSortOrder
-  );
+  return PhotoListQuery.sortPhotos(photos, currentPhotoSortOrder);
 }
 
 function getPhotoGroupDate(photo) {
@@ -3313,9 +3258,7 @@ function setAnimatedDropdownOpenState({
 
 
 function applyCurrentPhotoFilter() {
-  currentPhotos = sortPhotosForCurrentSortOrder(
-    allCurrentMonthPhotos.filter(photoMatchesCurrentFilters)
-  );
+  currentPhotos = PhotoListQuery.queryPhotos(allCurrentMonthPhotos, getCurrentPhotoListQuery());
   rebuildCurrentPhotoGroupIndexMap();
 }
 
@@ -3844,34 +3787,7 @@ function closeOrientationFilterMenu() {
 }
 
 function getCurrentMonthPhotoLabelCatalog() {
-  const labelMap = new Map();
-
-  for (const photo of allCurrentMonthPhotos) {
-    const seenNormalizedNames = new Set();
-
-    for (const label of Array.isArray(photo.photoLabels) ? photo.photoLabels : []) {
-      if (!label?.normalizedName || seenNormalizedNames.has(label.normalizedName)) {
-        continue;
-      }
-
-      seenNormalizedNames.add(label.normalizedName);
-
-      if (!labelMap.has(label.normalizedName)) {
-        labelMap.set(label.normalizedName, {
-          normalizedName: label.normalizedName,
-          name: label.name || label.normalizedName,
-          colorHex: label.colorHex || '#6D5EF6',
-          photoCount: 0,
-        });
-      }
-
-      labelMap.get(label.normalizedName).photoCount += 1;
-    }
-  }
-
-  return Array.from(labelMap.values()).sort((left, right) =>
-    left.name.localeCompare(right.name, 'ja')
-  );
+  return PhotoListQuery.getLabelCatalog(allCurrentMonthPhotos);
 }
 
 function getSelectedPhotoLabelEntries() {
@@ -4053,11 +3969,7 @@ function closePhotoLabelFilterMenu() {
 }
 
 function normalizeWorldNameFilterText(value) {
-  if (typeof value !== 'string') {
-    return '';
-  }
-
-  return value.trim();
+  return PhotoListQuery.normalizeSearchText(value);
 }
 
 function getToolbarSearchScopeMeta(scope = draftToolbarSearchScope) {
@@ -4065,9 +3977,7 @@ function getToolbarSearchScopeMeta(scope = draftToolbarSearchScope) {
 }
 
 function getNormalizedWorldNameFilterText(value) {
-  return normalizeWorldNameFilterText(value)
-    .normalize('NFKC')
-    .toLocaleLowerCase('ja-JP');
+  return PhotoListQuery.normalizeSearchQuery(value);
 }
 
 function getWorldNameFilterSummaryText({ includePrefix = true } = {}) {
@@ -4435,102 +4345,27 @@ function isAnyPhotoFilterActive() {
 }
 
 function getPhotoOrientationTier(photo) {
-  if (!photo) {
-    return null;
-  }
-
-  if (photo.orientationTier) {
-    return photo.orientationTier;
-  }
-
-  const width = Number(photo.imageWidth);
-  const height = Number(photo.imageHeight);
-
-  if (Number.isFinite(width) && Number.isFinite(height)) {
-    if (width === height) {
-      return 'square';
-    }
-
-    return width > height ? 'landscape' : 'portrait';
-  }
-
-  if (photo.orientationTier) {
-    return photo.orientationTier;
-  }
-
-  return null;
+  return PhotoListQuery.getPhotoOrientationTier(photo);
 }
 
 function getToolbarSearchTargetText(photo) {
-  if (!photo) {
-    return '';
-  }
+  return PhotoListQuery.getSearchTargetText(photo, activeToolbarSearchScope);
+}
 
-  if (activeToolbarSearchScope === 'memo') {
-    return [photo.memoText]
-      .filter(Boolean)
-      .join(' ')
-      .normalize('NFKC')
-      .toLocaleLowerCase('ja-JP');
-  }
-
-  if (activeToolbarSearchScope === 'printNote') {
-    return [photo.printNoteText]
-      .filter(Boolean)
-      .join(' ')
-      .normalize('NFKC')
-      .toLocaleLowerCase('ja-JP');
-  }
-
-  return [photo.worldName, photo.rawWorldName, photo.worldId]
-    .filter(Boolean)
-    .join(' ')
-    .normalize('NFKC')
-    .toLocaleLowerCase('ja-JP');
+function getCurrentPhotoListQuery() {
+  return {
+    sortOrder: currentPhotoSortOrder,
+    favoriteOnly: isFavoriteFilterOnly,
+    orientation: activeOrientationFilter,
+    labelFilters: activePhotoLabelFilters,
+    labelMode: photoLabelFilterMode,
+    searchText: activeWorldNameFilter,
+    searchScope: activeToolbarSearchScope,
+  };
 }
 
 function photoMatchesCurrentFilters(photo) {
-  if (isFavoriteFilterOnly && !photo.isFavorite) {
-    return false;
-  }
-
-  if (
-    activeOrientationFilter !== 'all' &&
-    getPhotoOrientationTier(photo) !== activeOrientationFilter
-  ) {
-    return false;
-  }
-
-  if (activePhotoLabelFilters.length > 0) {
-    const photoLabelSet = new Set(
-      (Array.isArray(photo.photoLabels) ? photo.photoLabels : [])
-        .map((label) => label?.normalizedName)
-        .filter(Boolean)
-    );
-
-    const matchesLabelFilter =
-      photoLabelFilterMode === 'and'
-        ? activePhotoLabelFilters.every((normalizedName) =>
-            photoLabelSet.has(normalizedName)
-          )
-        : activePhotoLabelFilters.some((normalizedName) =>
-            photoLabelSet.has(normalizedName)
-          );
-
-    if (!matchesLabelFilter) {
-      return false;
-    }
-  }
-
-  if (activeWorldNameFilter) {
-    const targetText = getToolbarSearchTargetText(photo);
-
-    if (!targetText.includes(getNormalizedWorldNameFilterText(activeWorldNameFilter))) {
-      return false;
-    }
-  }
-
-  return true;
+  return PhotoListQuery.matchesPhoto(photo, getCurrentPhotoListQuery());
 }
 
 function getDefaultMonthGalleryEmptyMessage() {
@@ -7434,68 +7269,35 @@ function getPhotoEditorActiveImageOverlay() {
 
 function getPhotoEditorOverlayImageCacheEntry(overlay) {
   const normalizedOverlay = normalizePhotoEditorImageOverlayState(overlay);
-  const cacheKey = normalizedOverlay.fileUrl;
-
-  if (!cacheKey) {
-    return null;
-  }
-
-  const cachedEntry = photoEditorOverlayImageCache.get(cacheKey);
-
-  if (cachedEntry) {
-    return cachedEntry;
-  }
-
-  const image = new Image();
-  let resolveLoad = null;
-  const entry = {
-    image,
-    loaded: false,
-    failed: false,
-    loadPromise: new Promise((resolve) => {
-      resolveLoad = resolve;
-    }),
-  };
-
-  image.onload = () => {
-    entry.loaded = true;
-    entry.failed = false;
-    resolveLoad?.(entry);
-    if (photoEditorState) {
-      schedulePhotoEditorRender();
-    }
-  };
-  image.onerror = () => {
-    entry.failed = true;
-    resolveLoad?.(entry);
-  };
-  image.decoding = 'async';
-  image.src = normalizedOverlay.fileUrl;
-  photoEditorOverlayImageCache.set(cacheKey, entry);
-
-  return entry;
+  return PhotoEditorImageResources.getOrLoad(photoEditorOverlayImageCache, normalizedOverlay.fileUrl, {
+    createImage: () => new Image(),
+    onReady: () => { if (photoEditorState) schedulePhotoEditorRender(); },
+  });
 }
 
-async function waitForPhotoEditorImageOverlaysToLoad(imageOverlays = []) {
-  const loadPromises = normalizePhotoEditorImageOverlays(imageOverlays)
-    .map((overlay) => getPhotoEditorOverlayImageCacheEntry(overlay)?.loadPromise)
-    .filter(Boolean);
-
-  if (loadPromises.length === 0) {
-    return;
-  }
-
-  await Promise.all(loadPromises);
+async function waitForPhotoEditorImageOverlaysToLoad(imageOverlays = [], { assertCurrent, returnGuard = false } = {}) {
+  const resources = normalizePhotoEditorImageOverlays(imageOverlays)
+    .filter((overlay) => overlay.opacity > 0)
+    .map((overlay) => ({
+      getEntry: () => getPhotoEditorOverlayImageCacheEntry(overlay),
+      errorMessage: '画像オーバーレイ素材を読み込めませんでした',
+    }));
+  const guard = await PhotoEditorImageResources.waitForReady(resources, {
+    assertCurrent, canceledMessage: '画像読み込みがキャンセルされました',
+  });
+  return returnGuard ? guard : undefined;
 }
 
-async function waitForPhotoEditorSubjectMaskToLoad(subjectMask = photoEditorState?.subjectMask) {
-  const entry = getPhotoEditorSubjectMaskImageCacheEntry(subjectMask);
-
-  if (!entry?.loadPromise) {
-    return;
-  }
-
-  await entry.loadPromise;
+async function waitForPhotoEditorSubjectMaskToLoad(subjectMask = photoEditorState?.subjectMask, { assertCurrent, returnGuard = false } = {}) {
+  const normalizedMask = normalizePhotoEditorSubjectMaskState(subjectMask);
+  const resources = normalizedMask.enabled && !photoEditorSubjectMaskEditCanvas ? [{
+    getEntry: () => getPhotoEditorSubjectMaskImageCacheEntry(normalizedMask),
+    errorMessage: 'マスク画像を読み込めませんでした',
+  }] : [];
+  const guard = await PhotoEditorImageResources.waitForReady(resources, {
+    assertCurrent, canceledMessage: '画像読み込みがキャンセルされました',
+  });
+  return returnGuard ? guard : undefined;
 }
 
 function loadPhotoEditorRecentTextFonts() {
@@ -7602,78 +7404,15 @@ function normalizePhotoEditorBlurState(blur = {}) {
 }
 
 function clonePhotoEditorCurvePoints(points) {
-  if (Array.isArray(points) && points.length === 3) {
-    const legacyPoints = points.map((point, index) =>
-      clampNumber(point, 0, 1, PHOTO_EDITOR_CURVE_DEFAULT_POINTS[index * 2])
-    );
-
-    return [
-      legacyPoints[0],
-      legacyPoints[0] * 0.5 + legacyPoints[1] * 0.5,
-      legacyPoints[1],
-      legacyPoints[1] * 0.5 + legacyPoints[2] * 0.5,
-      legacyPoints[2],
-    ];
-  }
-
-  return PHOTO_EDITOR_CURVE_DEFAULT_POINTS.map((defaultValue, index) =>
-    clampNumber(points?.[index], 0, 1, defaultValue)
-  );
+  return globalThis.PhotoEditorColorCore.clonePhotoEditorCurvePoints(points);
 }
 
 function getDefaultPhotoEditorCurveState() {
-  return {
-    mode: 'rgb',
-    channel: 'master',
-    points: {
-      rgb: {
-        master: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
-        r: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
-        g: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
-        b: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
-      },
-      hsv: {
-        master: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
-        h: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
-        s: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
-        v: [...PHOTO_EDITOR_CURVE_DEFAULT_POINTS],
-      },
-    },
-  };
+  return globalThis.PhotoEditorColorCore.getDefaultPhotoEditorCurveState();
 }
 
 function normalizePhotoEditorCurveState(curve = {}) {
-  const defaults = getDefaultPhotoEditorCurveState();
-  const mode = PHOTO_EDITOR_CURVE_MODES.includes(curve?.mode)
-    ? curve.mode
-    : defaults.mode;
-  const defaultChannel = 'master';
-  const validChannels = PHOTO_EDITOR_CURVE_CHANNELS[mode].map(
-    (channel) => channel.key
-  );
-  const channel = validChannels.includes(curve?.channel)
-    ? curve.channel
-    : defaultChannel;
-  const sourcePoints = curve?.points || {};
-
-  return {
-    mode,
-    channel,
-    points: {
-      rgb: {
-        master: clonePhotoEditorCurvePoints(sourcePoints.rgb?.master),
-        r: clonePhotoEditorCurvePoints(sourcePoints.rgb?.r),
-        g: clonePhotoEditorCurvePoints(sourcePoints.rgb?.g),
-        b: clonePhotoEditorCurvePoints(sourcePoints.rgb?.b),
-      },
-      hsv: {
-        master: clonePhotoEditorCurvePoints(sourcePoints.hsv?.master),
-        h: clonePhotoEditorCurvePoints(sourcePoints.hsv?.h),
-        s: clonePhotoEditorCurvePoints(sourcePoints.hsv?.s),
-        v: clonePhotoEditorCurvePoints(sourcePoints.hsv?.v),
-      },
-    },
-  };
+  return globalThis.PhotoEditorColorCore.normalizePhotoEditorCurveState(curve);
 }
 
 function getDefaultPhotoEditorAutoEnhanceState() {
@@ -7717,7 +7456,6 @@ function createPhotoEditorState(photo) {
   return {
     sourcePhoto: photo,
     sourceImage: null,
-    loadToken: null,
     values: clonePhotoEditValues(),
     adjustmentTarget: 'whole',
     crop: getDefaultPhotoEditorCropState(),
@@ -7767,11 +7505,6 @@ function createPhotoEditorState(photo) {
     curveHistogram: null,
     curveHistogramKey: '',
     isSaving: false,
-    historyUndoStack: [],
-    historyRedoStack: [],
-    pendingHistorySnapshot: null,
-    historyCommitTimer: null,
-    isRestoringHistory: false,
   };
 }
 
@@ -7825,91 +7558,46 @@ function capturePhotoEditorHistorySnapshot() {
   };
 }
 
-function arePhotoEditorHistorySnapshotsEqual(left, right) {
-  return JSON.stringify(left || null) === JSON.stringify(right || null);
-}
+const photoEditorSession = PhotoEditorSession.createController({
+  captureSnapshot: capturePhotoEditorHistorySnapshot,
+  applySnapshot: applyPhotoEditorHistorySnapshotData,
+  onHistoryChanged: syncPhotoEditorHistoryControls,
+  historyLimit: PHOTO_EDITOR_HISTORY_LIMIT,
+  commitDelay: PHOTO_EDITOR_HISTORY_COMMIT_DELAY_MS,
+});
 
 function syncPhotoEditorHistoryControls() {
-  if (photoEditorUndoButton) {
-    photoEditorUndoButton.disabled = !(
-      photoEditorState?.historyUndoStack?.length > 0 ||
-      photoEditorState?.pendingHistorySnapshot
-    );
-  }
-
-  if (photoEditorRedoButton) {
-    photoEditorRedoButton.disabled = !(
-      photoEditorState?.historyRedoStack?.length > 0
-    );
-  }
+  const { canUndo, canRedo } = photoEditorSession.getHistoryStatus();
+  if (photoEditorUndoButton) photoEditorUndoButton.disabled = !canUndo;
+  if (photoEditorRedoButton) photoEditorRedoButton.disabled = !canRedo;
 }
 
 function beginPhotoEditorHistoryMutation() {
-  if (!photoEditorState || photoEditorState.isRestoringHistory) {
-    return;
-  }
-
-  if (!photoEditorState.pendingHistorySnapshot) {
-    photoEditorState.pendingHistorySnapshot = capturePhotoEditorHistorySnapshot();
-  }
+  photoEditorSession.beginMutation();
 }
 
 function clearPhotoEditorHistoryCommitTimer() {
-  if (photoEditorState?.historyCommitTimer) {
-    clearTimeout(photoEditorState.historyCommitTimer);
-    photoEditorState.historyCommitTimer = null;
-  }
+  photoEditorSession.clearCommitTimer();
 }
 
 function commitPhotoEditorHistoryMutation() {
-  if (!photoEditorState || photoEditorState.isRestoringHistory) {
-    return;
-  }
-
-  clearPhotoEditorHistoryCommitTimer();
-
-  const previousSnapshot = photoEditorState.pendingHistorySnapshot;
-
-  if (!previousSnapshot) {
-    syncPhotoEditorHistoryControls();
-    return;
-  }
-
-  photoEditorState.pendingHistorySnapshot = null;
-  const currentSnapshot = capturePhotoEditorHistorySnapshot();
-
-  if (!arePhotoEditorHistorySnapshotsEqual(previousSnapshot, currentSnapshot)) {
-    photoEditorState.historyUndoStack.push(previousSnapshot);
-    if (photoEditorState.historyUndoStack.length > PHOTO_EDITOR_HISTORY_LIMIT) {
-      photoEditorState.historyUndoStack.shift();
-    }
-    photoEditorState.historyRedoStack = [];
-  }
-
-  syncPhotoEditorHistoryControls();
+  photoEditorSession.commitMutation();
 }
 
 function schedulePhotoEditorHistoryCommit(delayMs = PHOTO_EDITOR_HISTORY_COMMIT_DELAY_MS) {
-  if (!photoEditorState || !photoEditorState.pendingHistorySnapshot) {
-    return;
-  }
-
-  clearPhotoEditorHistoryCommitTimer();
-  photoEditorState.historyCommitTimer = setTimeout(() => {
-    if (photoEditorState) {
-      photoEditorState.historyCommitTimer = null;
-    }
-    commitPhotoEditorHistoryMutation();
-  }, delayMs);
-  syncPhotoEditorHistoryControls();
+  photoEditorSession.scheduleCommit(delayMs);
 }
 
 function applyPhotoEditorHistorySnapshot(snapshot) {
+  photoEditorSession.restoreSnapshot(snapshot);
+}
+
+function applyPhotoEditorHistorySnapshotData(snapshot) {
   if (!photoEditorState || !snapshot) {
     return;
   }
 
-  photoEditorState.isRestoringHistory = true;
+  invalidatePhotoEditorSubjectMaskRequest();
   photoEditorState.values = clonePhotoEditValues(snapshot.values);
   photoEditorState.adjustmentTarget = normalizePhotoEditorAdjustmentTarget(
     snapshot.adjustmentTarget
@@ -7935,6 +7623,13 @@ function applyPhotoEditorHistorySnapshot(snapshot) {
   photoEditorState.subjectMask = normalizePhotoEditorSubjectMaskState(
     snapshot.subjectMask
   );
+  // History restores image data, not an asynchronous job. A cancelled job
+  // cannot complete a restored loading state or re-enable its controls.
+  if (photoEditorState.subjectMask.status === 'loading') {
+    photoEditorState.subjectMask.status = photoEditorState.subjectMask.enabled
+      ? 'ready'
+      : 'none';
+  }
   clearPhotoEditorSubjectMaskEditCanvas();
   photoEditorSubjectMaskImageCache.clear();
   photoEditorState.rulerGuides = normalizePhotoEditorRulerGuides(
@@ -7982,43 +7677,14 @@ function applyPhotoEditorHistorySnapshot(snapshot) {
   clearPhotoEditorAdjustmentLivePreview();
   syncPhotoEditorUi();
   schedulePhotoEditorRender();
-  photoEditorState.isRestoringHistory = false;
 }
 
 function undoPhotoEditorEdit() {
-  if (!photoEditorState) {
-    return;
-  }
-
-  commitPhotoEditorHistoryMutation();
-  const previousSnapshot = photoEditorState.historyUndoStack.pop();
-
-  if (!previousSnapshot) {
-    syncPhotoEditorHistoryControls();
-    return;
-  }
-
-  photoEditorState.historyRedoStack.push(capturePhotoEditorHistorySnapshot());
-  applyPhotoEditorHistorySnapshot(previousSnapshot);
-  syncPhotoEditorHistoryControls();
+  photoEditorSession.undo();
 }
 
 function redoPhotoEditorEdit() {
-  if (!photoEditorState) {
-    return;
-  }
-
-  commitPhotoEditorHistoryMutation();
-  const nextSnapshot = photoEditorState.historyRedoStack.pop();
-
-  if (!nextSnapshot) {
-    syncPhotoEditorHistoryControls();
-    return;
-  }
-
-  photoEditorState.historyUndoStack.push(capturePhotoEditorHistorySnapshot());
-  applyPhotoEditorHistorySnapshot(nextSnapshot);
-  syncPhotoEditorHistoryControls();
+  photoEditorSession.redo();
 }
 
 function clampNumber(value, min, max, fallback = 0) {
@@ -8156,6 +7822,17 @@ function syncPhotoEditorAdjustmentControls(targetKey = null) {
       valueElement.textContent = String(value);
     }
   }
+}
+
+async function waitForPhotoEditorTextFontsToLoad(textOverlays, { assertCurrent } = {}) {
+  const visibleText = normalizePhotoEditorTextOverlays(textOverlays).filter((overlay) =>
+    overlay.enabled && overlay.text.trim() &&
+    (!overlay.fillTransparent || (overlay.strokeType !== 'none' && overlay.strokeWidth > 0))
+  );
+  await PhotoEditorImageResources.waitForOptional(
+    visibleText.map((overlay) => () => loadPhotoEditorTextFont(overlay)),
+    { assertCurrent, timeoutMs: 5000 }
+  );
 }
 
 function syncPhotoEditorSubjectMaskControls() {
@@ -8382,6 +8059,21 @@ function hasPhotoEditorReadySubjectMask(state = photoEditorState) {
   return Boolean(subjectMask.enabled && subjectMask.maskDataUrl);
 }
 
+function invalidatePhotoEditorSubjectMaskRequest() {
+  photoEditorSession.invalidateRequest('subject-mask');
+}
+
+function isPhotoEditorSubjectMaskRequestCurrent(state, token) {
+  return Boolean(
+    state &&
+    photoEditorState === state &&
+    photoEditorSession.isRequestCurrent(token) &&
+    photoEditorModal &&
+    !photoEditorModal.classList.contains('hidden') &&
+    !photoEditorModal.classList.contains('is-closing')
+  );
+}
+
 function clearPhotoEditorSubjectMaskEditCanvas() {
   photoEditorSubjectMaskEditCanvas = null;
   photoEditorSubjectMaskEditCtx = null;
@@ -8417,6 +8109,7 @@ function clearPhotoEditorSubjectMask() {
     return;
   }
 
+  invalidatePhotoEditorSubjectMaskRequest();
   beginPhotoEditorHistoryMutation();
   photoEditorState.subjectMask = getDefaultPhotoEditorSubjectMaskState();
   photoEditorState.subjectMaskBrushMode = 'none';
@@ -9723,20 +9416,33 @@ function createPhotoEditorSubjectMaskDataUrlFromTensor(
 }
 
 async function generatePhotoEditorSubjectMaskWithModel(modelId, source) {
-  if (!photoEditorState?.sourceImage) {
+  const state = photoEditorState;
+  const sourceImage = state?.sourceImage;
+  if (!sourceImage) {
+    return;
+  }
+
+  const requestToken = photoEditorSession.beginRequest('subject-mask');
+  const isCurrentRequest = () =>
+    isPhotoEditorSubjectMaskRequestCurrent(state, requestToken);
+  if (!isCurrentRequest()) {
     return;
   }
 
   let model = getPhotoEditorSubjectModel(modelId);
 
   if (!model) {
-    await refreshPhotoEditorAiSubjectModelStatus();
+    await refreshPhotoEditorAiSubjectModelStatus({ silent: true });
+    if (!isCurrentRequest()) {
+      return;
+    }
     model = getPhotoEditorSubjectModel(modelId);
   }
 
   const label = model?.label || 'AI';
 
   if (!model?.ready) {
+    photoEditorSession.finishRequest(requestToken);
     setPhotoEditorStatus(model?.message || `${label}モデルを利用できません`);
     syncPhotoEditorSubjectMaskControls();
     return;
@@ -9763,24 +9469,30 @@ async function generatePhotoEditorSubjectMaskWithModel(modelId, source) {
     if (model.pipeline === 'withoutbg-snap' || model.pipeline === 'withoutbg-focus') {
       maskDataUrl = await createPhotoEditorWithoutBgSubjectMaskDataUrl(
         model,
-        photoEditorState.sourceImage
+        sourceImage
       );
     } else {
       const geometry = createPhotoEditorSubjectModelInput(
-        photoEditorState.sourceImage,
+        sourceImage,
         model.inputSize || 320,
         { keepAspectRatio: model.keepAspectRatio !== false }
       );
       const outputTensor = await runPhotoEditorSubjectModel(model, geometry);
+      if (!isCurrentRequest()) {
+        return;
+      }
       setPhotoEditorStatus('高解像度マスクを整えています...');
       maskDataUrl = createPhotoEditorSubjectMaskDataUrlFromTensor(
         outputTensor,
         geometry,
-        photoEditorState.sourceImage
+        sourceImage
       );
     }
+    if (!isCurrentRequest()) {
+      return;
+    }
     const timestamp = new Date().toISOString();
-    const imageSize = getPhotoEditorImageSize(photoEditorState.sourceImage);
+    const imageSize = getPhotoEditorImageSize(sourceImage);
 
     beginPhotoEditorHistoryMutation();
     clearPhotoEditorSubjectMaskEditCanvas();
@@ -9804,6 +9516,9 @@ async function generatePhotoEditorSubjectMaskWithModel(modelId, source) {
       `${label}で被写体を選択しました (${Math.round(performance.now() - startedAt)}ms)`
     );
   } catch (error) {
+    if (!isCurrentRequest()) {
+      return;
+    }
     beginPhotoEditorHistoryMutation();
     photoEditorState.subjectMask = normalizePhotoEditorSubjectMaskState({
       enabled: false,
@@ -9816,6 +9531,9 @@ async function generatePhotoEditorSubjectMaskWithModel(modelId, source) {
     schedulePhotoEditorRender();
     commitPhotoEditorHistoryMutation();
     setPhotoEditorStatus(`${label}の実行に失敗しました: ${error.message}`);
+  } finally {
+    // An older request must not clear the token of its replacement.
+    photoEditorSession.finishRequest(requestToken);
   }
 }
 
@@ -9845,22 +9563,44 @@ function loadPhotoEditorSubjectMaskFile(file) {
     return;
   }
 
+  const state = photoEditorState;
+  const requestToken = photoEditorSession.beginRequest('subject-mask');
+  const isCurrentRequest = () =>
+    isPhotoEditorSubjectMaskRequestCurrent(state, requestToken);
+  if (!isCurrentRequest()) {
+    return;
+  }
+  const failImport = () => {
+    if (!isCurrentRequest()) {
+      return;
+    }
+    photoEditorSession.finishRequest(requestToken);
+    if (state.subjectMask.status === 'loading') {
+      state.subjectMask.status = state.subjectMask.enabled ? 'ready' : 'none';
+      syncPhotoEditorSubjectMaskControls();
+    }
+    setPhotoEditorStatus('マスク画像を読み込めませんでした');
+  };
   const reader = new FileReader();
 
   reader.onload = () => {
+    if (!isCurrentRequest()) {
+      return;
+    }
     const dataUrl = String(reader.result || '');
 
     if (!dataUrl.startsWith('data:image/')) {
-      setPhotoEditorStatus('マスク画像を読み込めませんでした');
+      failImport();
       return;
     }
 
     const image = new Image();
     image.onload = () => {
-      if (!photoEditorState) {
+      if (!isCurrentRequest()) {
         return;
       }
 
+      photoEditorSession.finishRequest(requestToken);
       const timestamp = new Date().toISOString();
       beginPhotoEditorHistoryMutation();
       photoEditorState.subjectMask = normalizePhotoEditorSubjectMaskState({
@@ -9883,14 +9623,10 @@ function loadPhotoEditorSubjectMaskFile(file) {
       schedulePhotoEditorRender();
       commitPhotoEditorHistoryMutation();
     };
-    image.onerror = () => {
-      setPhotoEditorStatus('マスク画像を読み込めませんでした');
-    };
+    image.onerror = failImport;
     image.src = dataUrl;
   };
-  reader.onerror = () => {
-    setPhotoEditorStatus('マスク画像を読み込めませんでした');
-  };
+  reader.onerror = failImport;
   reader.readAsDataURL(file);
 }
 
@@ -11261,6 +10997,12 @@ function addPhotoEditorImageOverlayFromAsset(asset) {
 }
 
 async function selectPhotoEditorOverlayImages() {
+  const owner = photoEditorState;
+
+  if (!photoEditorSession.isActive(owner)) {
+    return;
+  }
+
   if (!window.electronAPI.selectPhotoEditorOverlayImages) {
     setPhotoEditorStatus('画像オーバーレイ素材の追加機能を利用できません');
     return;
@@ -11274,7 +11016,9 @@ async function selectPhotoEditorOverlayImages() {
       renderPhotoEditorImageOverlayLibrary();
     }
 
-    if (result?.canceled) {
+    // Imported files belong to the shared library, but insertion belongs to
+    // the editor that opened the picker. Independent imports remain valid.
+    if (!photoEditorSession.isActive(owner) || result?.canceled) {
       return;
     }
 
@@ -11294,7 +11038,9 @@ async function selectPhotoEditorOverlayImages() {
       setPhotoEditorStatus(`画像オーバーレイを追加しました: ${importedAssets.length}件`);
     }
   } catch (error) {
-    setPhotoEditorStatus(`画像オーバーレイの追加に失敗しました: ${error.message}`);
+    if (photoEditorSession.isActive(owner)) {
+      setPhotoEditorStatus(`画像オーバーレイの追加に失敗しました: ${error.message}`);
+    }
   }
 }
 
@@ -11441,9 +11187,10 @@ function resetPhotoEditorImageOverlays() {
 }
 
 async function deletePhotoEditorManagedOverlayAsset(asset) {
+  const owner = photoEditorState;
   const normalizedAsset = normalizePhotoEditorOverlayAsset(asset);
 
-  if (!normalizedAsset || !window.electronAPI.deletePhotoEditorOverlayAsset) {
+  if (!photoEditorSession.isActive(owner) || !normalizedAsset || !window.electronAPI.deletePhotoEditorOverlayAsset) {
     return;
   }
 
@@ -11453,7 +11200,7 @@ async function deletePhotoEditorManagedOverlayAsset(asset) {
     confirmText: '削除する',
   });
 
-  if (!confirmed) {
+  if (!confirmed || !photoEditorSession.isActive(owner)) {
     return;
   }
 
@@ -11471,17 +11218,27 @@ async function deletePhotoEditorManagedOverlayAsset(asset) {
       (overlay) => overlay.assetId !== normalizedAsset.id
     );
 
-    if (nextOverlays.length !== collection.imageOverlays.length) {
+    if (photoEditorSession.isActive(owner) && nextOverlays.length !== collection.imageOverlays.length) {
       setPhotoEditorImageOverlayCollection(nextOverlays, '');
     }
 
     photoEditorOverlayAssets = normalizePhotoEditorOverlayAssets(result.assets);
-    photoEditorOverlayImageCache.delete(normalizedAsset.fileUrl);
-    syncPhotoEditorImageOverlayControls();
-    schedulePhotoEditorRender();
-    showToast('管理素材を削除しました');
+    renderPhotoEditorImageOverlayLibrary();
+    // A completed deletion updates the library, while another editor may
+    // still need its already decoded image for display and export.
+    const stillUsed = getPhotoEditorImageOverlayCollectionFromState().imageOverlays
+      .some((overlay) => overlay.fileUrl === normalizedAsset.fileUrl);
+    if (!stillUsed) photoEditorOverlayImageCache.delete(normalizedAsset.fileUrl);
+
+    if (photoEditorSession.isActive(owner)) {
+      syncPhotoEditorImageOverlayControls();
+      schedulePhotoEditorRender();
+      showToast('管理素材を削除しました');
+    }
   } catch (error) {
-    setPhotoEditorStatus(`管理素材の削除に失敗しました: ${error.message}`);
+    if (photoEditorSession.isActive(owner)) {
+      setPhotoEditorStatus(`管理素材の削除に失敗しました: ${error.message}`);
+    }
   }
 }
 
@@ -12593,163 +12350,39 @@ function paintPhotoEditorPreviewOverlayOnly() {
 }
 
 function getDeterministicNoise(x, y) {
-  let seed = ((x + 1) * 374761393 + (y + 1) * 668265263) >>> 0;
-  seed = (seed ^ (seed >>> 13)) >>> 0;
-  seed = Math.imul(seed, 1274126177) >>> 0;
-  return (seed / 4294967295) * 2 - 1;
+  return globalThis.PhotoEditorColorCore.getDeterministicNoise(x, y);
 }
 
 function getPhotoEditorCurveValue(points, inputValue) {
-  const input = clampNumber(inputValue, 0, 1, 0);
-  const curvePoints = clonePhotoEditorCurvePoints(points);
-  const maxPointIndex = curvePoints.length - 1;
-  const scaledInput = input * maxPointIndex;
-  const leftIndex = Math.min(maxPointIndex - 1, Math.floor(scaledInput));
-  const ratio = scaledInput - leftIndex;
-
-  return curvePoints[leftIndex] * (1 - ratio) + curvePoints[leftIndex + 1] * ratio;
+  return globalThis.PhotoEditorColorCore.getPhotoEditorCurveValue(points, inputValue);
 }
 
 function buildPhotoEditorCurveLookup(points, { outputScale = 255 } = {}) {
-  const lookup = new Float32Array(256);
-
-  for (let index = 0; index < lookup.length; index += 1) {
-    lookup[index] = getPhotoEditorCurveValue(points, index / 255) * outputScale;
-  }
-
-  return lookup;
+  return globalThis.PhotoEditorColorCore.buildPhotoEditorCurveLookup(points, { outputScale });
 }
 
 function getPhotoEditorCurveLookupIndex(value, scale = 255) {
-  return Math.max(0, Math.min(255, Math.round(value * 255 / scale)));
+  return globalThis.PhotoEditorColorCore.getPhotoEditorCurveLookupIndex(value, scale);
 }
 
 function isPhotoEditorCurvePointsIdentity(points) {
-  const curvePoints = clonePhotoEditorCurvePoints(points);
-  return curvePoints.every(
-    (point, index) =>
-      Math.abs(point - PHOTO_EDITOR_CURVE_DEFAULT_POINTS[index]) < 0.001
-  );
+  return globalThis.PhotoEditorColorCore.isPhotoEditorCurvePointsIdentity(points);
 }
 
 function isPhotoEditorCurveStateIdentity(curveState) {
-  const curve = normalizePhotoEditorCurveState(curveState);
-
-  return PHOTO_EDITOR_CURVE_MODES.every((mode) =>
-    PHOTO_EDITOR_CURVE_CHANNELS[mode].every((channel) =>
-      isPhotoEditorCurvePointsIdentity(curve.points[mode][channel.key])
-    )
-  );
+  return globalThis.PhotoEditorColorCore.isPhotoEditorCurveStateIdentity(curveState);
 }
 
 function createPhotoEditorCurveLookups(curveState) {
-  const curve = normalizePhotoEditorCurveState(curveState);
-  const rgbIdentity = {};
-  const hsvIdentity = {};
-
-  for (const channel of PHOTO_EDITOR_CURVE_CHANNELS.rgb) {
-    rgbIdentity[channel.key] = isPhotoEditorCurvePointsIdentity(
-      curve.points.rgb[channel.key]
-    );
-  }
-
-  for (const channel of PHOTO_EDITOR_CURVE_CHANNELS.hsv) {
-    hsvIdentity[channel.key] = isPhotoEditorCurvePointsIdentity(
-      curve.points.hsv[channel.key]
-    );
-  }
-
-  return {
-    curve,
-    hasRgbCurve: Object.values(rgbIdentity).some((isIdentity) => !isIdentity),
-    hasHsvCurve: Object.values(hsvIdentity).some((isIdentity) => !isIdentity),
-    rgbIdentity,
-    hsvIdentity,
-    rgb: {
-      master: buildPhotoEditorCurveLookup(curve.points.rgb.master),
-      r: buildPhotoEditorCurveLookup(curve.points.rgb.r),
-      g: buildPhotoEditorCurveLookup(curve.points.rgb.g),
-      b: buildPhotoEditorCurveLookup(curve.points.rgb.b),
-    },
-    hsv: {
-      master: buildPhotoEditorCurveLookup(curve.points.hsv.master, {
-        outputScale: 1,
-      }),
-      h: buildPhotoEditorCurveLookup(curve.points.hsv.h, { outputScale: 1 }),
-      s: buildPhotoEditorCurveLookup(curve.points.hsv.s, { outputScale: 1 }),
-      v: buildPhotoEditorCurveLookup(curve.points.hsv.v, { outputScale: 1 }),
-    },
-  };
+  return globalThis.PhotoEditorColorCore.createPhotoEditorCurveLookups(curveState);
 }
 
 function convertRgbToHsv(red, green, blue) {
-  const r = clampNumber(red, 0, 255, 0) / 255;
-  const g = clampNumber(green, 0, 255, 0) / 255;
-  const b = clampNumber(blue, 0, 255, 0) / 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const delta = max - min;
-  let hue = 0;
-
-  if (delta > 0) {
-    if (max === r) {
-      hue = ((g - b) / delta) % 6;
-    } else if (max === g) {
-      hue = (b - r) / delta + 2;
-    } else {
-      hue = (r - g) / delta + 4;
-    }
-
-    hue /= 6;
-
-    if (hue < 0) {
-      hue += 1;
-    }
-  }
-
-  return {
-    h: hue,
-    s: max === 0 ? 0 : delta / max,
-    v: max,
-  };
+  return globalThis.PhotoEditorColorCore.convertRgbToHsv(red, green, blue);
 }
 
 function convertHsvToRgb(hue, saturation, value) {
-  const h = ((clampNumber(hue, 0, 1, 0) * 6) % 6 + 6) % 6;
-  const s = clampNumber(saturation, 0, 1, 0);
-  const v = clampNumber(value, 0, 1, 0);
-  const chroma = v * s;
-  const x = chroma * (1 - Math.abs((h % 2) - 1));
-  const match = v - chroma;
-  let red = 0;
-  let green = 0;
-  let blue = 0;
-
-  if (h < 1) {
-    red = chroma;
-    green = x;
-  } else if (h < 2) {
-    red = x;
-    green = chroma;
-  } else if (h < 3) {
-    green = chroma;
-    blue = x;
-  } else if (h < 4) {
-    green = x;
-    blue = chroma;
-  } else if (h < 5) {
-    red = x;
-    blue = chroma;
-  } else {
-    red = chroma;
-    blue = x;
-  }
-
-  return {
-    red: (red + match) * 255,
-    green: (green + match) * 255,
-    blue: (blue + match) * 255,
-  };
+  return globalThis.PhotoEditorColorCore.convertHsvToRgb(hue, saturation, value);
 }
 
 function applyPhotoEditorCurveStateToColor(
@@ -12758,131 +12391,11 @@ function applyPhotoEditorCurveStateToColor(
   blue,
   curveLookups
 ) {
-  let nextRed = red;
-  let nextGreen = green;
-  let nextBlue = blue;
-
-  if (curveLookups.hasRgbCurve) {
-    if (!curveLookups.rgbIdentity.master) {
-      nextRed = curveLookups.rgb.master[getPhotoEditorCurveLookupIndex(nextRed)];
-      nextGreen = curveLookups.rgb.master[getPhotoEditorCurveLookupIndex(nextGreen)];
-      nextBlue = curveLookups.rgb.master[getPhotoEditorCurveLookupIndex(nextBlue)];
-    }
-
-    if (!curveLookups.rgbIdentity.r) {
-      nextRed = curveLookups.rgb.r[getPhotoEditorCurveLookupIndex(nextRed)];
-    }
-
-    if (!curveLookups.rgbIdentity.g) {
-      nextGreen = curveLookups.rgb.g[getPhotoEditorCurveLookupIndex(nextGreen)];
-    }
-
-    if (!curveLookups.rgbIdentity.b) {
-      nextBlue = curveLookups.rgb.b[getPhotoEditorCurveLookupIndex(nextBlue)];
-    }
-  }
-
-  if (curveLookups.hasHsvCurve) {
-    const hsv = convertRgbToHsv(nextRed, nextGreen, nextBlue);
-    let hue = hsv.h;
-    let saturation = hsv.s;
-    let value = hsv.v;
-
-    if (!curveLookups.hsvIdentity.master) {
-      value = curveLookups.hsv.master[getPhotoEditorCurveLookupIndex(value, 1)];
-    }
-
-    if (!curveLookups.hsvIdentity.h) {
-      hue = curveLookups.hsv.h[getPhotoEditorCurveLookupIndex(hue, 1)];
-    }
-
-    if (!curveLookups.hsvIdentity.s) {
-      saturation = curveLookups.hsv.s[
-        getPhotoEditorCurveLookupIndex(saturation, 1)
-      ];
-    }
-
-    if (!curveLookups.hsvIdentity.v) {
-      value = curveLookups.hsv.v[getPhotoEditorCurveLookupIndex(value, 1)];
-    }
-
-    const mappedHsv = { h: hue, s: saturation, v: value };
-    const mappedRgb = convertHsvToRgb(mappedHsv.h, mappedHsv.s, mappedHsv.v);
-
-    nextRed = mappedRgb.red;
-    nextGreen = mappedRgb.green;
-    nextBlue = mappedRgb.blue;
-  }
-
-  return {
-    red: nextRed,
-    green: nextGreen,
-    blue: nextBlue,
-  };
+  return globalThis.PhotoEditorColorCore.applyPhotoEditorCurveStateToColor(red, green, blue, curveLookups);
 }
 
 function getPhotoEditorAdjustmentRenderParams(values, curveState = null) {
-  const brightness = clampNumber(values.brightness, -100, 100, 0);
-  const exposureFactor = Math.pow(
-    2,
-    clampNumber(values.exposure, -100, 100, 0) / 85
-  );
-  const contrast = clampNumber(values.contrast, -60, 60, 0) * 1.1;
-  const contrastFactor =
-    (259 * (contrast + 255)) / (255 * (259 - contrast));
-  const highlights = clampNumber(values.highlights, -60, 60, 0) * 0.95;
-  const whites = clampNumber(values.whites, -100, 100, 0) * 1.45;
-  const shadows = clampNumber(values.shadows, -100, 100, 0) * 1.08;
-  const blacks = clampNumber(values.blacks, -100, 100, 0) * 1.16;
-  const gamma = clampNumber(values.gamma, -100, 100, 0);
-  const gammaExponent = Math.pow(2, -gamma / 140);
-  const temperature = clampNumber(values.temperature, -100, 100, 0) * 1.05;
-  const tint = clampNumber(values.tint, -100, 100, 0) * 0.86;
-  const saturationFactor = Math.max(
-    0,
-    1 + clampNumber(values.saturation, -100, 100, 0) / 100
-  );
-  const vibrance = clampNumber(values.vibrance, -100, 100, 0) / 100;
-  const fade = clampNumber(values.fade, 0, 100, 0) / 100;
-  const grain = clampNumber(values.grain, 0, 100, 0) * 0.42;
-  const curveLookups = createPhotoEditorCurveLookups(curveState);
-  const hasCurve = curveLookups.hasRgbCurve || curveLookups.hasHsvCurve;
-
-  return {
-    brightness,
-    exposureFactor,
-    contrastFactor,
-    highlights,
-    whites,
-    shadows,
-    blacks,
-    gamma,
-    gammaExponent,
-    temperature,
-    tint,
-    saturationFactor,
-    vibrance,
-    fade,
-    grain,
-    curveLookups,
-    hasCurve,
-    hasPixelWork:
-      brightness !== 0 ||
-      exposureFactor !== 1 ||
-      contrast !== 0 ||
-      highlights !== 0 ||
-      whites !== 0 ||
-      shadows !== 0 ||
-      blacks !== 0 ||
-      gamma !== 0 ||
-      temperature !== 0 ||
-      tint !== 0 ||
-      saturationFactor !== 1 ||
-      vibrance !== 0 ||
-      fade !== 0 ||
-      grain !== 0 ||
-      hasCurve,
-  };
+  return globalThis.PhotoEditorColorCore.getPhotoEditorAdjustmentRenderParams(values, curveState);
 }
 
 function applyPhotoEditorAdjustmentsToCanvas(
@@ -12919,149 +12432,7 @@ function applyPhotoEditorAdjustmentsToCanvas(
 }
 
 function applyPhotoEditorPixelAdjustmentsToImageData(imageData, width, params) {
-  const data = imageData.data;
-  const {
-    brightness,
-    exposureFactor,
-    contrastFactor,
-    highlights,
-    whites,
-    shadows,
-    blacks,
-    gamma,
-    gammaExponent,
-    temperature,
-    tint,
-    saturationFactor,
-    vibrance,
-    fade,
-    grain,
-    curveLookups,
-    hasCurve,
-  } = params;
-  let x = 0;
-  let y = 0;
-
-  for (let index = 0; index < data.length; index += 4) {
-    let red = data[index];
-    let green = data[index + 1];
-    let blue = data[index + 2];
-    const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
-    const highlightWeight = smoothstep(0.44, 0.9, luminance);
-    const shadowWeight = 1 - smoothstep(0, 0.48, luminance);
-    const whiteWeight = Math.pow(smoothstep(0.66, 0.98, luminance), 0.92);
-    const blackWeight = Math.pow(1 - smoothstep(0, 0.34, luminance), 1.12);
-    const highlightLift = highlights * highlightWeight * (1 - whiteWeight * 0.72);
-
-    red += brightness + highlightLift + shadows * shadowWeight;
-    green += brightness + highlightLift + shadows * shadowWeight;
-    blue += brightness + highlightLift + shadows * shadowWeight;
-
-    if (whites !== 0) {
-      const whiteAmount = whites / 100;
-      const whitePush = Math.min(1, Math.abs(whiteAmount) * whiteWeight);
-      const whitePointLift = whites * whiteWeight * 0.22;
-
-      red += whitePointLift;
-      green += whitePointLift;
-      blue += whitePointLift;
-
-      if (whiteAmount > 0) {
-        red += (255 - red) * whitePush * 0.78;
-        green += (255 - green) * whitePush * 0.78;
-        blue += (255 - blue) * whitePush * 0.78;
-      } else {
-        red -= red * whitePush * 0.72;
-        green -= green * whitePush * 0.72;
-        blue -= blue * whitePush * 0.72;
-      }
-    }
-
-    red += blacks * blackWeight;
-    green += blacks * blackWeight;
-    blue += blacks * blackWeight;
-
-    red *= exposureFactor;
-    green *= exposureFactor;
-    blue *= exposureFactor;
-
-    red += temperature * 0.55;
-    green += temperature * 0.08;
-    blue -= temperature * 0.55;
-
-    red += tint * 0.28;
-    green -= tint * 0.46;
-    blue += tint * 0.28;
-
-    red = (red - 128) * contrastFactor + 128;
-    green = (green - 128) * contrastFactor + 128;
-    blue = (blue - 128) * contrastFactor + 128;
-
-    if (gamma !== 0) {
-      red = Math.pow(clampNumber(red, 0, 255, 0) / 255, gammaExponent) * 255;
-      green = Math.pow(clampNumber(green, 0, 255, 0) / 255, gammaExponent) * 255;
-      blue = Math.pow(clampNumber(blue, 0, 255, 0) / 255, gammaExponent) * 255;
-    }
-
-    if (fade > 0) {
-      const fadeCompression = fade * 0.36;
-      const fadeLift = 42 * fade;
-      red = red * (1 - fadeCompression) + fadeLift;
-      green = green * (1 - fadeCompression) + fadeLift;
-      blue = blue * (1 - fadeCompression) + fadeLift;
-    }
-
-    const gray = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-    red = gray + (red - gray) * saturationFactor;
-    green = gray + (green - gray) * saturationFactor;
-    blue = gray + (blue - gray) * saturationFactor;
-
-    if (vibrance !== 0) {
-      const vibranceGray = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-      const maxChannel = Math.max(red, green, blue);
-      const minChannel = Math.min(red, green, blue);
-      const pixelSaturation =
-        maxChannel <= 0 ? 0 : clampNumber((maxChannel - minChannel) / maxChannel, 0, 1, 0);
-      const vibranceWeight = vibrance > 0
-        ? Math.pow(1 - pixelSaturation, 1.25)
-        : 0.55 + pixelSaturation * 0.45;
-      const vibranceFactor = Math.max(0, 1 + vibrance * vibranceWeight * 0.9);
-
-      red = vibranceGray + (red - vibranceGray) * vibranceFactor;
-      green = vibranceGray + (green - vibranceGray) * vibranceFactor;
-      blue = vibranceGray + (blue - vibranceGray) * vibranceFactor;
-    }
-
-    if (grain > 0) {
-      const noise = getDeterministicNoise(x, y) * grain;
-      red += noise;
-      green += noise;
-      blue += noise;
-    }
-
-    if (hasCurve) {
-      const mappedColor = applyPhotoEditorCurveStateToColor(
-        red,
-        green,
-        blue,
-        curveLookups
-      );
-
-      red = mappedColor.red;
-      green = mappedColor.green;
-      blue = mappedColor.blue;
-    }
-
-    data[index] = clampColorChannel(red);
-    data[index + 1] = clampColorChannel(green);
-    data[index + 2] = clampColorChannel(blue);
-
-    x += 1;
-    if (x >= width) {
-      x = 0;
-      y += 1;
-    }
-  }
+  return globalThis.PhotoEditorColorCore.applyPhotoEditorPixelAdjustmentsToImageData(imageData, width, params);
 }
 
 function applyPhotoEditorDenoiseToCanvas(ctx, width, height, value) {
@@ -13550,46 +12921,10 @@ function applyPhotoEditorBlurEffectToCanvas(
 
 function getPhotoEditorSubjectMaskImageCacheEntry(subjectMask) {
   const normalizedMask = normalizePhotoEditorSubjectMaskState(subjectMask);
-  const cacheKey = normalizedMask.maskDataUrl;
-
-  if (!cacheKey) {
-    return null;
-  }
-
-  const cachedEntry = photoEditorSubjectMaskImageCache.get(cacheKey);
-
-  if (cachedEntry) {
-    return cachedEntry;
-  }
-
-  const image = new Image();
-  let resolveLoad = null;
-  const entry = {
-    image,
-    loaded: false,
-    failed: false,
-    loadPromise: new Promise((resolve) => {
-      resolveLoad = resolve;
-    }),
-  };
-
-  image.onload = () => {
-    entry.loaded = true;
-    entry.failed = false;
-    resolveLoad?.(entry);
-    if (photoEditorState) {
-      schedulePhotoEditorRender();
-    }
-  };
-  image.onerror = () => {
-    entry.failed = true;
-    resolveLoad?.(entry);
-  };
-  image.decoding = 'async';
-  image.src = cacheKey;
-  photoEditorSubjectMaskImageCache.set(cacheKey, entry);
-
-  return entry;
+  return PhotoEditorImageResources.getOrLoad(photoEditorSubjectMaskImageCache, normalizedMask.maskDataUrl, {
+    createImage: () => new Image(),
+    onReady: () => { if (photoEditorState) schedulePhotoEditorRender(); },
+  });
 }
 
 function normalizePhotoEditorMaskCanvasAlpha(maskCanvas, { invert = false } = {}) {
@@ -16268,7 +15603,9 @@ function applyPhotoEditorAdjustmentLivePreview() {
 }
 
 async function renderPhotoEditorPreview() {
-  if (!photoEditorState?.sourceImage || !photoEditorCanvas) {
+  const owner = photoEditorState;
+
+  if (!photoEditorSession.isActive(owner) || !owner?.sourceImage || !photoEditorCanvas) {
     return;
   }
 
@@ -16311,7 +15648,7 @@ async function renderPhotoEditorPreview() {
         }
       );
 
-      if (renderToken !== photoEditorPreviewRenderToken || !photoEditorState) {
+      if (renderToken !== photoEditorPreviewRenderToken || !photoEditorSession.isActive(owner)) {
         workerResult?.bitmap?.close?.();
         return;
       }
@@ -16323,7 +15660,7 @@ async function renderPhotoEditorPreview() {
         didRenderWithWorker = true;
       }
     } catch (error) {
-      if (renderToken !== photoEditorPreviewRenderToken || !photoEditorState) {
+      if (renderToken !== photoEditorPreviewRenderToken || !photoEditorSession.isActive(owner)) {
         return;
       }
 
@@ -16341,7 +15678,7 @@ async function renderPhotoEditorPreview() {
     }
   }
 
-  if (renderToken !== photoEditorPreviewRenderToken || !photoEditorState) {
+  if (renderToken !== photoEditorPreviewRenderToken || !photoEditorSession.isActive(owner)) {
     return;
   }
 
@@ -16564,6 +15901,7 @@ function resetPhotoEditorAll() {
     return;
   }
 
+  invalidatePhotoEditorSubjectMaskRequest();
   beginPhotoEditorHistoryMutation();
   photoEditorState.values = clonePhotoEditValues();
   photoEditorState.adjustmentTarget = 'whole';
@@ -20346,6 +19684,8 @@ function closePhotoEditorModal() {
     return;
   }
 
+  // Close the session before animation: cancel history timers and all pending results.
+  photoEditorSession.deactivate();
   photoEditorPreviewRenderToken += 1;
   photoEditorPreviewCommittedValues = null;
   clearPhotoEditorAdjustmentLivePreview();
@@ -20415,18 +19755,19 @@ function closePhotoEditorModal() {
 function loadPhotoEditorSourceImage(photo, state) {
   return new Promise((resolve, reject) => {
     const image = new Image();
-    const loadToken = Symbol('photo-editor-load');
-    state.loadToken = loadToken;
+    const request = photoEditorSession.beginRequest('source-image');
 
     image.onload = () => {
-      if (photoEditorState !== state || state.loadToken !== loadToken) {
+      if (!photoEditorSession.isActive(state) || !photoEditorSession.isRequestCurrent(request)) {
         reject(new Error('画像読み込みがキャンセルされました'));
         return;
       }
 
+      photoEditorSession.finishRequest(request);
       resolve(image);
     };
     image.onerror = () => {
+      photoEditorSession.finishRequest(request);
       reject(new Error('画像を読み込めませんでした'));
     };
     image.decoding = 'async';
@@ -20449,6 +19790,7 @@ async function openPhotoEditorModal() {
   photoEditorPreviewCommittedValues = null;
   clearPhotoEditorAdjustmentLivePreview();
   photoEditorState = nextState;
+  photoEditorSession.activate(nextState);
 
   if (photoEditorFileName) {
     photoEditorFileName.textContent = currentModalPhoto.fileName || '-';
@@ -20462,7 +19804,7 @@ async function openPhotoEditorModal() {
   try {
     const image = await loadPhotoEditorSourceImage(currentModalPhoto, nextState);
 
-    if (photoEditorState !== nextState) {
+    if (!photoEditorSession.isActive(nextState)) {
       return;
     }
 
@@ -20470,7 +19812,7 @@ async function openPhotoEditorModal() {
     syncPhotoEditorUi();
     schedulePhotoEditorRender();
   } catch (error) {
-    if (photoEditorState === nextState) {
+    if (photoEditorSession.isActive(nextState)) {
       setPhotoEditorStatus(error.message || '画像を読み込めませんでした');
     }
   }
@@ -20574,6 +19916,21 @@ async function renderPhotoEditorExportDataUrl(
   exportSettings,
   { transparentSubjectBackground = false } = {}
 ) {
+  const owner = photoEditorState;
+  const snapshot = JSON.stringify(capturePhotoEditorHistorySnapshot());
+  const maskEditCanvas = photoEditorSubjectMaskEditCanvas;
+  const resourceChecks = [];
+  const assertUnchangedEditor = () => {
+    if (!photoEditorSession.isActive(owner) || photoEditorSubjectMaskEditCanvas !== maskEditCanvas ||
+      JSON.stringify(capturePhotoEditorHistorySnapshot()) !== snapshot) {
+      throw new Error('画像読み込みがキャンセルされました');
+    }
+  };
+  const assertCurrentEditor = () => {
+    assertUnchangedEditor();
+    for (const check of resourceChecks) check();
+  };
+  assertCurrentEditor();
   const fixedOutputSize = getPhotoEditorFixedOutputSize(photoEditorState?.crop);
   const renderBase = drawPhotoEditorBaseToCanvas(exportCanvas, {
     maxEdge: exportSettings.maxEdge > 0 ? exportSettings.maxEdge : null,
@@ -20599,11 +19956,21 @@ async function renderPhotoEditorExportDataUrl(
   }
 
   if (hasImageOverlays) {
-    await waitForPhotoEditorImageOverlaysToLoad(imageOverlays);
+    resourceChecks.push(await waitForPhotoEditorImageOverlaysToLoad(imageOverlays, {
+      assertCurrent: assertUnchangedEditor, returnGuard: true,
+    }));
+    assertCurrentEditor();
   }
 
   if (hasSubjectMask) {
-    await waitForPhotoEditorSubjectMaskToLoad(photoEditorState.subjectMask);
+    resourceChecks.push(await waitForPhotoEditorSubjectMaskToLoad(owner.subjectMask, {
+      assertCurrent: assertUnchangedEditor, returnGuard: true,
+    }));
+    assertCurrentEditor();
+  }
+
+  if (hasTextOverlays) {
+    await waitForPhotoEditorTextFontsToLoad(textOverlays, { assertCurrent: assertCurrentEditor });
   }
 
   try {
@@ -20625,6 +19992,12 @@ async function renderPhotoEditorExportDataUrl(
       }
     );
 
+    try {
+      assertCurrentEditor();
+    } catch (error) {
+      workerResult?.bitmap?.close?.();
+      throw error;
+    }
     if (needsMainOverlayPass && workerResult?.bitmap) {
       renderBase.ctx.clearRect(
         0,
@@ -20671,6 +20044,7 @@ async function renderPhotoEditorExportDataUrl(
       };
     }
   } catch (error) {
+    assertCurrentEditor();
     applyPhotoEditorEffectsToCanvas(
       renderBase.ctx,
       renderBase.outputSize,
@@ -20730,6 +20104,7 @@ function buildPhotoEditorSourceMetadataPayload(sourcePhoto) {
     worldName: sourcePhoto.rawWorldName || sourcePhoto.worldName,
     worldNameManual: sourcePhoto.worldNameManual,
     worldUrl: sourcePhoto.worldUrl,
+    worldIdentitySource: sourcePhoto.worldIdentitySource || 'legacy',
     isFavorite: Boolean(sourcePhoto.isFavorite),
     printNoteText: sourcePhoto.printNoteText,
     memoText: sourcePhoto.memoText,
@@ -20737,85 +20112,70 @@ function buildPhotoEditorSourceMetadataPayload(sourcePhoto) {
   };
 }
 
-async function savePhotoEditorImage({ transparentSubjectBackground = false } = {}) {
-  if (!photoEditorState?.sourceImage || photoEditorState.isSaving) {
-    return;
-  }
+function persistPhotoEditorExport(payload) {
+  return window.electronAPI.saveEditedPhoto(payload);
+}
 
+async function synchronizePhotoEditorSavedResult(result, { isCurrent }) {
+  // A saved file still belongs in the library after closing its editor. Check
+  // ownership after refreshing too: the user may navigate during that await.
+  await refreshSidebar();
+  await restoreMonthViewAfterDataChange({
+    preferredSelection: isCurrent() ? result.importResult?.selectedMonth : currentSelection,
+    fallbackSelection: currentSelection,
+  });
+  await queueWorldMetadataSyncForResult(result.importResult);
+}
+
+const photoEditorSaveController = PhotoEditorSave.createController({
+  session: photoEditorSession,
+  render: (settings, options) => renderPhotoEditorExportDataUrl(
+    document.createElement('canvas'), settings, options
+  ),
+  persist: (payload) => persistPhotoEditorExport(payload),
+  synchronize: (result, context) => synchronizePhotoEditorSavedResult(result, context),
+  onStart: () => setPhotoEditorSaving(true),
+  onFinish: () => setPhotoEditorSaving(false),
+});
+
+async function savePhotoEditorImage({ transparentSubjectBackground = false } = {}) {
+  const state = photoEditorState;
+  if (!state?.sourceImage || state.isSaving || !photoEditorSession.isActive(state)) return;
   if (!window.electronAPI.saveEditedPhoto) {
     setPhotoEditorStatus('保存機能を利用できません');
     return;
   }
-
   if (transparentSubjectBackground && !hasPhotoEditorReadySubjectMask()) {
     setPhotoEditorStatus('背景透過で保存するにはAI被写体選択のマスクが必要です');
     return;
   }
-
-  setPhotoEditorSaving(true);
-  setPhotoEditorStatus(
-    transparentSubjectBackground ? '背景透過PNGを保存中...' : '保存中...'
-  );
-
+  setPhotoEditorStatus(transparentSubjectBackground ? '背景透過PNGを保存中...' : '保存中...');
   try {
-    const exportCanvas = document.createElement('canvas');
-    const baseExportSettings = getPhotoEditorEffectiveExportSettings(
-      photoEditorState.exportSettings
-    );
-    const exportSettings = transparentSubjectBackground
-      ? normalizePhotoEditorExportSettings({
-          ...baseExportSettings,
-          format: 'png',
-        })
-      : baseExportSettings;
-    const renderResult = await renderPhotoEditorExportDataUrl(
-      exportCanvas,
-      exportSettings,
-      { transparentSubjectBackground }
-    );
-
-    if (!renderResult?.dataUrl) {
-      throw new Error('編集結果を描画できませんでした');
-    }
-
-    const sourcePhoto = photoEditorState.sourcePhoto;
-    const result = await window.electronAPI.saveEditedPhoto({
-      sourceFilePath: sourcePhoto.filePath,
-      sourceFileName: sourcePhoto.fileName,
-      sourceTakenAtTimestamp: sourcePhoto.takenAtTimestamp,
-      sourcePhotoMetadata: buildPhotoEditorSourceMetadataPayload(sourcePhoto),
-      outputFormat: exportSettings.format,
-      outputQuality: exportSettings.quality,
-      dataUrl: renderResult.dataUrl,
+    const baseSettings = getPhotoEditorEffectiveExportSettings(state.exportSettings);
+    const outcome = await photoEditorSaveController.save({
+      state,
+      sourceMetadata: buildPhotoEditorSourceMetadataPayload(state.sourcePhoto),
+      exportSettings: transparentSubjectBackground
+        ? normalizePhotoEditorExportSettings({ ...baseSettings, format: 'png' })
+        : baseSettings,
+      transparentSubjectBackground,
     });
-
-    if (result?.canceled) {
+    if (!photoEditorSession.isActive(state)) return;
+    const result = outcome.result;
+    if (outcome.kind === 'canceled') {
       setPhotoEditorStatus('保存をキャンセルしました');
-      return;
-    }
-
-    if (!result?.ok) {
+    } else if (outcome.kind === 'failed') {
       setPhotoEditorStatus(result?.message || '保存に失敗しました');
-      return;
-    }
-
-    if (result.importResult && !result.importFailed) {
-      await restorePhotoDataSelectionFromResult(result.importResult, currentSelection);
-      await queueWorldMetadataSyncForResult(result.importResult);
-    }
-
-    closePhotoEditorModal();
-    showToast(
-      result.importFailed
+    } else if (outcome.kind === 'saved') {
+      closePhotoEditorModal();
+      showToast(result.importFailed
         ? `保存しました（登録は未反映）: ${result.fileName || ''}`
         : transparentSubjectBackground
           ? `背景透過PNGを保存しました: ${result.fileName || ''}`
-          : `編集済み画像を保存しました: ${result.fileName || ''}`
-    );
+          : `編集済み画像を保存しました: ${result.fileName || ''}`);
+    }
   } catch (error) {
-    setPhotoEditorStatus(`保存に失敗しました: ${error.message}`);
-  } finally {
-    setPhotoEditorSaving(false);
+    if (photoEditorSession.isActive(state)) setPhotoEditorStatus(`保存に失敗しました: ${error.message}`);
   }
 }
 

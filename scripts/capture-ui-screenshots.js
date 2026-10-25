@@ -11,15 +11,25 @@ const ALLOWED_UNTRANSLATED_TEXTS = ['日本語'];
 
 const RUN_ID = createRunId();
 const SMOKE_ROOT = path.join(os.tmpdir(), `worldshot-ui-screenshots-${RUN_ID}`);
+const SMOKE_HOME = path.join(SMOKE_ROOT, 'Home');
 const SMOKE_APPDATA = path.join(SMOKE_ROOT, 'AppData', 'Roaming');
 const SMOKE_LOCALAPPDATA = path.join(SMOKE_ROOT, 'AppData', 'Local');
 ensureDir(SMOKE_APPDATA);
 ensureDir(SMOKE_LOCALAPPDATA);
+ensureDir(path.join(SMOKE_HOME, 'Documents'));
+ensureDir(path.join(SMOKE_HOME, 'Pictures'));
 process.env.APPDATA = SMOKE_APPDATA;
 process.env.LOCALAPPDATA = SMOKE_LOCALAPPDATA;
+process.env.WORLDSHOT_APPDATA_ROOT = SMOKE_APPDATA;
+process.env.WORLDSHOT_HOME_ROOT = SMOKE_HOME;
+process.env.WORLDSHOT_LOCALAPPDATA_ROOT = SMOKE_LOCALAPPDATA;
 
 const { app, BrowserWindow } = require('electron');
 const { initDatabase } = require('../src/db');
+// Thumbnail migration uses home independently of the Electron appData paths.
+app.setPath('home', SMOKE_HOME);
+app.setPath('documents', path.join(SMOKE_HOME, 'Documents'));
+app.setPath('pictures', path.join(SMOKE_HOME, 'Pictures'));
 app.setPath('appData', SMOKE_APPDATA);
 app.setPath('userData', path.join(SMOKE_APPDATA, 'WorldShot Log'));
 
