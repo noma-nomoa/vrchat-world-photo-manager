@@ -41,7 +41,8 @@
 - GitHubのv2.5.4ドラフトへ配布物3点をアップロード済み。GitHub側のasset digestと上記SHA-256の一致を確認しています。
 - GitHubの使い捨てWindows環境による[実インストール検証](https://github.com/noma-nomoa/vrchat-world-photo-manager/actions/runs/40163732485)が3経路すべて成功しました。新規導入、v2.5.3からSetupによる上書き導入、旧Squirrelによる更新で、インストール登録・ショートカット・配布物89ファイルの一致を確認しました。
 - 実際の旧版で登録した合成写真、お気に入り、日本語メモ、手動World名、ラベル・色、テーマを新版の起動・再起動後に照合しました。各経路で配布版のSQLite・Worker・同梱AI実推論・Undo/Redoも成功し、通常終了しています。
-- 正式公開と、公開後の`update.electronjs.org`による配信確認は未完了です。
+- 2026年10月25日14:00 JSTに[v2.5.4を正式公開](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases/tag/v2.5.4)しました。Latest、draft=false、prerelease=falseを確認。公開タグは`e4071a59129e5439555d801c02ff4eaabe738f5f`です。
+- 通常の`update.electronjs.org` URLで、v2.5.3からv2.5.4がHTTP 200で案内され、RELEASESのパッケージ名・サイズ・SHA-1が配布物と一致しました。v2.5.4自身からはHTTP 204です。キャッシュ回避パラメータは使用していません。[配信確認結果](../out/security-release-2026-10-25/public-feed.json)、[公開結果の一覧](../out/security-release-2026-10-25/release-result.json)。
 
 実インストール用CIは、完成済み配布物を実行し、チェックアウト側にはASAR・Fuse検査用のJavaScript依存だけを`npm ci --ignore-scripts`で用意します。最初の実行は準備段階で不要なSQLite再ビルドが走り、ホストのVisual Studio検出に失敗しました。また写真登録の検証コードを、実際のrendererと同じ`Array<File>`を渡す形式に修正しました。成功したCIのコミットは`b9585090ce207d067641eb27e7502dc24f62e9ad`です。ビルド元から変えたのは配布対象外のCI・検証用コードだけで、配布物は再生成していません。この依存導入手順は開発用ビルド環境の構築手順ではありません。
 

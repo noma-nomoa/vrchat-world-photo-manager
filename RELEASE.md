@@ -353,15 +353,15 @@ GitHub Release に配布物があっても、更新サービスが古いキャ�
 
 ## 12. 現在の公開版
 
-2026年9月11日に GitHub Releases API で確認した公開版:
+2026年10月25日に GitHub Releases API と自動更新サービスで確認した公開版:
 
-- `v2.5.3`
+- [v2.5.4](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases/tag/v2.5.4)
 
 対応する変更点ファイル:
 
-- `release-notes/v2.5.3.md`
+- `release-notes/v2.5.4.md`
 
-次の `v2.5.4` はローカルで公開準備中です。ビルドの成功とリリースの公開は区別し、公開前に [今回の検証記録](./docs/release-preparation-v2.5.4.md) の未確認項目を解消してください。
+全体回帰20項目、配布版の機能確認、新規導入・Setup上書き・Squirrel更新の3経路が成功しています。旧版v2.5.3から最新版の配信、最新版自身では更新なし（HTTP 204）も確認済みです。[今回の検証記録](./docs/release-preparation-v2.5.4.md)を参照してください。
 
 ---
 
