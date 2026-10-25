@@ -73,7 +73,9 @@ jobs:
           node-version: '24.22.1'
           cache: npm
       - name: Install verification dependencies
-        run: npm ci
+        # Tests execute the installed release, including its native modules.
+        # Only JS archive/fuse inspection helpers are needed from this checkout.
+        run: npm ci --ignore-scripts
       - name: Download authenticated release inputs
         uses: actions/download-artifact@v4
         with:
