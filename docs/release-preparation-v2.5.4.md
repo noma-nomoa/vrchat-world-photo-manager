@@ -9,9 +9,45 @@
 - `check:security`で承認したElectron/Chromium/Nodeの組合せと正常なBrotliデータの往復を検証します。実行ファイルのSHA-256と根拠URLも出力します。不正入力による攻撃成立の再現試験ではありません。また、Nodeの同日発表のすべてのCVEを解消したとする検証ではありません。
 - ExifReaderを4.52.0、xmldomを0.9.12、protobufjsを7.6.6へ更新。配布対象依存の`npm audit --omit=dev`は警告0件です。Forgeなど開発依存の警告は別に残っており、全依存が警告0件という意味ではありません。
 - better-sqlite3を13.0.3へ更新。ElectronのABIに依存しない公式N-APIバイナリを使用し、配布時はWindows x64版だけを同梱します。既存のDB・バックアップ検証を再実行しています。
-- 全体回帰チェックは20/20成功。[実行結果](../out/regression-checks/2026-10-25T04-41-40-270Z-23760/result.json)。ExifReaderのUTF-8処理修正に合わせ、原本の日本語と一致する3件の生タグ期待値のみを更新しました。
+- 最終の全体回帰チェックは20/20成功。[実行結果](../out/regression-checks/2026-10-25T04-44-18-446Z-45912/result.json)。ExifReaderのUTF-8処理修正に合わせ、原本の日本語と一致する3件の生タグ期待値のみを更新しました。
 
-Windows配布物の生成・実インストール検証・公開確認は、このセクションに新しい結果を追記します。利用中のアプリや元DBにインストールして検証せず、実インストーラはGitHubの使い捨てWindows環境で検証します。
+### 最終ローカル候補と確認結果
+
+公開用候補は [`out/review-candidate-v9AnlX`](../out/review-candidate-v9AnlX/) です。ビルド元のGitコミットは `1a142703ab712b12eef6881a57afcef4c030fcd1`。上記の回帰チェックを入力にした [ビルド記録](../out/review-candidate-v9AnlX/candidate.json) では、次の6工程がすべて成功しています。
+
+| 工程 | 結果 |
+| --- | --- |
+| Git差分の検査 | 成功 |
+| インストーラ生成処理への既存パッチ適用 | 成功 |
+| Windowsアプリ・Squirrel配布物の生成 | 成功 |
+| 配布版の起動・機能スモークテスト | 成功 |
+| 隔離した確認用プロファイルの生成 | 成功 |
+| 確認用プロファイルでの画面・動作スモークテスト | 成功 |
+
+候補記録は `ok: true`、`status: ready-for-user-review` です。候補生成時点の記録にある`releaseReady: false`は変更せず、後続の実インストール・公開・配信確認は以下に別途記録します。
+
+### 今回の配布物
+
+配布用の3ファイルは [`build/make/squirrel.windows/x64`](../out/review-candidate-v9AnlX/build/make/squirrel.windows/x64/) にあります。以下は今回の候補記録と照合した値です。再ビルド時は改めてハッシュと検証結果を確定します。
+
+| ファイル | バイト数 | SHA-256 |
+| --- | ---: | --- |
+| `WorldShotLogSetup.exe` | 235490304 | `3f7235478efc5e7a3b63311b26d2a67f25ef37410d9b1182a4da89947aed6295` |
+| `worldshot_log-2.5.4-full.nupkg` | 235079843 | `97add18356784e8bf69585edfbb4f223d4e764756aab8919fbff1d5827a43db4` |
+| `RELEASES` | 84 | `3f5002b65c6a7c5a05a26c5116083d3d206c765d49182a8bd27fb2b82ef584a5` |
+
+### 実インストール検証と公開準備
+
+- GitHubのv2.5.4ドラフトへ配布物3点をアップロード済み。GitHub側のasset digestと上記SHA-256の一致を確認しています。
+- GitHubの使い捨てWindows環境による[実インストール検証](https://github.com/noma-nomoa/vrchat-world-photo-manager/actions/runs/40163732485)が3経路すべて成功しました。新規導入、v2.5.3からSetupによる上書き導入、旧Squirrelによる更新で、インストール登録・ショートカット・配布物89ファイルの一致を確認しました。
+- 実際の旧版で登録した合成写真、お気に入り、日本語メモ、手動World名、ラベル・色、テーマを新版の起動・再起動後に照合しました。各経路で配布版のSQLite・Worker・同梱AI実推論・Undo/Redoも成功し、通常終了しています。
+- 正式公開と、公開後の`update.electronjs.org`による配信確認は未完了です。
+
+実インストール用CIは、完成済み配布物を実行し、チェックアウト側にはASAR・Fuse検査用のJavaScript依存だけを`npm ci --ignore-scripts`で用意します。最初の実行は準備段階で不要なSQLite再ビルドが走り、ホストのVisual Studio検出に失敗しました。また写真登録の検証コードを、実際のrendererと同じ`Array<File>`を渡す形式に修正しました。成功したCIのコミットは`b9585090ce207d067641eb27e7502dc24f62e9ad`です。ビルド元から変えたのは配布対象外のCI・検証用コードだけで、配布物は再生成していません。この依存導入手順は開発用ビルド環境の構築手順ではありません。
+
+旧版のUpdate.exeをコピーした隔離環境では、v2.5.3からv2.5.4の選択・取得、89ファイルの展開内容一致、展開後のアプリ起動・SQLite・Worker・実AI処理・Undo/Redo・正常終了が成功しました。[パッケージ検証結果](../out/upgrade-harness-dcd4d941/run-izLwY5/result.json)。HTTPでの取得、破損データのSHA不一致拒否、正常な再取得による回復も成功しています。[HTTP検証結果](../out/upgrade-harness-dcd4d941/http-run-675lG3/result.json)。元のインストール済みファイル・ショートカット・アンインストール登録は前後で不変です。この隔離検証は実際のインストール適用とは別の確認です。
+
+利用中のアプリや元DBへのインストール検証は行いません。以下の9月11日の記録は履歴として保存し、今回の配布物に対する検証結果とは区別します。
 
 ## 2026年9月11日: 以前の候補の記録
 
