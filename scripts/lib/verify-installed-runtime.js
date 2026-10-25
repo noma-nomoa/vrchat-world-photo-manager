@@ -65,7 +65,9 @@ async function main() {
       const { root } = await protocol.send('DOM.getDocument', {}, sessionId);
       const { nodeId } = await protocol.send('DOM.querySelector', { nodeId: root.nodeId, selector: '#ci-import-fixture' }, sessionId);
       await protocol.send('DOM.setFileInputFiles', { nodeId, files: [fixture] }, sessionId);
-      const imported = await evaluate("electronAPI.importDroppedFiles(document.getElementById('ci-import-fixture').files)");
+      // The renderer passes an Array<File>; FileList itself is not preserved
+      // when Electron copies arguments across the isolated context bridge.
+      const imported = await evaluate("electronAPI.importDroppedFiles(Array.from(document.getElementById('ci-import-fixture').files))");
       assert.equal(imported.importedCount, 1, JSON.stringify(imported));
       const edits = await evaluate(`(async () => {
         const month = await electronAPI.getLatestMonth();
