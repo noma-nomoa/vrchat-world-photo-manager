@@ -131,7 +131,9 @@ DBの既存列・全行の値・シーケンス、整合性検査、外部キー
 
 公開中の基準版は [v2.5.3](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases/tag/v2.5.3) です。旧NUPKGのSHA-256 `f80dea2d2b9c38a0b11bee7fcb2ae51129902d7f1de3b140bfffa7bc01e426da` が公式Releaseのasset digestと一致しています。
 
-## 公開前に残る確認
+## 公開前に残っていた確認（9月11日時点）
+
+この節は9月11日時点の記録です。2026年10月25日に、GitHubの使い捨てWindows環境で新規導入・v2.5.3からのSetup上書き・旧Squirrelによる更新の3経路を検証して公開し、公開後の配信も確認しました。結果は上の「[実インストール検証と公開準備](#実インストール検証と公開準備)」を参照してください。利用中のPCへのインストール確認は行っていません。
 
 このPCは Windows 11 Home で、Windows Sandbox や既存の仮想Windows環境は利用できません。Squirrelの実インストール・更新はユーザーのアンインストール登録やショートカットも変更します。環境変数による保存先変更だけでは、利用中のWindowsから隔離したインストール検証になりません。
 
