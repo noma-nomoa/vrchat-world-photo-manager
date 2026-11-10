@@ -13,6 +13,13 @@ const PACKAGER_IGNORE_PATTERNS = [
   /^\/\.git($|\/)/,
   /^\/\.github($|\/)/,
   /^\/\.gitignore$/,
+  // Local-only maintainer notes, agent tool folders and logs.
+  /^\/\.agents($|\/)/,
+  /^\/\.codex($|\/)/,
+  /^\/\.claude($|\/)/,
+  /^\/(AGENTS|CLAUDE|AI_MAINTENANCE_GUIDE|STATUS)\.md$/,
+  /^\/HANDOFF[^/]*\.md$/,
+  /^\/[^/]+\.log$/,
   /^\/assets($|\/)/,
   /^\/docs($|\/)/,
   /^\/index\.html$/,
@@ -32,6 +39,11 @@ const PACKAGER_IGNORE_PATTERNS = [
   /^\/img\/vrc($|\/)/,
   /^\/src\/renderer\.js\.bak-corrupt$/,
   /^\/node_modules\/better-sqlite3\/prebuilds\/(?!win32-x64\.node$)/,
+  // index.html loads only dist/ort.min.js from the archive. The wasm runtime
+  // and models ship once through extraResource, so keep /resources out of
+  // the archive (packaged builds read them from process.resourcesPath).
+  /^\/node_modules\/onnxruntime-web\/(?!package\.json$|dist$|dist\/ort\.min\.js$)/,
+  /^\/resources($|\/)/,
 ];
 
 module.exports = {

@@ -35,11 +35,25 @@ function inspectArchive(exePath) {
   const archivePath = path.join(path.dirname(exePath), 'resources', 'app.asar');
   assert(fs.existsSync(archivePath), `Missing ASAR: ${archivePath}`);
   const entries = asar.listPackage(archivePath).map(entry => entry.replaceAll('\\', '/'));
-  const excludedRoots = ['scripts', 'docs', 'out', 'test_pic', '.github'];
+  const excludedRoots = ['scripts', 'docs', 'out', 'test_pic', '.github', 'resources'];
   for (const root of excludedRoots) {
     assert(!entries.some(entry => entry === `/${root}` || entry.startsWith(`/${root}/`)),
       `${root} must not ship in the application archive`);
   }
+  // Allow-list the archive root so local-only notes, tool folders and logs
+  // cannot ship unnoticed. Extend this list deliberately with forge.config.js.
+  const allowedRoots = new Set(['img', 'node_modules', 'src', 'package.json', 'forge.config.js',
+    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md', 'README.en.md', 'README.ko.md', 'RELEASE.md']);
+  const unexpectedRoots = [...new Set(entries.map(entry => entry.split('/')[1]))]
+    .filter(root => !allowedRoots.has(root));
+  assert.deepEqual(unexpectedRoots, [], 'Unexpected files at the application archive root');
+  // The renderer loads only dist/ort.min.js from the archive; the wasm runtime
+  // ships once under resources/onnxruntime-web (see forge.config.js).
+  const ortRoot = '/node_modules/onnxruntime-web/';
+  assert.deepEqual(
+    entries.filter(entry => entry.startsWith(ortRoot)).sort(),
+    [`${ortRoot}dist`, `${ortRoot}dist/ort.min.js`, `${ortRoot}package.json`],
+    'onnxruntime-web must ship only dist/ort.min.js in the application archive');
   const runtimeFiles = RUNTIME_FILES.map(file => {
     const packed = asar.extractFile(archivePath, path.normalize(file));
     const checkout = fs.readFileSync(path.join(REPO_ROOT, file));
@@ -58,10 +72,14 @@ function inspectArchive(exePath) {
   assert(nativeEntry, 'Packaged SQLite native module is missing');
   assert(asar.statFile(archivePath, path.normalize(nativeEntry.slice(1))).unpacked, 'SQLite must be unpacked from ASAR');
   assert(fs.existsSync(path.join(`${archivePath}.unpacked`, nativeEntry.slice(1))), 'Unpacked SQLite binary is missing');
-  const resourceFiles = ['models/u2netp/model.onnx', 'onnxruntime-web/ort-wasm-simd-threaded.wasm'];
+  // ort.min.js imports only the JSEP loader, which fetches its own wasm.
+  const ortResourceFiles = ['ort-wasm-simd-threaded.jsep.mjs', 'ort-wasm-simd-threaded.jsep.wasm'];
+  const resourceFiles = ['models/u2netp/model.onnx', ...ortResourceFiles.map(file => `onnxruntime-web/${file}`)];
   for (const file of resourceFiles) {
     assert(fs.statSync(path.join(path.dirname(archivePath), file)).size > 0, `Missing offline AI resource: ${file}`);
   }
+  assert.deepEqual(fs.readdirSync(path.join(path.dirname(archivePath), 'onnxruntime-web')).sort(), ortResourceFiles,
+    'Only the wasm runtime variant that ort.min.js loads may ship');
   return { archivePath, runtimeFiles, nativeEntry, resourceFiles, excludedRoots };
 }
 
