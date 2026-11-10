@@ -12,7 +12,7 @@
 
 実画面でも9枚・3か月・2年の合成DBを使い、39シナリオを切り出し前に通した。表示中のカード順・件数・空表示、検索入力の確定とIME、検索範囲、フィルター、選択維持と選択解除、月／年の切替を確認する。
 
-[実画面の切り出し前](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-photo-list/worldshot-photo-list-VPW7CE/result.json) ／ [切り出し後](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-photo-list/worldshot-photo-list-57boGb/result.json)。元の合成画像9枚のSHAも不変。
+[実画面の切り出し前](../out/smoke-photo-list/worldshot-photo-list-VPW7CE/result.json) ／ [切り出し後](../out/smoke-photo-list/worldshot-photo-list-57boGb/result.json)。元の合成画像9枚のSHAも不変。
 
 **メタデータとレコード生成**
 
@@ -38,14 +38,14 @@
 
 **最終検証**
 
-[一括16チェック](C:/Users/tyusk/vrchat-world-photo-manager/out/regression-checks/2026-09-10T03-45-57-805Z-4992/result.json) はすべて終了コード0。
+[一括16チェック](../out/regression-checks/2026-09-10T03-45-57-805Z-4992/result.json) はすべて終了コード0。
 
 - 全JavaScript54ファイルの構文検査、単体383件、既存色補正2,185ケース、翻訳監査の漏れ0を確認。
 - 一覧39シナリオと、既存のマスク55・保存競合14・素材競合18・Worker6・画像保存26・座標・ブラシ・プリセットを確認。
 - 旧DB互換、バックアップ検証150・実復元23・World情報24が通過。
-- 最終保存の [manual](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-export/worldshot-export-dd90Vv/result.json) ／ [legacy](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-export/worldshot-export-FQSJLz/result.json) のPNG各5種類は、先行修正前baselineと全画素hashが一致。原本SHAも不変。[プリセット4種](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-presets/20260910-124629/result.json) も同じbaselineの画素hash・統計と一致。
+- 最終保存の [manual](../out/smoke-export/worldshot-export-dd90Vv/result.json) ／ [legacy](../out/smoke-export/worldshot-export-FQSJLz/result.json) のPNG各5種類は、先行修正前baselineと全画素hashが一致。原本SHAも不変。[プリセット4種](../out/smoke-presets/20260910-124629/result.json) も同じbaselineの画素hash・統計と一致。
 
-通常のForge設定で別の隔離出力先へ再ビルドし、[実EXEの検証](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-packaged/worldshot-packaged-smoke-ggIrZU/result.json) も成功した。新5モジュールを含む15ファイルのASAR／ソースSHA一致、6種類の設定済みFuse、テスト資材の除外、SQLite IPC、実Worker6パターンの全画素一致、同梱U2NetP＋WASMによるマスク生成・Undo/Redoを確認。正常終了コード0、強制終了なし、残留プロセスなし。[ビルド記録](C:/Users/tyusk/vrchat-world-photo-manager/out/package-structure-20260910-OmH94T/build-result.json) では開発環境のSQLiteバイナリーhashも不変。
+通常のForge設定で別の隔離出力先へ再ビルドし、[実EXEの検証](../out/smoke-packaged/worldshot-packaged-smoke-ggIrZU/result.json) も成功した。新5モジュールを含む15ファイルのASAR／ソースSHA一致、6種類の設定済みFuse、テスト資材の除外、SQLite IPC、実Worker6パターンの全画素一致、同梱U2NetP＋WASMによるマスク生成・Undo/Redoを確認。正常終了コード0、強制終了なし、残留プロセスなし。[ビルド記録](../out/package-structure-20260910-OmH94T/build-result.json) では開発環境のSQLiteバイナリーhashも不変。
 
 独立レビューでは、共有の同時実行処理とメタデータ41関数が旧実装と構文木で一致。レコード生成はI/O・時計の受け渡し、取り込み手順は関数名・並列数の受け渡し・未使用変数削除以外の変更がないことを確認した。静的な未宣言参照の候補も到達経路を追い、既存の到達不能な旧更新処理を今回の修正に混ぜていない。
 

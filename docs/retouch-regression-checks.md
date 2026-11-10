@@ -2,7 +2,7 @@
 
 既存ユーザーの機能・出力を維持するため、最初の改修を「古い被写体マスク処理の結果が、別写真や新しい操作に反映される問題」に絞った。作業ブランチは `codex/retouch-session-safety`、開始点はリリース済みv2.5.3の `3b7a73e`。
 
-追記：その後の状態・画像処理・保存境界の分離と性能改善は [構造改善の記録](C:/Users/tyusk/vrchat-world-photo-manager/docs/architecture-improvements.md) を参照。本書の「今回の結果」は最初の不具合修正時点の記録。
+追記：その後の状態・画像処理・保存境界の分離と性能改善は [構造改善の記録](../docs/architecture-improvements.md) を参照。本書の「今回の結果」は最初の不具合修正時点の記録。
 
 最新の確認範囲・候補・未実施項目は [リリース前の確認](./release-candidate-review-2026-09-10.md) を参照。以下の過去の結果・限界は、その時点の記録として残している。
 
@@ -16,7 +16,7 @@
 
 結果の反映だけを止める修正であり、実行中のONNX計算を強制停止したり、共有推論セッションを解放したりしない。通常の明るさ変更や切り抜き操作では、進行中のAIをキャンセルしない。
 
-本体の変更箇所は [src/renderer.js:9752](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:9752) と関連するマスク・履歴・閉じる処理。画像計算、モデル定義、DB、保存形式、アプリバージョン、デザインの変更は含めていない。
+本体の変更箇所は [src/renderer.js:9752](../src/renderer.js#L9752) と関連するマスク・履歴・閉じる処理。画像計算、モデル定義、DB、保存形式、アプリバージョン、デザインの変更は含めていない。
 
 **実行方法**
 
@@ -26,7 +26,7 @@ Windowsで依存関係がインストールされた開発環境から実行す�
 npm.cmd run smoke:retouch
 ```
 
-現在は以下の8本を順番に実行し、失敗時はそこで止まる。2026-09-10からログ・タイムアウト管理を [共通ハーネス](C:/Users/tyusk/vrchat-world-photo-manager/docs/maintenance-harness.md) にまとめている。
+現在は以下の8本を順番に実行し、失敗時はそこで止まる。2026-09-10からログ・タイムアウト管理を [共通ハーネス](../docs/maintenance-harness.md) にまとめている。
 
 | コマンド | 確認する内容 |
 | --- | --- |
@@ -50,7 +50,7 @@ git diff --check
 
 **検証の再現性と隔離**
 
-- プリセット用の入力は [scripts/fixtures/retouch-preset-fixture.js](C:/Users/tyusk/vrchat-world-photo-manager/scripts/fixtures/retouch-preset-fixture.js) で決定的に生成する。管理対象外の `img/notuse.png` への依存を除去した。既存のプリセット期待値・アサーションは維持している。
+- プリセット用の入力は [scripts/fixtures/retouch-preset-fixture.js](../scripts/fixtures/retouch-preset-fixture.js) で決定的に生成する。管理対象外の `img/notuse.png` への依存を除去した。既存のプリセット期待値・アサーションは維持している。
 - 新規テストは合成画像と合成マスクを使う。保存先は一時ディレクトリで、元画像のSHA-256が変わらないことを確認する。
 - 既存の編集スモークとUIキャプチャでも、AppDataに加えてhome・documents・picturesとアプリ固有のルート環境変数を隔離する。サムネイル移行が実ユーザーのhomeを参照しないようにした。
 - 新規の競合テスト・保存テストは外部通信なしで動作する。既存のプリセット・UI系テストは従来どおり外部フォントを利用する場合がある。
@@ -74,14 +74,14 @@ git diff --check
 
 今回の実行結果は以下にある。これらはローカルの生成物で、Git管理対象外。
 
-- [競合テスト54ケース](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-subject-session/worldshot-subject-session-EdbiFP/result.json)
-- [保存結果](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-export/worldshot-export-65XxgL/result.json)
-- [プリセット結果](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-presets/20260909-211623/result.json)
+- [競合テスト54ケース](../out/smoke-subject-session/worldshot-subject-session-EdbiFP/result.json)
+- [保存結果](../out/smoke-export/worldshot-export-65XxgL/result.json)
+- [プリセット結果](../out/smoke-presets/20260909-211623/result.json)
 
 **確認範囲の限界と次の作業**
 
 今回の一致は、固定した入力・操作・同一Windows環境についての結果。全補正・全プリセット・全レイヤーの組合せ、JPEG／WebP、実モデルによる推論、GPUやフォントが異なる環境、保存ボタンのUI状態遷移、Workerとフォールバックの強制比較はまだ含めていない。関連箇所を改修するときに、その正常系を先に検証へ追加する。
 
-配布パッケージの再生成・インストーラ確認・公開・自動更新配信は行っていない。リリース前には [RELEASE.md](C:/Users/tyusk/vrchat-world-photo-manager/RELEASE.md) に従った配布版の確認が必要。
+配布パッケージの再生成・インストーラ確認・公開・自動更新配信は行っていない。リリース前には [RELEASE.md](../RELEASE.md) に従った配布版の確認が必要。
 
-追記：不正バックアップJSONの拒否と、明示的な再取り込み時の手動World情報保全も実装した。追加のDB列・編集元情報の継承と検証については [データ保全の回帰確認](C:/Users/tyusk/vrchat-world-photo-manager/docs/data-safety-regression-checks.md) を参照。その後も、測定と動作維持の確認を伴って最適化を進め、デザイン追加は最後に行う。
+追記：不正バックアップJSONの拒否と、明示的な再取り込み時の手動World情報保全も実装した。追加のDB列・編集元情報の継承と検証については [データ保全の回帰確認](../docs/data-safety-regression-checks.md) を参照。その後も、測定と動作維持の確認を伴って最適化を進め、デザイン追加は最後に行う。

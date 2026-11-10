@@ -15,7 +15,7 @@
 
 実renderer＋制御した非同期境界で18シナリオが通過。素材の実ファイルコピー・削除ダイアログそのものはこのテストでは置換している。
 
-[修正前の失敗記録](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-overlay-session/worldshot-overlay-session-BLaPFq/result.json) ／ [修正後の18シナリオ](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-overlay-session/worldshot-overlay-session-5iLaiM/result.json)
+[修正前の失敗記録](../out/smoke-overlay-session/worldshot-overlay-session-BLaPFq/result.json) ／ [修正後の18シナリオ](../out/smoke-overlay-session/worldshot-overlay-session-5iLaiM/result.json)
 
 **JPEG/WebP保存とWebP寸法の修正**
 
@@ -29,19 +29,19 @@
 
 **繰り返し実行するためのハーネス**
 
-`npm.cmd run check` で構文・単体・画像演算・翻訳・レタッチ・データ保全の15チェックを順番に実行する。各チェックのログはファイルへ直接接続し、先日の閉じたパイプへのログ出力を避ける。タイムアウト・中断では検証用プロセスツリーだけを終了し、失敗箇所と途中経過をJSONへ保存する。JSON更新は同じディレクトリの一時ファイルから置換し、途中結果の破損を避ける。使い方は [保守用ハーネス](C:/Users/tyusk/vrchat-world-photo-manager/docs/maintenance-harness.md) にまとめた。
+`npm.cmd run check` で構文・単体・画像演算・翻訳・レタッチ・データ保全の15チェックを順番に実行する。各チェックのログはファイルへ直接接続し、先日の閉じたパイプへのログ出力を避ける。タイムアウト・中断では検証用プロセスツリーだけを終了し、失敗箇所と途中経過をJSONへ保存する。JSON更新は同じディレクトリの一時ファイルから置換し、途中結果の破損を避ける。使い方は [保守用ハーネス](../docs/maintenance-harness.md) にまとめた。
 
 `smoke:retouch` と `smoke:data-safety` の既存コマンドもこのハーネス経由にした。ハーネス自体の8テストを加え、単体は合計79件。通常の製品実行へ包括的な例外抑制は追加していない。
 
 **一括検証結果**
 
-[15チェックの実行記録](C:/Users/tyusk/vrchat-world-photo-manager/out/regression-checks/2026-09-09T20-10-59-980Z-66780/result.json) はすべて成功、終了コード0。
+[15チェックの実行記録](../out/regression-checks/2026-09-09T20-10-59-980Z-66780/result.json) はすべて成功、終了コード0。
 
 - 単体79件、画像演算2,185ケース、翻訳457候補・漏れ0。
 - マスク競合55、保存競合14、素材・プレビュー競合18、Worker6、保存26、座標、ブラシ、プリセット。
 - 旧DB互換、バックアップ検証150、実復元23、World情報24。
 
-保存の最終記録は [manual](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-export/worldshot-export-u2cJJo/result.json) ／ [legacy](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-export/worldshot-export-56uzh4/result.json)。全補正・全レイヤーの組合せ、実写真の切り抜き品質、別GPU/OSの結果を保証するものではない。
+保存の最終記録は [manual](../out/smoke-export/worldshot-export-u2cJJo/result.json) ／ [legacy](../out/smoke-export/worldshot-export-56uzh4/result.json)。全補正・全レイヤーの組合せ、実写真の切り抜き品質、別GPU/OSの結果を保証するものではない。
 
 PNG5種類×2モードは、先行修正前のbaselineと全画素hashが一致。元画像SHA-256も一致した。プリセット4種も初回baselineと画素hash・画像統計が一致した。
 
@@ -49,7 +49,7 @@ PNG5種類×2モードは、先行修正前のbaselineと全画素hashが一致�
 
 Forgeの既存設定で、過去の生成物と別の `out/package-validation-20260910-PqwhkR/` へWindowsパッケージを生成した。アプリのバージョンは変更していない検証用ビルドであり、配布・インストール・公開は行っていない。
 
-パッケージ用の検証スクリプトを拡充し、[最終実行記録](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-packaged/worldshot-packaged-smoke-06zEoK/result.json) で以下を確認した。
+パッケージ用の検証スクリプトを拡充し、[最終実行記録](../out/smoke-packaged/worldshot-packaged-smoke-06zEoK/result.json) で以下を確認した。
 
 - ASAR内の実行時10ファイルが作業中のソースとSHA-256で一致し、テスト・fixture・docs・outが除外されている。
 - SQLiteのnative moduleがASAR外へ展開され、実preload/IPCを通した隔離DBの件数取得が成功。Forgeのリビルド前後で開発環境のSQLiteバイナリーhashは不変。
@@ -59,12 +59,12 @@ Forgeの既存設定で、過去の生成物と別の `out/package-validation-20
 - AppDataだけでなくhomeと標準フォルダも一時profileへ向け、サムネイル移行を隔離。外部通信要求の記録は0件。
 - アプリは終了コード0で正常終了し、強制終了なし・cleanup errorなし。異常終了や強制終了を成功として報告しないようにした。
 
-検証側で終了要求だけを意図的に抑止した試験でも、[期待した失敗記録](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-packaged/worldshot-packaged-smoke-OeCYvJ/result.json) が `ok: false`・終了コード1となり、対象アプリのプロセスツリーだけを終了できた。製品コード・EXEは変更していない。これはハーネスの異常系確認であり、上記の通常起動が失敗したという意味ではない。検証終了後にアプリのプロセスが残っていないことも確認した。
+検証側で終了要求だけを意図的に抑止した試験でも、[期待した失敗記録](../out/smoke-packaged/worldshot-packaged-smoke-OeCYvJ/result.json) が `ok: false`・終了コード1となり、対象アプリのプロセスツリーだけを終了できた。製品コード・EXEは変更していない。これはハーネスの異常系確認であり、上記の通常起動が失敗したという意味ではない。検証終了後にアプリのプロセスが残っていないことも確認した。
 
 配布版の再確認には、生成済みEXEの場所を明示できる。
 
 ```powershell
-npm.cmd run smoke:packaged -- "--exe=C:/Users/tyusk/vrchat-world-photo-manager/out/package-validation-20260910-PqwhkR/WorldShot Log-win32-x64/WorldShotLog.exe"
+npm.cmd run smoke:packaged -- "--exe=out/package-validation-20260910-PqwhkR/WorldShot Log-win32-x64/WorldShotLog.exe"
 ```
 
 **残る確認範囲**

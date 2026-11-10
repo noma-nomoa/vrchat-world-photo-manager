@@ -4,9 +4,9 @@
 
 この文書は調査結果であり、実装変更やデザイン案ではない。ファイルの行番号は以下のコミットを基準とする。
 
-構造改善の最新状況は [状態・共通画像処理・保存境界・性能改善の記録](C:/Users/tyusk/vrchat-world-photo-manager/docs/architecture-improvements.md) を参照。
+構造改善の最新状況は [状態・共通画像処理・保存境界・性能改善の記録](../docs/architecture-improvements.md) を参照。
 
-追記：その後、ユーザーの指示を受けてマスクの非同期競合防止と回帰テスト整備、およびバックアップ・World情報の保全を実装した。最新の変更範囲・結果は [レタッチの回帰確認](C:/Users/tyusk/vrchat-world-photo-manager/docs/retouch-regression-checks.md) と [データ保全の回帰確認](C:/Users/tyusk/vrchat-world-photo-manager/docs/data-safety-regression-checks.md) に記録している。以下の問題・未検証範囲は初回調査時点の記録。
+追記：その後、ユーザーの指示を受けてマスクの非同期競合防止と回帰テスト整備、およびバックアップ・World情報の保全を実装した。最新の変更範囲・結果は [レタッチの回帰確認](../docs/retouch-regression-checks.md) と [データ保全の回帰確認](../docs/data-safety-regression-checks.md) に記録している。以下の問題・未検証範囲は初回調査時点の記録。
 
 | 調査対象 | 確認結果 |
 | --- | --- |
@@ -33,47 +33,47 @@
 | 外観・言語 | dark／light、フォント、背景画像、標準／コンパクト表示、日本語・英語・韓国語 |
 | 対象環境 | Windows向け。private／non-public worldの自動情報取得は未対応とREADMEに記載 |
 
-主要な仕様の入口は [README.md](C:/Users/tyusk/vrchat-world-photo-manager/README.md)。独立した最新の包括的な設計仕様書は確認できず、実装と変更履歴を合わせて読む必要がある。
+主要な仕様の入口は [README.md](../README.md)。独立した最新の包括的な設計仕様書は確認できず、実装と変更履歴を合わせて読む必要がある。
 
 **実装の構成**
 
 | ファイル | 規模の目安 | 担当 |
 | --- | --- | --- |
-| [src/index.js](C:/Users/tyusk/vrchat-world-photo-manager/src/index.js) | 約8,000行／222 KB | Electron main、IPC、取り込み、画像解析、World情報取得、モデル管理、ファイル操作、バックアップ、更新 |
-| [src/preload.js](C:/Users/tyusk/vrchat-world-photo-manager/src/preload.js) | 約200行 | `window.electronAPI` とIPCの橋渡し |
-| [src/db.js](C:/Users/tyusk/vrchat-world-photo-manager/src/db.js) | 約1,600行／41 KB | スキーマ補完、SQL、写真・ラベル・フォルダ・Worldキャッシュ、バックアップデータ |
-| [src/renderer.js](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js) | 約27,800行／815 KB | UI状態、DOM生成、ギャラリー、モーダル、検索、設定、画像編集、AI処理の制御 |
-| [src/index.html](C:/Users/tyusk/vrchat-world-photo-manager/src/index.html) | 約2,200行 | 画面とモーダルの静的な土台 |
-| [src/index.css](C:/Users/tyusk/vrchat-world-photo-manager/src/index.css) | 約8,900行／217 KB | テーマ、共通部品、各画面、状態別の上書き |
-| [src/i18n.js](C:/Users/tyusk/vrchat-world-photo-manager/src/i18n.js) | 約1,800行 | 翻訳辞書とDOMの翻訳適用 |
-| [src/photo-editor-worker.js](C:/Users/tyusk/vrchat-world-photo-manager/src/photo-editor-worker.js) | 約1,700行 | Workerでの画像補正 |
-| [src/photo-editor-subject-mask.js](C:/Users/tyusk/vrchat-world-photo-manager/src/photo-editor-subject-mask.js)、[src/photo-editor-image-overlay.js](C:/Users/tyusk/vrchat-world-photo-manager/src/photo-editor-image-overlay.js) | 各独立モジュール | マスク・オーバーレイの状態や補助処理 |
+| [src/index.js](../src/index.js) | 約8,000行／222 KB | Electron main、IPC、取り込み、画像解析、World情報取得、モデル管理、ファイル操作、バックアップ、更新 |
+| [src/preload.js](../src/preload.js) | 約200行 | `window.electronAPI` とIPCの橋渡し |
+| [src/db.js](../src/db.js) | 約1,600行／41 KB | スキーマ補完、SQL、写真・ラベル・フォルダ・Worldキャッシュ、バックアップデータ |
+| [src/renderer.js](../src/renderer.js) | 約27,800行／815 KB | UI状態、DOM生成、ギャラリー、モーダル、検索、設定、画像編集、AI処理の制御 |
+| [src/index.html](../src/index.html) | 約2,200行 | 画面とモーダルの静的な土台 |
+| [src/index.css](../src/index.css) | 約8,900行／217 KB | テーマ、共通部品、各画面、状態別の上書き |
+| [src/i18n.js](../src/i18n.js) | 約1,800行 | 翻訳辞書とDOMの翻訳適用 |
+| [src/photo-editor-worker.js](../src/photo-editor-worker.js) | 約1,700行 | Workerでの画像補正 |
+| [src/photo-editor-subject-mask.js](../src/photo-editor-subject-mask.js)、[src/photo-editor-image-overlay.js](../src/photo-editor-image-overlay.js) | 各独立モジュール | マスク・オーバーレイの状態や補助処理 |
 
 基本の流れは、renderer → preloadのAPI → main → DB／ファイル処理 → renderer。画像編集はrenderer側のCanvas処理と専用Workerを組み合わせている。フロントエンドフレームワークへの移行を前提にしなくても、この境界を利用した段階的な分割は可能。
 
 **先に修正したい、再現できた問題**
 
 1. **優先度：高 — 不正なバックアップJSONを復元すると、登録データが空になる。**
-   [index.js:1247](C:/Users/tyusk/vrchat-world-photo-manager/src/index.js:1247) はJSONオブジェクトと、存在する場合の `appName` だけを検証する。[db.js:1464](C:/Users/tyusk/vrchat-world-photo-manager/src/db.js:1464) はテーブルがなければ空配列として扱い、既存テーブルを削除して置換する。隔離したメモリ内DBで `restoreBackupSnapshot({})` を実行すると、例外なしで写真件数が1→0になった。実アプリ経路では [index.js:1255](C:/Users/tyusk/vrchat-world-photo-manager/src/index.js:1255) で復元前の自動バックアップを作るため、復旧手段はある。元写真ファイルの削除を再現したものではない。必須構造・スキーマ版・行データの検証を、置換処理の前に追加する必要がある。
+   [index.js:1247](../src/index.js#L1247) はJSONオブジェクトと、存在する場合の `appName` だけを検証する。[db.js:1464](../src/db.js#L1464) はテーブルがなければ空配列として扱い、既存テーブルを削除して置換する。隔離したメモリ内DBで `restoreBackupSnapshot({})` を実行すると、例外なしで写真件数が1→0になった。実アプリ経路では [index.js:1255](../src/index.js#L1255) で復元前の自動バックアップを作るため、復旧手段はある。元写真ファイルの削除を再現したものではない。必須構造・スキーマ版・行データの検証を、置換処理の前に追加する必要がある。
 
 2. **優先度：高 — AI処理の完了時に、処理を始めた写真かどうかを確認していない。**
-   [renderer.js:9725](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:9725) は推論を待ったあと、現在のグローバルな `photoEditorState` に結果を反映する。編集画面を閉じる処理は [renderer.js:20377](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:20377) で状態をnullにする。対象関数をNodeのVMに抽出し、推論を模したPromiseを保留して状態を写真Bへ差し替えると、写真AのマスクがBへ反映された。状態をnullにしたケースでは `Cannot set properties of null (setting 'subjectMask')` が発生した。実モデルを使ったUI操作全体の再現は未実施。編集セッションと要求IDを保持し、閉じた・切り替えた・新しい処理で置き換わった要求の結果を破棄する必要がある。画像読み込みには既に同種のガードがある（[renderer.js:20422](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:20422)）。
+   [renderer.js:9725](../src/renderer.js#L9725) は推論を待ったあと、現在のグローバルな `photoEditorState` に結果を反映する。編集画面を閉じる処理は [renderer.js:20377](../src/renderer.js#L20377) で状態をnullにする。対象関数をNodeのVMに抽出し、推論を模したPromiseを保留して状態を写真Bへ差し替えると、写真AのマスクがBへ反映された。状態をnullにしたケースでは `Cannot set properties of null (setting 'subjectMask')` が発生した。実モデルを使ったUI操作全体の再現は未実施。編集セッションと要求IDを保持し、閉じた・切り替えた・新しい処理で置き換わった要求の結果を破棄する必要がある。画像読み込みには既に同種のガードがある（[renderer.js:20422](../src/renderer.js#L20422)）。
 
 3. **優先度：中 — 再取り込みで手動設定したWorld URL／IDが失われる。**
-   手動URLは通常の `world_id`／`world_url` 列に保存される。一方、[db.js:381](C:/Users/tyusk/vrchat-world-photo-manager/src/db.js:381) の同一ハッシュ更新はこれらを画像由来の値で上書きする。画像にWorld情報がないケースを隔離DBで再現すると、手動URL／IDがnullになり、手動表示名とメモは残った。明示的な既存写真の再取り込みは [index.js:6136](C:/Users/tyusk/vrchat-world-photo-manager/src/index.js:6136) で取り込み処理を呼ぶ。手動値と自動値の由来を保持する設計が必要。
+   手動URLは通常の `world_id`／`world_url` 列に保存される。一方、[db.js:381](../src/db.js#L381) の同一ハッシュ更新はこれらを画像由来の値で上書きする。画像にWorld情報がないケースを隔離DBで再現すると、手動URL／IDがnullになり、手動表示名とメモは残った。明示的な既存写真の再取り込みは [index.js:6136](../src/index.js#L6136) で取り込み処理を呼ぶ。手動値と自動値の由来を保持する設計が必要。
 
 **性能改善の候補 — 速度・メモリの効果は未計測**
 
 | 候補 | コードで確認したこと | 次の判断材料 |
 | --- | --- | --- |
-| 取り込み処理をmainから分離 | [index.js:4865](C:/Users/tyusk/vrchat-world-photo-manager/src/index.js:4865) に全画像読み込み、デコード、メタデータ抽出、SHA-256、サムネイル生成が集まる。Promiseの同時実行数制御はCPU処理の別スレッド化ではない | 取り込み枚数・解像度別の処理時間、mainの応答遅延、ピークメモリを計測し、Worker等へ移す部分を選ぶ |
-| 一覧取得のページング・集計SQL化 | [db.js:429](C:/Users/tyusk/vrchat-world-photo-manager/src/db.js:429) の一覧SQLと [index.js:4699](C:/Users/tyusk/vrchat-world-photo-manager/src/index.js:4699) の返却前処理は対象全件を扱う。Worldサイドバーも写真から集計する | 年別・World別の件数増加に対し、DB・前処理・IPC・描画の時間を分けて計測する |
-| ギャラリーDOMの上限管理 | [renderer.js:23747](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:23747) は段階的にカードを追加する。長くスクロールすると表示済みDOMが蓄積する | 数千枚以上の表示でDOM数・メモリ・スクロール応答を調べ、必要なら仮想化する。選択範囲とキーボード移動の仕様を保持する |
-| 被写体マスク利用時の編集処理 | [renderer.js:16300](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:16300) はマスク有効時にWorker経路を避け、rendererでのCanvas処理へ戻す | マスクを使った補正・ブラシ操作の応答時間とメモリを計測し、マスク合成のWorker対応やCanvas再利用を検討する |
-| 検索・整列処理の重複削減 | [renderer.js:4528](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:4528) は写真ごとに検索語を正規化し、フィルター後にも再ソートする | 検索語の正規化を1回にし、検索用文字列・日時の更新時キャッシュと既存の整列順を活用できるか確認する |
-| マスクとUndo履歴の分離 | [renderer.js:7828](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:7828) はマスクPNG文字列も含む履歴をJSON化して比較する | ブラシ操作と、マスクを変更しない操作のシリアライズ時間を計測する。画像資産への参照と操作状態を分ける余地がある |
+| 取り込み処理をmainから分離 | [index.js:4865](../src/index.js#L4865) に全画像読み込み、デコード、メタデータ抽出、SHA-256、サムネイル生成が集まる。Promiseの同時実行数制御はCPU処理の別スレッド化ではない | 取り込み枚数・解像度別の処理時間、mainの応答遅延、ピークメモリを計測し、Worker等へ移す部分を選ぶ |
+| 一覧取得のページング・集計SQL化 | [db.js:429](../src/db.js#L429) の一覧SQLと [index.js:4699](../src/index.js#L4699) の返却前処理は対象全件を扱う。Worldサイドバーも写真から集計する | 年別・World別の件数増加に対し、DB・前処理・IPC・描画の時間を分けて計測する |
+| ギャラリーDOMの上限管理 | [renderer.js:23747](../src/renderer.js#L23747) は段階的にカードを追加する。長くスクロールすると表示済みDOMが蓄積する | 数千枚以上の表示でDOM数・メモリ・スクロール応答を調べ、必要なら仮想化する。選択範囲とキーボード移動の仕様を保持する |
+| 被写体マスク利用時の編集処理 | [renderer.js:16300](../src/renderer.js#L16300) はマスク有効時にWorker経路を避け、rendererでのCanvas処理へ戻す | マスクを使った補正・ブラシ操作の応答時間とメモリを計測し、マスク合成のWorker対応やCanvas再利用を検討する |
+| 検索・整列処理の重複削減 | [renderer.js:4528](../src/renderer.js#L4528) は写真ごとに検索語を正規化し、フィルター後にも再ソートする | 検索語の正規化を1回にし、検索用文字列・日時の更新時キャッシュと既存の整列順を活用できるか確認する |
+| マスクとUndo履歴の分離 | [renderer.js:7828](../src/renderer.js#L7828) はマスクPNG文字列も含む履歴をJSON化して比較する | ブラシ操作と、マスクを変更しない操作のシリアライズ時間を計測する。画像資産への参照と操作状態を分ける余地がある |
 
-既存の性能ログ設定は [index.js:450](C:/Users/tyusk/vrchat-world-photo-manager/src/index.js:450) の `WORLDSHOT_PERF_LOG`／`WORLDSHOT_PERF_LOG_THRESHOLD_MS`。現時点では高速化率や最大対応枚数を断定できない。
+既存の性能ログ設定は [index.js:450](../src/index.js#L450) の `WORLDSHOT_PERF_LOG`／`WORLDSHOT_PERF_LOG_THRESHOLD_MS`。現時点では高速化率や最大対応枚数を断定できない。
 
 維持したい既存の対策は、SQLite WAL・索引・バッチトランザクション、ラベル一括取得、ハッシュによる重複登録防止、サムネイルキャッシュ、段階描画、画像の遅延読み込み、画像補正Worker、操作中の縮小プレビュー、LUT等のキャッシュ。単純に「最適化がないコード」とは評価できない。
 
@@ -81,25 +81,25 @@
 
 | 追加したい範囲 | 現状 | 準備する変更 |
 | --- | --- | --- |
-| 配色・質感の違うテーマ | CSS変数と `body[data-theme]` がある。ただし [renderer.js:2375](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:2375) はlight以外をdarkに丸める | テーマID・表示名・明暗属性を定義一覧へまとめ、テーマ別の色・影・角丸等を変数に集約する |
-| 画面構成の違うデザイン | [renderer.js:22775](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:22775) でDOMを実行時に移設し、[renderer.js:23066](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:23066) のカード生成が操作処理も担う | ギャラリー、カード、ツールバー、モーダルを部品に分け、データと操作を渡して描画できる境界を作る |
+| 配色・質感の違うテーマ | CSS変数と `body[data-theme]` がある。ただし [renderer.js:2375](../src/renderer.js#L2375) はlight以外をdarkに丸める | テーマID・表示名・明暗属性を定義一覧へまとめ、テーマ別の色・影・角丸等を変数に集約する |
+| 画面構成の違うデザイン | [renderer.js:22775](../src/renderer.js#L22775) でDOMを実行時に移設し、[renderer.js:23066](../src/renderer.js#L23066) のカード生成が操作処理も担う | ギャラリー、カード、ツールバー、モーダルを部品に分け、データと操作を渡して描画できる境界を作る |
 
-CSSは [index.css:5](C:/Users/tyusk/vrchat-world-photo-manager/src/index.css:5) の変数定義に加え、ライト用の調整が7699行・8072行・8367行などに累積している。テーマ定義、部品、レイアウト、表示状態の順に責務を整理すると、追加テーマの修正範囲を限定できる。
+CSSは [index.css:5](../src/index.css#L5) の変数定義に加え、ライト用の調整が7699行・8072行・8367行などに累積している。テーマ定義、部品、レイアウト、表示状態の順に責務を整理すると、追加テーマの修正範囲を限定できる。
 
-ギャラリーの寸法にも二重管理がある。[renderer.js:917](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:917) の事前描画計算用定数はカード220px／間隔16pxだが、[index.css:8657](C:/Users/tyusk/vrchat-world-photo-manager/src/index.css:8657) のコンパクト表示は148px／12px。新デザインでも描画枚数推定を合わせるため、寸法の取得元を統一する余地がある。現時点で実害は計測していない。
+ギャラリーの寸法にも二重管理がある。[renderer.js:917](../src/renderer.js#L917) の事前描画計算用定数はカード220px／間隔16pxだが、[index.css:8657](../src/index.css#L8657) のコンパクト表示は148px／12px。新デザインでも描画枚数推定を合わせるため、寸法の取得元を統一する余地がある。現時点で実害は計測していない。
 
-翻訳は日本語本文をキーにし、[i18n.js:1734](C:/Users/tyusk/vrchat-world-photo-manager/src/i18n.js:1734) でDOM変更を監視して適用する。文言やDOM構成を変える際には日英韓で確認し、部品分離に合わせて安定した翻訳キーの使用を増やすと保守しやすい。
+翻訳は日本語本文をキーにし、[i18n.js:1734](../src/i18n.js#L1734) でDOM変更を監視して適用する。文言やDOM構成を変える際には日英韓で確認し、部品分離に合わせて安定した翻訳キーの使用を増やすと保守しやすい。
 
 今回、現行画面の視覚品質の評価や新デザインの選定は実施していない。
 
-また、rendererとWorkerには同種の色補正処理がある（[renderer.js:12888](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:12888)、[photo-editor-worker.js:713](C:/Users/tyusk/vrchat-world-photo-manager/src/photo-editor-worker.js:713)）。片方だけの修正で出力がずれる保守リスクを減らすため、純粋な計算処理の共通化もUI分離と並行して検討する。現在の出力差を確認したものではない。
+また、rendererとWorkerには同種の色補正処理がある（[renderer.js:12888](../src/renderer.js#L12888)、[photo-editor-worker.js:713](../src/photo-editor-worker.js#L713)）。片方だけの修正で出力がずれる保守リスクを減らすため、純粋な計算処理の共通化もUI分離と並行して検討する。現在の出力差を確認したものではない。
 
 **仕様資料と検証基盤の課題**
 
-- ローカルの [AI_MAINTENANCE_GUIDE.md:14](C:/Users/tyusk/vrchat-world-photo-manager/AI_MAINTENANCE_GUIDE.md:14) はv1.2.0を前提にしている。[RELEASE.md:350](C:/Users/tyusk/vrchat-world-photo-manager/RELEASE.md:350) の現行公開版欄もv2.4.2。実コードはv2.5.3なので、そのまま現行仕様として扱えない。
-- READMEからリンクされる保守ガイドは [.gitignore:99](C:/Users/tyusk/vrchat-world-photo-manager/.gitignore:99) で管理対象外。新しいチェックアウトで共有できる現行の保守資料が必要。
-- [package.json:33](C:/Users/tyusk/vrchat-world-photo-manager/package.json:33) のlintは説明を出すだけ。今回の確認範囲では追跡されたCI設定もない。既存スモークをまとめて実行する検証入口と静的解析の整備が有効。
-- [scripts/smoke-photo-editor-presets.js:86](C:/Users/tyusk/vrchat-world-photo-manager/scripts/smoke-photo-editor-presets.js:86) は管理対象外の `img/notuse.png` に依存する。この環境では存在してテストが通ったが、新規チェックアウトでの再現性を整える必要がある。
+- ローカルの [AI_MAINTENANCE_GUIDE.md:14](../AI_MAINTENANCE_GUIDE.md#L14) はv1.2.0を前提にしている。[RELEASE.md:350](../RELEASE.md#L350) の現行公開版欄もv2.4.2。実コードはv2.5.3なので、そのまま現行仕様として扱えない。
+- READMEからリンクされる保守ガイドは [.gitignore:99](../.gitignore#L99) で管理対象外。新しいチェックアウトで共有できる現行の保守資料が必要。
+- [package.json:33](../package.json#L33) のlintは説明を出すだけ。今回の確認範囲では追跡されたCI設定もない。既存スモークをまとめて実行する検証入口と静的解析の整備が有効。
+- [scripts/smoke-photo-editor-presets.js:86](../scripts/smoke-photo-editor-presets.js#L86) は管理対象外の `img/notuse.png` に依存する。この環境では存在してテストが通ったが、新規チェックアウトでの再現性を整える必要がある。
 - mainには意図的に残したlegacy／quarantineブロックがある。分割前に有効な実装と参照先を確認し、古い関数を誤って復活させないようにする。
 
 **実施した確認**
@@ -119,9 +119,9 @@ CSSは [index.css:5](C:/Users/tyusk/vrchat-world-photo-manager/src/index.css:5) 
 
 画像編集テストの結果は以下に保存されている。
 
-- [座標処理の結果](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-coordinate-space/20260909-204848/result.json)
-- [マスクブラシの結果](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-mask-brush/20260909-204904/result.json)
-- [プリセットの結果](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-presets/20260909-204917/result.json)
+- [座標処理の結果](../out/smoke-coordinate-space/20260909-204848/result.json)
+- [マスクブラシの結果](../out/smoke-mask-brush/20260909-204904/result.json)
+- [プリセットの結果](../out/smoke-presets/20260909-204917/result.json)
 
 実ユーザーの写真コレクションを使う大規模性能計測、実AIモデルによる競合のUI再現、全画面の視覚確認、パッケージ再生成、配布版起動確認、依存関係の脆弱性監査は実施していない。開発版テストではContent-Security-PolicyについてElectron警告が出たため、配布前のセキュリティ設定確認に残す。
 
@@ -129,7 +129,7 @@ CSSは [index.css:5](C:/Users/tyusk/vrchat-world-photo-manager/src/index.css:5) 
 
 デザイン追加は最後に行う。過去の改修では特にレタッチ機能周辺で不具合が頻発したとの申告があり、今回の最優先条件は、実装済み機能の動作と出力を維持すること。高速化や構造整理は、この条件を満たせた変更から進める。
 
-既存スモークの通過だけでは、レタッチ機能全体を確認できない。現在の3本は、主に切り抜き位置への追従・画像オーバーレイの拡縮、マスクブラシ、エアリーホワイト4種を対象にしている。保存処理にはプレビューとは別の経路がある（[renderer.js:20572](C:/Users/tyusk/vrchat-world-photo-manager/src/renderer.js:20572)）。改修対象に応じ、以下の不足を先に補う。
+既存スモークの通過だけでは、レタッチ機能全体を確認できない。現在の3本は、主に切り抜き位置への追従・画像オーバーレイの拡縮、マスクブラシ、エアリーホワイト4種を対象にしている。保存処理にはプレビューとは別の経路がある（[renderer.js:20572](../src/renderer.js#L20572)）。改修対象に応じ、以下の不足を先に補う。
 
 | 守る動作 | 改修前後に確認すること | 現状の自動検証 |
 | --- | --- | --- |

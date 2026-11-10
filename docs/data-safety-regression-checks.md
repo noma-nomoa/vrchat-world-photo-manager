@@ -64,8 +64,8 @@ npm.cmd run smoke:retouch
 
 実行結果（Git管理外）：
 
-- [復元23シナリオ](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-backup-restore/worldshot-backup-restore-GTUTcP/result.json)
-- [World情報24ケース](C:/Users/tyusk/AppData/Local/Temp/worldshot-world-identity-VAxAaZ/result.json)
-- [保存・再取り込みmanual](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-export/worldshot-export-KD2r0G/result.json) ／ [legacy](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-export/worldshot-export-tPh8ct/result.json)
-- [マスク競合54ケース](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-subject-session/worldshot-subject-session-NQjrb6/result.json)
-- [座標](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-coordinate-space/20260909-214057/result.json) ／ [ブラシ](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-mask-brush/20260909-214136/result.json) ／ [プリセット](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-presets/20260909-214141/result.json)
+- [復元23シナリオ](../out/smoke-backup-restore/worldshot-backup-restore-GTUTcP/result.json)
+- World情報24ケース（`%TEMP%/worldshot-world-identity-VAxAaZ/result.json`、一時フォルダ）
+- [保存・再取り込みmanual](../out/smoke-export/worldshot-export-KD2r0G/result.json) ／ [legacy](../out/smoke-export/worldshot-export-tPh8ct/result.json)
+- [マスク競合54ケース](../out/smoke-subject-session/worldshot-subject-session-NQjrb6/result.json)
+- [座標](../out/smoke-coordinate-space/20260909-214057/result.json) ／ [ブラシ](../out/smoke-mask-brush/20260909-214136/result.json) ／ [プリセット](../out/smoke-presets/20260909-214141/result.json)

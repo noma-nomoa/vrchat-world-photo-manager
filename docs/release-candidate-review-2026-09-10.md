@@ -9,7 +9,7 @@
 最終候補は `out/review-candidate-6YvWYs` です。エクスプローラーで [Open-review.cmd](../out/review-candidate-6YvWYs/Open-review.cmd) をダブルクリックしてください。PowerShellからは次の1行で起動できます。
 
 ```powershell
-& 'C:\Users\tyusk\vrchat-world-photo-manager\out\review-candidate-6YvWYs\Open-review.cmd'
+& '.\out\review-candidate-6YvWYs\Open-review.cmd'
 ```
 
 候補には6枚の合成写真を登録した専用の `ReviewProfile` と `SamplePhotos` が付属します。専用ランチャーから起動すると、DB・設定・モデル・サムネイル・標準の写真フォルダーを候補内へ向けて起動します。普段のアプリのDBや登録写真をこの候補へコピーする必要はありません。

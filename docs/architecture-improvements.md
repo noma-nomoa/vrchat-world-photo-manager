@@ -2,7 +2,7 @@
 
 目的は、リリース済み機能を維持しながら変更の影響範囲を限定すること。開始点はv2.5.3 (`3b7a73e`)。先に加えた不具合修正と回帰テストは、レタッチ・データ保全の各検証文書に記録している。
 
-2026-09-10追記：画像素材・プレビューの競合、WebP登録寸法、検証ハーネス、配布版の確認については [継続改善の記録](C:/Users/tyusk/vrchat-world-photo-manager/docs/maintenance-progress-2026-09-10.md) を参照。以下は最初の4段階の構造改善時点の記録。
+2026-09-10追記：画像素材・プレビューの競合、WebP登録寸法、検証ハーネス、配布版の確認については [継続改善の記録](../docs/maintenance-progress-2026-09-10.md) を参照。以下は最初の4段階の構造改善時点の記録。
 
 **1. 編集状態・履歴・非同期処理の責任範囲**
 
@@ -62,9 +62,9 @@ flowchart LR
 | 5,000写真／15,346総行 | 213.69ms | 85.41ms | 60.0% |
 | 20,000写真／61,096総行 | 906.79ms | 434.50ms | 52.1% |
 
-[修正前](C:/Users/tyusk/vrchat-world-photo-manager/out/benchmark-backup-restore/2026-09-09T13-10-55-153Z-68632/result.json) と [修正後](C:/Users/tyusk/vrchat-world-photo-manager/out/benchmark-backup-restore/2026-09-09T13-26-07-395Z-63864/result.json)。同じ環境・データ生成・測定方法で比較し、各14回の復元で全行が一致した。メモリDBの測定であり、ディスクを含むアプリ全体の復元所要時間を示すものではない。
+[修正前](../out/benchmark-backup-restore/2026-09-09T13-10-55-153Z-68632/result.json) と [修正後](../out/benchmark-backup-restore/2026-09-09T13-26-07-395Z-63864/result.json)。同じ環境・データ生成・測定方法で比較し、各14回の復元で全行が一致した。メモリDBの測定であり、ディスクを含むアプリ全体の復元所要時間を示すものではない。
 
-履歴についても `benchmark-photo-editor-history.js` で測定した。1MiBの合成マスク文字列を含む履歴確定は初回約1.2ms、再実行約2.2〜2.3ms／操作。現行JSON比較のキー順や特殊値の意味を変える追加最適化は採用せず、現在の挙動を維持する判断とした。[初回](C:/Users/tyusk/vrchat-world-photo-manager/out/benchmark-photo-editor-history/2026-09-09T13-27-05-867Z-38492/result.json) ／ [再実行](C:/Users/tyusk/vrchat-world-photo-manager/out/benchmark-photo-editor-history/2026-09-09T13-28-39-762Z-65304/result.json)。実画像のエンコードやCanvas描画を含む時間ではない。
+履歴についても `benchmark-photo-editor-history.js` で測定した。1MiBの合成マスク文字列を含む履歴確定は初回約1.2ms、再実行約2.2〜2.3ms／操作。現行JSON比較のキー順や特殊値の意味を変える追加最適化は採用せず、現在の挙動を維持する判断とした。[初回](../out/benchmark-photo-editor-history/2026-09-09T13-27-05-867Z-38492/result.json) ／ [再実行](../out/benchmark-photo-editor-history/2026-09-09T13-28-39-762Z-65304/result.json)。実画像のエンコードやCanvas描画を含む時間ではない。
 
 **検証コマンド**
 
@@ -87,10 +87,10 @@ npm.cmd run audit:i18n -- --strict
 
 最新の実行記録：
 
-- [マスク競合](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-subject-session/worldshot-subject-session-CWVBbQ/result.json) ／ [保存競合](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-save-session/worldshot-save-session-hu5NZI/result.json) ／ [実Worker](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-worker/worldshot-worker-25xIhH/result.json)
-- [保存manual](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-export/worldshot-export-b18U2z/result.json) ／ [保存legacy](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-export/worldshot-export-gpibh9/result.json)
-- [座標](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-coordinate-space/20260909-222833/result.json) ／ [ブラシ](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-mask-brush/20260909-222840/result.json) ／ [プリセット](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-presets/20260909-222846/result.json)
-- [実復元](C:/Users/tyusk/vrchat-world-photo-manager/out/smoke-backup-restore/worldshot-backup-restore-DIItnT/result.json)
+- [マスク競合](../out/smoke-subject-session/worldshot-subject-session-CWVBbQ/result.json) ／ [保存競合](../out/smoke-save-session/worldshot-save-session-hu5NZI/result.json) ／ [実Worker](../out/smoke-worker/worldshot-worker-25xIhH/result.json)
+- [保存manual](../out/smoke-export/worldshot-export-b18U2z/result.json) ／ [保存legacy](../out/smoke-export/worldshot-export-gpibh9/result.json)
+- [座標](../out/smoke-coordinate-space/20260909-222833/result.json) ／ [ブラシ](../out/smoke-mask-brush/20260909-222840/result.json) ／ [プリセット](../out/smoke-presets/20260909-222846/result.json)
+- [実復元](../out/smoke-backup-restore/worldshot-backup-restore-DIItnT/result.json)
 
 実ONNXモデルの推論品質、全編集機能の組合せ、JPEG/WebP保存、別GPU/OSでの一致、配布パッケージ作成・インストーラ・更新配信は今回未検証。コード分離と合成入力の検証によって全不具合がなくなったと判断しない。
 
