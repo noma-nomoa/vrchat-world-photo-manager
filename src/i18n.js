@@ -72,10 +72,15 @@
         'No photos match Favorites.',
       '年月一覧': 'Timeline',
       'ワールド一覧': 'Worlds',
+      'すべてのワールド': 'All worlds',
       'ワールド一覧を表示': 'Show world list',
       '年月一覧へ戻る': 'Back to timeline',
-      '撮影枚数順': 'Photo count',
+      '枚数順': 'Count',
+      '該当するワールドはありません': 'No matching worlds',
+      'ワールド一覧ではWorld名で検索します':
+        'The world list is searched by world name',
       '名前順': 'Name',
+      '日付順': 'Date',
       'ワールド': 'Worlds',
       'ワールド情報付きの写真はまだありません':
         'No photos with world info yet.',
@@ -456,6 +461,23 @@
       '写真': 'Photos',
       'フォルダ': 'Folders',
       'ワールド数': 'Worlds',
+      'デザイン': 'Design',
+      '従来のデザイン': 'Classic design',
+      'トランジット': 'Transit',
+      'ランタン': 'Lantern',
+      'ノワール': 'Noir',
+      'チョコミント': 'Choco Mint',
+      'ソーダ': 'Soda',
+      '不明なエラー': 'Unknown error',
+      'ワールドのサムネイルを取得': 'Fetch world thumbnails',
+      'サムネイルが未保存のワールドの画像を、公式サイトから取得して保存します':
+        'Downloads the official image of each world that has no saved thumbnail yet.',
+      'ワールドのサムネイルを取得しています...': 'Fetching world thumbnails...',
+      'ワールドのサムネイルの取得が完了しました': 'World thumbnails fetched',
+      'すべてのワールドのサムネイルは保存済みです':
+        'Every world already has a saved thumbnail',
+      '別の処理中です。完了してから実行してください':
+        'Another task is running. Try again when it finishes.',
       '背景': 'Background',
       '画像を選択': 'Choose image',
       '一覧を表示': 'Show list',
@@ -647,6 +669,29 @@
       '本当に削除しますか？': 'Are you sure you want to delete?',
       '例: Waiting / 待ち': 'Example: Waiting / Break',
       '時刻不明': 'Unknown time',
+      'v3.0.0 のお知らせ': 'New in v3.0.0',
+      'お知らせを閉じる': 'Close announcement',
+      'デザインがふえました！': 'New designs!',
+      'あたらしいデザインを 5 つ追加しました。ボタンを押すと、その場で切り替わります。':
+        'Five new designs have been added. Select a button to switch right away.',
+      'はじめはランタンになっています。ライト表示は従来のデザインだけです。あとから「設定 > デザイン」でも変えられます。':
+        'The app now opens in Lantern. Light mode is available only in the classic design. You can change the design later in Settings > Design.',
+      '写真一覧の画面の見本': 'Preview of the photo list',
+      'ワールド一覧ができました': 'Browse by world',
+      '撮ったワールドがカードでならびます。カードを押すと、そのワールドの写真がひらきます。':
+        'Every world you have photographed appears as a card. Select a card to open the photos from that world.',
+      '上の検索で、ワールド名からしぼりこめます':
+        'Filter by world name with the search box at the top',
+      '枚数順・名前順・日付順でならべかえられます': 'Sort by count, name, or date',
+      'マウスの戻るボタンで一覧にもどれます':
+        'Return to the list with the mouse back button',
+      'ワールド一覧を見る': 'Open Worlds',
+      'いつでもサイドバーの「ワールド一覧」からひらけます。':
+        'You can open it anytime from Worlds in the sidebar.',
+      'ワールド一覧の画面の見本': 'Preview of the world list',
+      '次へ': 'Next',
+      '戻る': 'Back',
+      'v3.0.0 のお知らせを見る': 'View the v3.0.0 announcement',
     },
     ko: {
       '設定を開く': '설정 열기',
@@ -713,10 +758,15 @@
         '즐겨찾기에 일치하는 사진이 없습니다.',
       '年月一覧': '날짜 목록',
       'ワールド一覧': '월드 목록',
+      'すべてのワールド': '모든 월드',
       'ワールド一覧を表示': '월드 목록 보기',
       '年月一覧へ戻る': '날짜 목록으로 돌아가기',
-      '撮影枚数順': '사진 수 기준',
+      '枚数順': '장수순',
+      '該当するワールドはありません': '해당하는 월드가 없습니다',
+      'ワールド一覧ではWorld名で検索します':
+        '월드 목록에서는 월드 이름으로 검색합니다',
       '名前順': '이름순',
+      '日付順': '날짜순',
       'ワールド': '월드',
       'ワールド情報付きの写真はまだありません':
         '월드 정보가 있는 사진은 아직 없습니다.',
@@ -1096,6 +1146,23 @@
       '写真': '사진',
       'フォルダ': '폴더',
       'ワールド数': '월드 수',
+      'デザイン': '디자인',
+      '従来のデザイン': '기존 디자인',
+      'トランジット': '트랜짓',
+      'ランタン': '랜턴',
+      'ノワール': '누아르',
+      'チョコミント': '초코민트',
+      'ソーダ': '소다',
+      '不明なエラー': '알 수 없는 오류',
+      'ワールドのサムネイルを取得': '월드 썸네일 가져오기',
+      'サムネイルが未保存のワールドの画像を、公式サイトから取得して保存します':
+        '썸네일이 저장되지 않은 월드의 이미지를 공식 사이트에서 가져와 저장합니다',
+      'ワールドのサムネイルを取得しています...': '월드 썸네일을 가져오는 중...',
+      'ワールドのサムネイルの取得が完了しました': '월드 썸네일 가져오기 완료',
+      'すべてのワールドのサムネイルは保存済みです':
+        '모든 월드의 썸네일이 이미 저장되어 있습니다',
+      '別の処理中です。完了してから実行してください':
+        '다른 작업이 진행 중입니다. 완료된 후 실행해 주세요',
       '背景': '배경',
       '画像を選択': '이미지 선택',
       '一覧を表示': '목록 보기',
@@ -1269,6 +1336,30 @@
       '本当に削除しますか？': '정말 삭제할까요?',
       '例: Waiting / 待ち': '예: Waiting / 대기',
       '時刻不明': '알 수 없는 시간',
+      'v3.0.0 のお知らせ': 'v3.0.0 업데이트 안내',
+      'お知らせを閉じる': '안내 닫기',
+      'デザインがふえました！': '새 디자인이 추가되었습니다!',
+      'あたらしいデザインを 5 つ追加しました。ボタンを押すと、その場で切り替わります。':
+        '새 디자인 5종을 추가했습니다. 버튼을 누르면 바로 바뀝니다.',
+      'はじめはランタンになっています。ライト表示は従来のデザインだけです。あとから「設定 > デザイン」でも変えられます。':
+        '처음에는 랜턴으로 표시됩니다. 라이트 모드는 기존 디자인에서만 쓸 수 있습니다. 나중에 설정 > 디자인에서도 바꿀 수 있습니다.',
+      '写真一覧の画面の見本': '사진 목록 화면 미리보기',
+      'ワールド一覧ができました': '월드 목록이 생겼습니다',
+      '撮ったワールドがカードでならびます。カードを押すと、そのワールドの写真がひらきます。':
+        '사진을 찍은 월드가 카드로 표시됩니다. 카드를 누르면 그 월드의 사진이 열립니다.',
+      '上の検索で、ワールド名からしぼりこめます':
+        '위쪽 검색으로 월드 이름을 좁혀 볼 수 있습니다',
+      '枚数順・名前順・日付順でならべかえられます':
+        '장수순·이름순·날짜순으로 정렬할 수 있습니다',
+      'マウスの戻るボタンで一覧にもどれます':
+        '마우스의 뒤로 버튼으로 목록에 돌아갈 수 있습니다',
+      'ワールド一覧を見る': '월드 목록 보기',
+      'いつでもサイドバーの「ワールド一覧」からひらけます。':
+        '사이드바의 월드 목록에서 언제든 열 수 있습니다.',
+      'ワールド一覧の画面の見本': '월드 목록 화면 미리보기',
+      '次へ': '다음',
+      '戻る': '이전',
+      'v3.0.0 のお知らせを見る': 'v3.0.0 업데이트 안내 보기',
     },
   });
 
@@ -1349,6 +1440,29 @@
       return language === 'ko'
         ? `${formatNumber(match[1], language)}장`
         : formatEnglishCount(match[1], 'photo');
+    }
+
+    match = core.match(
+      /^ワールドのサムネイル: 保存 (\d+)件 \/ 失敗 (\d+)件 \/ 画像なし (\d+)件$/
+    );
+    if (match) {
+      return language === 'ko'
+        ? `월드 썸네일: 저장 ${match[1]}건 / 실패 ${match[2]}건 / 이미지 없음 ${match[3]}건`
+        : `World thumbnails: ${match[1]} saved / ${match[2]} failed / ${match[3]} without an image`;
+    }
+
+    match = core.match(/^ワールドのサムネイル取得に失敗しました: (.*)$/);
+    if (match) {
+      return language === 'ko'
+        ? `월드 썸네일 가져오기에 실패했습니다: ${match[1]}`
+        : `Could not fetch world thumbnails: ${match[1]}`;
+    }
+
+    match = core.match(/^(\d+)ワールド$/);
+    if (match) {
+      return language === 'ko'
+        ? `월드 ${formatNumber(match[1], language)}개`
+        : formatEnglishCount(match[1], 'world');
     }
 
     match = core.match(/^全(\d+)枚$/);

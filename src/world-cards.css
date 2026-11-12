@@ -1,0 +1,177 @@
+/* World card view: every world as a card (thumbnail, author, photo count,
+   date of the latest photo). It is a feature of the app, so it works in every
+   design: this file holds the structure and the classic look, and the new
+   design skins restyle it in ui-skin-common.css / ui-next.css / ui-hc.css. */
+
+/* The card list takes the place of the photo list and scrolls the same way. */
+body.world-card-view .gallery-list {
+  display: none;
+}
+
+.world-card-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  /* Rows keep the full height of their cards. Without this a long list is
+     squeezed into the visible area and the pictures collapse to nothing
+     (a card clips its content, so its minimum height would be zero). */
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 18px;
+  padding: 2px 4px 28px 2px;
+}
+
+.world-card-list[hidden] {
+  display: none;
+}
+
+.world-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--surface-card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: var(--text-0);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.world-card:hover {
+  background: var(--surface-soft-2);
+  border-color: var(--line-strong);
+}
+
+.world-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* World thumbnails are 4:3; a photo used instead is cropped to match. */
+.world-card-media {
+  flex: 0 0 auto;
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--surface-soft);
+}
+
+.world-card-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  font-size: 40px;
+}
+
+.world-card-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.world-card-media.has-image .world-card-image {
+  opacity: 1;
+}
+
+.world-card-media.has-image .world-card-placeholder {
+  display: none;
+}
+
+/* The body fills the card so the count and date line up along a row. */
+.world-card-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px 14px;
+}
+
+.world-card-name {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.world-card-author {
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.world-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 6px;
+  color: var(--text-1);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.world-card-date {
+  color: var(--text-2);
+}
+
+/* Settings > Maintenance: the note beside "fetch world thumbnails". */
+.settings-world-thumbnail-meta {
+  align-self: center;
+  margin: 0;
+}
+
+/* Settings > Design: six designs sit three to a row instead of five and one. */
+.settings-ui-skin-option-group {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+/* Classic design: the three sort buttons (count, name, date) share one row.
+   The new designs set their own sizes and already fit. */
+body:not([data-ui]) .sidebar-sort-toggle-group {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+body:not([data-ui]) .sidebar-sort-toggle {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+
+/* "All worlds" sits above the worlds it lists. */
+.world-sidebar-all-item {
+  margin-bottom: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .world-card,
+  .world-card-image {
+    transition: none;
+  }
+}

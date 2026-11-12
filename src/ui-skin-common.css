@@ -1,0 +1,1192 @@
+/*
+ * WorldShot Log — screens shared by every new design skin.
+ * Loaded only together with a skin stylesheet (ui-next.css, ui-hc.css) and
+ * scoped to body[data-ui]; the classic design never carries that attribute.
+ * Colours, radius, border weight and type come from the --skin-* tokens each
+ * skin defines, so one rule set serves all skins.
+ *
+ * Specificity note: index.css ends with several "final pass" blocks that use
+ * !important. Rules here that must always win (no lift on hover, no glow, no
+ * blur) use !important plus `:not(#_)`, an id-level specificity bump that
+ * matches every element. Everything else stays at normal weight.
+ */
+
+/* ============ Classic variables, re-pointed at the skin ============ */
+
+body[data-ui] {
+  --text-0: var(--skin-ink);
+  --text-1: var(--skin-ink);
+  --text-2: var(--skin-ink-muted);
+  --text-3: var(--skin-ink-muted);
+  --accent: var(--skin-accent);
+  --accent-2: var(--skin-accent);
+  --accent-soft: var(--skin-control-hover);
+  --accent-soft-line: var(--skin-line-strong);
+  --accent-text: var(--skin-ink);
+  --surface-card: var(--skin-surface);
+  --surface-card-strong: var(--skin-surface);
+  --surface-soft: var(--skin-control);
+  --surface-soft-2: var(--skin-control-hover);
+  --surface-soft-3: var(--skin-control-hover);
+  --line: var(--skin-line);
+  --line-strong: var(--skin-line-strong);
+  --danger-bg: transparent;
+  --danger-line: var(--skin-danger);
+  --input-bg: var(--skin-ground-deep);
+  --overlay: rgba(0, 0, 0, 0.72);
+  --modal-surface: var(--skin-surface);
+  --modal-panel: transparent;
+  --image-stage-bg: var(--skin-ground-deep);
+  --close-btn-bg: var(--skin-ground-deep);
+  --secondary-btn-bg: var(--skin-control);
+  --secondary-btn-text: var(--skin-ink);
+  --toast-bg: var(--skin-ink);
+  --toast-text: var(--skin-ground-deep);
+  --shadow-soft: none;
+  --shadow-card: none;
+  --shadow-float: var(--skin-elevation);
+  --radius-xl: var(--skin-radius);
+  --radius-lg: var(--skin-radius);
+  --radius-md: var(--skin-radius);
+  --radius-sm: var(--skin-radius);
+  --bg-start: var(--skin-ground);
+  --bg-end: var(--skin-ground);
+  --bg-glow-1: transparent;
+  --bg-glow-2: transparent;
+  --scrollbar-thumb-solid: var(--skin-ink-faint);
+  --scrollbar-thumb-solid-hover: var(--skin-ink-muted);
+}
+
+/* ============ Effects the new skins never use ============ */
+
+body[data-ui]:not(#_) *,
+body[data-ui]:not(#_) *::before,
+body[data-ui]:not(#_) *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Buttons change colour on hover; they do not lift, glow or shine.
+   The photo-detail arrows keep their centring transform (set below). */
+body[data-ui]:not(#_) button:not(.image-modal-nav-button) {
+  transform: none !important;
+}
+
+body[data-ui]:not(#_) button {
+  background-image: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+body[data-ui]:not(#_) button:not(.day-button) {
+  box-shadow: none !important;
+}
+
+body[data-ui]:not(#_) button::before,
+body[data-ui]:not(#_) button::after {
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* A few classic buttons set their gradient from an id selector, and the
+   world-name save button also forces its colours with !important. */
+body[data-ui]:not(#_) :is(#save-world-name-btn, #modal-open-world-btn, #modal-edit-photo-btn):not(#_) {
+  background-image: none !important;
+}
+
+body[data-ui]:not(#_) #save-world-name-btn:not(#_) {
+  background-color: var(--skin-accent) !important;
+  border-color: var(--skin-accent) !important;
+  color: var(--skin-accent-ink) !important;
+}
+
+body[data-ui]:not(#_) #save-world-name-btn:not(#_):hover:not(:disabled) {
+  background-color: var(--skin-accent-hover) !important;
+  border-color: var(--skin-accent-hover) !important;
+}
+
+body[data-ui]:not(#_) #save-world-name-btn:not(#_):disabled {
+  background-color: transparent !important;
+  border-color: var(--skin-line) !important;
+  color: var(--skin-ink-faint) !important;
+}
+
+body[data-ui]:not(#_) .image-modal-nav-button.is-prev,
+body[data-ui]:not(#_) .image-modal-nav-button.is-next {
+  transform: translateY(-50%) !important;
+}
+
+body[data-ui]:not(#_) button:hover :is(.year-left, .year-count, .year-toggle, .month-name, .month-count),
+body[data-ui]:not(#_) .photo-card:hover .photo-card-image,
+body[data-ui]:not(#_) :is(.image-modal-close, .sub-modal-close) .material-symbols-outlined {
+  transform: none !important;
+}
+
+body[data-ui]:not(#_) .sidebar button :is(.year-left, .year-count, .year-toggle, .month-name, .month-count, .month-day-toggle, .day-name, .day-count) {
+  color: inherit;
+}
+
+body[data-ui]:not(#_) :is(input, select, textarea) {
+  box-shadow: none !important;
+}
+
+body[data-ui]:not(#_) :is(.sub-modal-content, .image-modal-content, .sidebar-header-controls) {
+  filter: none !important;
+}
+
+body[data-ui]:not(#_) .theme-toggle-btn .material-symbols-outlined {
+  color: inherit;
+}
+
+/* ============ Close buttons (photo detail and every dialog) ============ */
+
+body[data-ui]:not(#_) :is(.image-modal-close, .sub-modal-close) {
+  background-color: var(--skin-ground-deep) !important;
+  border: var(--skin-border-width) solid var(--skin-line-strong) !important;
+  border-radius: var(--skin-radius) !important;
+  color: var(--skin-ink) !important;
+}
+
+body[data-ui]:not(#_) :is(.image-modal-close, .sub-modal-close):hover {
+  background-color: var(--skin-ink) !important;
+  border-color: var(--skin-ink) !important;
+  color: var(--skin-ground-deep) !important;
+}
+
+/* ============ Photo detail (image modal) ============ */
+
+body[data-ui] .image-modal-backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+body[data-ui] .image-modal-content {
+  background: var(--skin-surface);
+  border: var(--skin-border-width) solid var(--skin-line-strong);
+  border-radius: var(--skin-radius);
+  box-shadow: var(--skin-elevation);
+  color: var(--skin-ink);
+}
+
+body[data-ui] .image-modal-body {
+  background: none;
+  border-radius: 0;
+}
+
+body[data-ui] .image-modal-image-wrap {
+  background: var(--skin-ground-deep);
+  border: 0;
+  border-right: var(--skin-border-width) solid var(--skin-line);
+  border-radius: 0;
+}
+
+body[data-ui] #modal-image {
+  border-radius: var(--skin-radius);
+  box-shadow: none;
+}
+
+body[data-ui] .image-modal-info {
+  background: none;
+  border: 0;
+  color: var(--skin-ink);
+}
+
+body[data-ui] .image-modal-nav-button {
+  background: var(--skin-ground-deep);
+  border: var(--skin-border-width) solid var(--skin-line-strong);
+  border-radius: var(--skin-radius);
+  color: var(--skin-ink);
+}
+
+body[data-ui] .image-modal-nav-button:hover:not(.is-disabled) {
+  background: var(--skin-ink);
+  border-color: var(--skin-ink);
+  color: var(--skin-ground-deep);
+}
+
+body[data-ui] .image-modal-nav-button.is-disabled {
+  opacity: 1;
+  color: var(--skin-ink-faint);
+  border-color: var(--skin-line);
+}
+
+/* Hero: favourite, tags, world name, date */
+body[data-ui] .modal-world-hero {
+  background: none;
+  border: 0;
+  border-bottom: var(--skin-border-width) solid var(--skin-line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-ui] .modal-world-label {
+  background: none;
+  border: 1px solid var(--skin-line-strong);
+  border-radius: var(--skin-radius);
+  color: var(--skin-ink-muted);
+  box-shadow: none;
+  text-shadow: none;
+  font: var(--skin-label);
+  letter-spacing: var(--skin-label-spacing);
+}
+
+body[data-ui] .modal-hero-favorite-button {
+  border-radius: var(--skin-radius) !important;
+  background: none;
+  border: 1px solid var(--skin-line-strong);
+  color: var(--skin-ink);
+}
+
+body[data-ui] .modal-hero-favorite-button:hover {
+  border-color: var(--skin-ink);
+}
+
+body[data-ui] .modal-hero-favorite-button.is-active {
+  background: var(--skin-accent);
+  border-color: var(--skin-accent);
+  color: var(--skin-accent-ink);
+}
+
+body[data-ui] .modal-world-link {
+  color: var(--skin-ink);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
+}
+
+body[data-ui] a.modal-world-link:hover {
+  color: var(--skin-accent);
+}
+
+body[data-ui] .modal-hero-taken-at {
+  color: var(--skin-ink);
+  font: var(--skin-numeral);
+  letter-spacing: var(--skin-numeral-spacing);
+}
+
+body[data-ui] .modal-file-name {
+  color: var(--skin-ink-muted);
+}
+
+/* Actions: one accent action, one reversed plate, the rest outlined */
+body[data-ui] .image-modal .primary-link-button {
+  background: var(--skin-control);
+  border: var(--skin-border-width) solid var(--skin-line-strong);
+  border-radius: var(--skin-radius);
+  color: var(--skin-ink);
+}
+
+body[data-ui] .image-modal .primary-link-button:hover:not(:disabled) {
+  background: var(--skin-control-hover);
+}
+
+body[data-ui] .image-modal #modal-open-world-btn {
+  background: var(--skin-accent);
+  border-color: var(--skin-accent);
+  color: var(--skin-accent-ink);
+}
+
+body[data-ui] .image-modal #modal-open-world-btn:hover:not(:disabled) {
+  background: var(--skin-accent-hover);
+  border-color: var(--skin-accent-hover);
+}
+
+body[data-ui] .image-modal #modal-edit-photo-btn {
+  background: var(--skin-ink);
+  border-color: var(--skin-ink);
+  color: var(--skin-ground-deep);
+}
+
+body[data-ui] .image-modal #modal-edit-photo-btn:hover:not(:disabled) {
+  background: var(--skin-ink-strong);
+  border-color: var(--skin-ink-strong);
+}
+
+body[data-ui] .image-modal .primary-link-button:disabled {
+  opacity: 1;
+  background: none;
+  border-color: var(--skin-line);
+  color: var(--skin-ink-faint);
+}
+
+body[data-ui] .image-modal .primary-link-button .material-symbols-outlined {
+  color: inherit;
+}
+
+/* Facts and world info: flat rows divided by hairlines, no nested cards */
+body[data-ui] .modal-meta-item,
+body[data-ui] .modal-world-meta-block {
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--skin-line);
+  border-radius: 0;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+body[data-ui] .modal-meta-label,
+body[data-ui] .modal-world-meta-title {
+  color: var(--skin-ink-muted);
+  font: var(--skin-label);
+  letter-spacing: var(--skin-label-spacing);
+}
+
+body[data-ui] .modal-meta-value,
+body[data-ui] .modal-world-description {
+  color: var(--skin-ink);
+}
+
+body[data-ui] .modal-world-tag,
+body[data-ui] .photo-label-chip {
+  background: none;
+  border: 1px solid var(--skin-line-strong);
+  border-radius: var(--skin-radius);
+  color: var(--skin-ink);
+  box-shadow: none;
+}
+
+body[data-ui] .modal-world-tag.is-placeholder,
+body[data-ui] .photo-label-chip.is-placeholder {
+  border-style: dashed;
+  color: var(--skin-ink-muted);
+}
+
+body[data-ui] .image-modal .small-action-button {
+  background: var(--skin-control);
+  border: var(--skin-border-width) solid var(--skin-line-strong);
+  border-radius: var(--skin-radius);
+  color: var(--skin-ink);
+}
+
+body[data-ui] .image-modal .small-action-button:hover:not(:disabled) {
+  background: var(--skin-control-hover);
+}
+
+body[data-ui] .image-modal .small-action-button:disabled {
+  opacity: 1;
+  border-color: var(--skin-line);
+  color: var(--skin-ink-faint);
+}
+
+body[data-ui] .modal-photo-memo-input {
+  background: var(--skin-ground-deep);
+  border: var(--skin-border-width) solid var(--skin-line-strong);
+  border-radius: var(--skin-radius);
+  color: var(--skin-ink);
+}
+
+body[data-ui] .modal-photo-memo-input::placeholder {
+  color: var(--skin-ink-muted);
+}
+
+body[data-ui] .modal-photo-memo-input:focus {
+  border-color: var(--skin-accent);
+  outline: none;
+}
+
+body[data-ui] .modal-photo-memo-status {
+  color: var(--skin-ink-muted);
+}
+
+body[data-ui] .image-modal .world-name-row {
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--skin-line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-ui] .image-modal .world-name-text {
+  color: var(--skin-ink);
+}
+
+body[data-ui] .image-modal .danger-button {
+  background: none;
+  border: var(--skin-border-width) solid var(--skin-danger);
+  border-radius: var(--skin-radius);
+  color: var(--skin-danger);
+}
+
+body[data-ui] .image-modal .danger-button:hover:not(:disabled) {
+  background: var(--skin-danger);
+  color: var(--skin-ground-deep);
+}
+
+/* ============ Dialogs (settings, photo editor, world name, labels,
+   tracked folders, uninstall, confirm) ============ */
+
+body[data-ui] .sub-modal-backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+body[data-ui]:not(#_) .sub-modal-content {
+  background: var(--skin-surface);
+  border: var(--skin-border-width) solid var(--skin-line-strong);
+  border-radius: var(--skin-radius);
+  box-shadow: var(--skin-elevation);
+  color: var(--skin-ink);
+}
+
+body[data-ui]:not(#_) .sub-modal {
+  h3 {
+    color: var(--skin-ink);
+    font: var(--skin-heading);
+    letter-spacing: var(--skin-heading-spacing);
+  }
+
+  .sub-modal-description {
+    color: var(--skin-ink-muted);
+  }
+
+  label {
+    color: var(--skin-ink-muted);
+  }
+
+  /* --- Buttons: outlined by default --- */
+  button {
+    background-color: var(--skin-control);
+    border: var(--skin-border-width) solid var(--skin-line-strong);
+    border-radius: var(--skin-radius);
+    color: var(--skin-ink);
+    opacity: 1;
+  }
+
+  button:where(:hover:not(:disabled)) {
+    background-color: var(--skin-control-hover);
+    color: var(--skin-ink);
+  }
+
+  button:where(:disabled) {
+    background-color: transparent;
+    border-color: var(--skin-line);
+    color: var(--skin-ink-faint);
+    cursor: default;
+  }
+
+  button :is(span, .material-symbols-outlined) {
+    color: inherit;
+  }
+
+  /* Classic "secondary" buttons were lighter and thinner; here every
+     ordinary button carries the same weight. */
+  button:not(.photo-editor-accordion-toggle) {
+    font-weight: 700;
+  }
+
+  /* The one committing action of a dialog */
+  :is(.primary-link-button, #save-world-name-btn, .photo-editor-mask-confirm-btn) {
+    background-color: var(--skin-accent);
+    border-color: var(--skin-accent);
+    color: var(--skin-accent-ink);
+  }
+
+  :is(.primary-link-button, #save-world-name-btn, .photo-editor-mask-confirm-btn):where(:hover:not(:disabled)) {
+    background-color: var(--skin-accent-hover);
+    border-color: var(--skin-accent-hover);
+    color: var(--skin-accent-ink);
+  }
+
+  :is(.primary-link-button, #save-world-name-btn, .photo-editor-mask-confirm-btn):where(:disabled) {
+    background-color: transparent;
+    border-color: var(--skin-line);
+    color: var(--skin-ink-faint);
+  }
+
+  /* Chosen option of a set */
+  button:is(.is-active, .is-selected, [aria-pressed='true']) {
+    background-color: var(--skin-accent);
+    border-color: var(--skin-accent);
+    color: var(--skin-accent-ink);
+  }
+
+  button:is(.is-active, .is-selected, [aria-pressed='true']):where(:hover:not(:disabled)) {
+    background-color: var(--skin-accent-hover);
+    border-color: var(--skin-accent-hover);
+    color: var(--skin-accent-ink);
+  }
+
+  .danger-button {
+    background-color: transparent;
+    border-color: var(--skin-danger);
+    color: var(--skin-danger);
+  }
+
+  .danger-button:where(:hover:not(:disabled)) {
+    background-color: var(--skin-danger);
+    border-color: var(--skin-danger);
+    color: var(--skin-ground-deep);
+  }
+
+  .danger-button:where(:disabled) {
+    background-color: transparent;
+    border-color: var(--skin-line);
+    color: var(--skin-ink-faint);
+  }
+
+  /* --- Fields --- */
+  :is(input:not([type='range'], [type='checkbox'], [type='radio'], [type='color'], [type='file']), select, textarea) {
+    background-color: var(--skin-ground-deep);
+    border: var(--skin-border-width) solid var(--skin-line-strong);
+    border-radius: var(--skin-radius);
+    color: var(--skin-ink);
+  }
+
+  :is(input, select, textarea):focus {
+    border-color: var(--skin-accent);
+    outline: none;
+  }
+
+  :is(input, textarea)::placeholder {
+    color: var(--skin-ink-faint);
+  }
+
+  select option {
+    background: var(--skin-ground-deep);
+    color: var(--skin-ink);
+  }
+
+  .world-name-save-status {
+    color: var(--skin-ink-muted);
+  }
+
+  /* --- Settings --- */
+  .settings-section {
+    background: none;
+    border: 0;
+    border-top: 1px solid var(--skin-line);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .settings-section-title,
+  .photo-label-editor-section-title,
+  .photo-editor-subject-manual-title {
+    color: var(--skin-ink);
+    font: var(--skin-section-title);
+    letter-spacing: var(--skin-section-title-spacing);
+  }
+
+  :is(.settings-section-meta, .settings-background-meta, .settings-ai-model-meta, .settings-ai-model-status, .settings-data-status, .settings-maintenance-status, .tracked-folder-settings-meta) {
+    color: var(--skin-ink-muted);
+  }
+
+  /* A status line says how it went: working / done in ink, failure in the
+     danger colour. */
+  :is(.settings-ai-model-status, .settings-data-status, .settings-maintenance-status):is(.is-busy, .is-success) {
+    color: var(--skin-ink);
+  }
+
+  :is(.settings-ai-model-status, .settings-data-status, .settings-maintenance-status).is-error {
+    color: var(--skin-danger);
+  }
+
+  /* The month picker in Maintenance is a toolbar-style button; here it
+     lines up with the action button beside it. */
+  .settings-month-dropdown-button {
+    height: 46px;
+    min-height: 46px;
+    padding: 0 52px 0 18px;
+  }
+
+  .settings-overview-card {
+    background: none;
+    border: var(--skin-border-width) solid var(--skin-line);
+    border-radius: var(--skin-radius);
+    box-shadow: none;
+  }
+
+  .settings-overview-label {
+    color: var(--skin-ink-muted);
+    font: var(--skin-label);
+    letter-spacing: var(--skin-label-spacing);
+  }
+
+  .settings-overview-value {
+    color: var(--skin-ink);
+    font: var(--skin-numeral);
+    font-size: 30px;
+    letter-spacing: var(--skin-numeral-spacing);
+  }
+
+  .settings-ai-model-item {
+    background: none;
+    border: 0;
+    border-top: 1px solid var(--skin-line);
+    border-radius: 0;
+    box-shadow: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .settings-ai-model-name {
+    color: var(--skin-ink);
+  }
+
+  .settings-data-panel-inner,
+  .settings-data-panel {
+    background: none;
+    border-color: var(--skin-line);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .tracked-folder-empty,
+  .tracked-folder-item {
+    background: none;
+    border: 1px dashed var(--skin-line-strong);
+    border-radius: var(--skin-radius);
+    color: var(--skin-ink-muted);
+    box-shadow: none;
+  }
+
+  .tracked-folder-item {
+    border-style: solid;
+    color: var(--skin-ink);
+  }
+
+  /* --- Photo editor --- */
+  .photo-editor-header {
+    border-color: var(--skin-line);
+  }
+
+  :is(.photo-editor-file-name, .photo-editor-status, .photo-editor-subject-status) {
+    color: var(--skin-ink-muted);
+  }
+
+  /* The checkerboard that shows transparency stays; only its frame changes. */
+  .photo-editor-canvas-wrap {
+    border: var(--skin-border-width) solid var(--skin-line);
+    border-radius: var(--skin-radius);
+  }
+
+  .photo-editor-section {
+    background: none;
+    border: 0;
+    border-top: 1px solid var(--skin-line);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  :is(.photo-editor-crop-transform-panel, .photo-editor-auto-enhance-panel, .photo-editor-subject-manual-controls, .photo-editor-image-overlay-controls) {
+    background: none;
+    border: 0;
+    border-top: 1px dashed var(--skin-line);
+    border-radius: 0;
+    box-shadow: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .photo-editor-accordion-toggle {
+    background-color: transparent;
+    border-color: transparent;
+    color: var(--skin-ink);
+    font: var(--skin-section-title);
+    letter-spacing: var(--skin-section-title-spacing);
+  }
+
+  .photo-editor-accordion-toggle:where(:hover:not(:disabled)) {
+    background-color: transparent;
+    color: var(--skin-accent);
+  }
+
+  .photo-editor-slider-reset {
+    background-color: transparent;
+    border-color: var(--skin-line);
+    color: var(--skin-ink-muted);
+  }
+
+  .photo-editor-slider-reset:where(:hover:not(:disabled)) {
+    background-color: var(--skin-control-hover);
+    border-color: var(--skin-line-strong);
+    color: var(--skin-ink);
+  }
+
+  .photo-editor-preview-tool-button {
+    background-color: var(--skin-ground-deep);
+  }
+
+  :is(.photo-editor-slider-label, .photo-editor-range-row, .photo-editor-select-field, .photo-editor-blur-mode-row, .photo-editor-crop-transform-heading) {
+    color: var(--skin-ink-muted);
+  }
+
+  :is(.photo-editor-slider-label, .photo-editor-range-row) span:last-of-type {
+    color: var(--skin-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type='range'] {
+    accent-color: var(--skin-accent);
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .photo-editor-canvas-wrap canvas {
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* The grid lines behind the tone curve stay; only the frame changes.
+     The curve itself is drawn by the renderer in --photo-editor-curve-line. */
+  .photo-editor-curve-canvas {
+    --photo-editor-curve-line: var(--skin-accent);
+    border-color: var(--skin-line-strong);
+    border-radius: var(--skin-radius);
+  }
+
+  /* Frames and handles drawn over the photo keep their white-on-dark
+     contrast; only the blue tint and the amber handle follow the skin. */
+  .photo-editor-css-outline {
+    background: transparent;
+  }
+
+  .photo-editor-css-handle {
+    border-color: var(--skin-ground-deep);
+  }
+
+  .photo-editor-css-handle-resize {
+    border-radius: var(--skin-radius);
+  }
+
+  .photo-editor-css-handle-rotate {
+    background: var(--skin-accent);
+    border-color: var(--skin-ink-strong);
+  }
+
+  input[type='color'] {
+    background-color: var(--skin-ground-deep);
+    border: var(--skin-border-width) solid var(--skin-line-strong);
+    border-radius: var(--skin-radius);
+  }
+
+  input[type='color']::-webkit-color-swatch {
+    border-radius: 0;
+  }
+
+  .photo-label-color-preview {
+    border-radius: var(--skin-radius);
+    box-shadow: none;
+  }
+
+  :is(.photo-editor-mask-options, .photo-editor-text-options, .photo-editor-text-item, .photo-editor-image-overlay-item, .photo-editor-user-preset-item) {
+    border-radius: var(--skin-radius);
+    box-shadow: none;
+  }
+
+  /* Every slider, including the ones classic leaves to the system look. */
+  input[type='range'] {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+  }
+
+  input[type='range']:disabled {
+    opacity: 0.45;
+  }
+
+  input[type='range']:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid var(--skin-ink-strong);
+    outline-offset: 2px;
+  }
+
+  .photo-editor-image-overlay-library-item {
+    background: transparent;
+    border-color: var(--skin-line);
+    border-radius: var(--skin-radius);
+  }
+
+  .photo-editor-image-overlay-library-thumb {
+    border-radius: 0;
+  }
+
+  .photo-editor-subject-brush-cursor::after {
+    background: var(--skin-accent);
+  }
+
+  .photo-editor-subject-brush-cursor.is-erase::after {
+    background: var(--skin-danger);
+  }
+
+  input[type='range']::-webkit-slider-runnable-track {
+    height: 4px;
+    background: var(--skin-track);
+    border-radius: 0;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    width: 16px;
+    height: 16px;
+    margin-top: -6px;
+    background: var(--skin-accent);
+    border: 2px solid var(--skin-surface);
+    border-radius: var(--skin-thumb-radius);
+    box-shadow: none;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  /* --- Labels --- */
+  .photo-label-preset-button {
+    background-color: var(--photo-label-color);
+    border-color: transparent;
+  }
+
+  .photo-label-preset-button:where(:hover:not(:disabled)) {
+    background-color: var(--photo-label-color);
+    border-color: var(--skin-ink);
+  }
+
+  .photo-label-preset-button.is-active {
+    background-color: var(--photo-label-color);
+    border-color: var(--skin-surface);
+    outline: 2px solid var(--skin-ink);
+    outline-offset: 0;
+  }
+
+  .photo-label-chip-remove {
+    background-color: transparent;
+    border-color: transparent;
+    color: inherit;
+  }
+
+  /* --- Menus opened inside a dialog --- */
+  .header-dropdown-menu {
+    background: var(--skin-raised);
+    border: var(--skin-border-width) solid var(--skin-line-strong);
+    border-radius: var(--skin-radius);
+    box-shadow: var(--skin-elevation);
+  }
+
+  .header-dropdown-item {
+    background-color: transparent;
+    border-color: transparent;
+    color: var(--skin-ink);
+  }
+
+  .header-dropdown-item:where(:hover:not(:disabled)) {
+    background-color: var(--skin-control-hover);
+  }
+
+  .header-dropdown-item.is-active {
+    background-color: var(--skin-accent);
+    border-color: var(--skin-accent);
+    color: var(--skin-accent-ink);
+  }
+}
+
+/* ============ Small shared pieces of the main screen ============ */
+
+/* Guides and handles the editor draws on its preview canvas (renderer.js
+   reads this; the classic design leaves it unset and keeps its blue). */
+body[data-ui] {
+  --photo-editor-guide-rgb: var(--skin-accent-rgb);
+}
+
+/* Startup: flat ground and a plain spinner. */
+body[data-ui] .app.is-app-initializing::before {
+  background: var(--skin-ground);
+}
+
+body[data-ui] .app.is-app-initializing::after {
+  border-color: var(--skin-line);
+  border-top-color: var(--skin-accent);
+  border-right-color: var(--skin-accent);
+  box-shadow: none;
+}
+
+/* Search-target menu in the top bar: a panel with flat rows. */
+body[data-ui] .toolbar-search-scope-menu {
+  padding: 6px;
+  gap: 2px;
+}
+
+body[data-ui] .toolbar-search-scope-menu .header-dropdown-item {
+  min-height: 38px;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+body[data-ui] .toolbar-search-scope-menu .header-dropdown-item:hover {
+  background: var(--skin-control-hover);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+body[data-ui] .toolbar-search-scope-menu .header-dropdown-item.is-active,
+body[data-ui] .toolbar-search-scope-menu .header-dropdown-item.is-active:hover {
+  background: var(--skin-accent);
+  color: var(--skin-accent-ink);
+}
+
+body[data-ui] .toolbar-search-scope-menu .header-dropdown-item.is-active .header-dropdown-check {
+  color: inherit;
+}
+
+/* Selection mode: the check on a chosen card is filled. */
+body[data-ui] .photo-card-selection-btn.is-selected {
+  background: var(--skin-accent);
+  border-color: var(--skin-accent);
+  color: var(--skin-accent-ink);
+}
+
+/* Labels on a photo card: small outlined tags. */
+body[data-ui] :is(.photo-card-label-chip, .photo-card-label-overflow) {
+  min-height: 20px;
+  padding: 2px 6px;
+  background: transparent;
+  border: 1px solid var(--skin-line-strong);
+  border-radius: var(--skin-radius);
+  color: var(--skin-ink-muted);
+}
+
+body[data-ui] .photo-card-label-chip-swatch {
+  box-shadow: none;
+}
+
+/* A card whose thumbnail is missing or still being made. */
+body[data-ui] .photo-card-image-placeholder {
+  background: var(--skin-ground-deep);
+  color: var(--skin-ink-faint);
+}
+
+body[data-ui] .header-dropdown.is-open > .header-filter-button {
+  border-color: var(--skin-accent);
+}
+
+body[data-ui] .header-dropdown-mode-button {
+  background: var(--skin-control);
+  border: var(--skin-border-width) solid var(--skin-line-strong);
+  border-radius: var(--skin-radius);
+  color: var(--skin-ink);
+}
+
+body[data-ui] .header-dropdown-mode-button:hover {
+  background: var(--skin-control-hover);
+  border-color: var(--skin-line-strong);
+  color: var(--skin-ink);
+}
+
+body[data-ui] .header-dropdown-mode-button.is-active {
+  background: var(--skin-accent);
+  border-color: var(--skin-accent);
+  color: var(--skin-accent-ink);
+}
+
+body[data-ui] .header-dropdown-meta-badge {
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: var(--skin-radius);
+  color: inherit;
+}
+
+body[data-ui] .toast {
+  background: var(--skin-ink);
+  color: var(--skin-ground-deep);
+  border: 0;
+  border-radius: var(--skin-radius);
+  box-shadow: var(--skin-elevation);
+  font-weight: 700;
+}
+
+body[data-ui]:not(#_) .drop-overlay {
+  background: rgba(0, 0, 0, 0.6) !important;
+  border-radius: 0;
+}
+
+body[data-ui]:not(#_) .drop-overlay::after {
+  border-color: var(--skin-accent) !important;
+  border-radius: var(--skin-radius) !important;
+  box-shadow: none;
+}
+
+body[data-ui]:not(#_) .drop-overlay-panel {
+  background: var(--skin-surface) !important;
+  border: var(--skin-border-width) solid var(--skin-line-strong) !important;
+  border-radius: var(--skin-radius);
+  box-shadow: var(--skin-elevation) !important;
+}
+
+body[data-ui]:not(#_) .drop-overlay-title {
+  color: var(--skin-ink);
+}
+
+body[data-ui]:not(#_) .drop-overlay-text {
+  color: var(--skin-ink-muted) !important;
+}
+
+/* The top bar is one 64px row: while work is in progress the progress box
+   replaces the status line instead of stacking under it. */
+body[data-ui] .toolbar-right:has(.processing-progress:not([hidden])) .import-status {
+  display: none;
+}
+
+body[data-ui] .processing-progress {
+  width: min(320px, 100%);
+  padding: 7px 10px;
+  background: none;
+  border: var(--skin-border-width) solid var(--skin-line-strong);
+  border-radius: var(--skin-radius);
+  box-shadow: none;
+}
+
+body[data-ui] .processing-progress-header {
+  margin-bottom: 6px;
+}
+
+body[data-ui] .processing-progress-label {
+  color: var(--skin-ink);
+}
+
+body[data-ui] .processing-progress-value {
+  color: var(--skin-ink-muted);
+}
+
+body[data-ui] .processing-progress-track {
+  background: var(--skin-track);
+  border: 0;
+  border-radius: 0;
+}
+
+body[data-ui] .processing-progress-fill {
+  background: var(--skin-accent);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ============ Motion: plain fades and short slides, no blur ============
+ * Durations and timing stay as index.css sets them (the renderer waits on
+ * them); only the keyframes are swapped. */
+
+@keyframes skinFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes skinFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes skinSlideInNext {
+  from {
+    opacity: 0.4;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes skinSlideInPrev {
+  from {
+    opacity: 0.4;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+body[data-ui] #month-gallery-list.month-switch-leave,
+body[data-ui] .month-header-transition-clone.month-header-leave {
+  animation-name: skinFadeOut;
+}
+
+body[data-ui] #month-gallery-list.month-switch-enter,
+body[data-ui] #month-gallery-list.month-switch-enter .gallery-group,
+body[data-ui] #current-month-count.month-header-text-enter,
+body[data-ui] .top-sticky-shell.modal-shell-restore {
+  animation-name: skinFadeIn;
+}
+
+body[data-ui] .image-modal-body.is-switching-next .image-modal-info {
+  animation-name: skinSlideInNext;
+}
+
+body[data-ui] .image-modal-body.is-switching-prev .image-modal-info {
+  animation-name: skinSlideInPrev;
+}
+
+/* The snapshot that dissolves while the month changes sets its blur and
+   scale inline, so these need !important. */
+body[data-ui]:not(#_) .month-switch-overlay {
+  filter: none !important;
+  transform: none !important;
+}
+
+/* Jumping to a date: each skin marks the target itself (no glowing aura). */
+body[data-ui] .gallery-group.is-jump-target::after {
+  display: none;
+}
+
+body[data-ui] .gallery-group.is-jump-target .day-box {
+  animation: none;
+}
+
+body[data-ui] .photo-card-image.is-loading {
+  background: var(--skin-ground-deep);
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-ui] .sub-modal-content,
+  body[data-ui] .sub-modal-backdrop {
+    transition: none;
+  }
+}
+
+/* ============ World card view ============ */
+/* Structure comes from world-cards.css; the skins only set the surface. */
+
+body[data-ui] .world-card {
+  background: var(--skin-surface);
+  border: var(--skin-border-width) solid var(--skin-line);
+  border-radius: var(--skin-radius);
+  color: var(--skin-ink);
+}
+
+body[data-ui] .world-card:hover {
+  background: var(--skin-control-hover);
+  border-color: var(--skin-line-strong);
+}
+
+/* The list scrolls and clips, so the ring is drawn inside the card. */
+body[data-ui] .world-card:focus-visible {
+  outline: 3px solid var(--skin-accent);
+  outline-offset: -3px;
+}
+
+body[data-ui] .world-card-media {
+  background: var(--skin-ground-deep);
+}
+
+body[data-ui] .world-card-placeholder {
+  color: var(--skin-ink-faint);
+}
+
+body[data-ui] .world-card-meta {
+  align-items: baseline;
+  color: var(--skin-ink);
+}
+
+body[data-ui] .world-card-count {
+  font: var(--skin-numeral);
+  letter-spacing: var(--skin-numeral-spacing);
+}
+
+body[data-ui] :is(.world-card-author, .world-card-date) {
+  color: var(--skin-ink-muted);
+}

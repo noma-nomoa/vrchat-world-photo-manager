@@ -37,6 +37,7 @@ const {
 const { createPhotoRecordBuilder } = require('./photo-record');
 const { createAiSubjectModelStore } = require('./ai-subject-model-store');
 const { createThumbnailStore } = require('./thumbnail-store');
+const { createWorldThumbnailStore } = require('./world-thumbnail-store');
 const { initDatabase } = require('./db');
 const { createAppDataBackupService } = require('./app-data-backup-service');
 const { mapWithConcurrencyLimit } = require('./concurrency');
@@ -48,6 +49,7 @@ if (require('electron-squirrel-startup')) {
 
 let photoDb = null;
 let thumbnailDirPath = '';
+let worldThumbnailDirPath = '';
 let preferencesFilePath = '';
 let photoEditorOverlayAssetDirPath = '';
 let mainWindowRef = null;
@@ -146,6 +148,11 @@ app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 const LEGACY_APP_STORAGE_DIRNAME = 'vrchat-world-photo-manager';
 const APP_STORAGE_DIRNAME = APP_DISPLAY_NAME;
 const THUMBNAIL_DIRNAME = 'thumbnails';
+const WORLD_THUMBNAIL_DIRNAME = 'world-thumbnails';
+const WORLD_THUMBNAILS_UPDATED_CHANNEL = 'world-thumbnails-updated';
+// A failed automatic download is not repeated before this much time passes;
+// the button in Settings always tries again.
+const WORLD_THUMBNAIL_AUTO_RETRY_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const PHOTO_EDITOR_OVERLAY_ASSET_DIRNAME = 'photo-editor-overlays';
 const PHOTO_EDITOR_EXPORT_FORMATS = Object.freeze({
   png: {
@@ -1065,6 +1072,14 @@ const {
   storageDirname: APP_STORAGE_DIRNAME,
   legacyStorageDirname: LEGACY_APP_STORAGE_DIRNAME,
   thumbnailDirname: THUMBNAIL_DIRNAME,
+});
+
+const worldThumbnailStore = createWorldThumbnailStore({
+  fs,
+  nativeImage,
+  fetchImpl: (...args) => fetch(...args),
+  getDirectoryPath: () => worldThumbnailDirPath,
+  userAgent: 'VRChatWorldPhotoManager/1.0',
 });
 
 function getSquirrelUpdateExecutablePath() {
@@ -2705,6 +2720,8 @@ async function resetApplicationData(progressReporter = null) {
     throw new Error(`サムネイル保存先を初期化できませんでした: ${error.message}`);
   }
 
+  await worldThumbnailStore.removeAll().catch(() => {});
+
   const counts = photoDb.resetApplicationData();
   clearPhotoPreparationCaches();
 
@@ -2869,6 +2886,192 @@ async function buildRendererPhotosFromRows(rowProvider, label, details = {}) {
   return photos;
 }
 
+// ---------- World thumbnails (world card view) ----------
+// The picture VRChat publishes for a world is fetched once, saved small and
+// linked to the world in world_thumbnail_cache. The cards only read the
+// saved file.
+function broadcastWorldThumbnailsUpdated() {
+  for (const browserWindow of BrowserWindow.getAllWindows()) {
+    const webContents = browserWindow.webContents;
+
+    if (webContents && !webContents.isDestroyed()) {
+      webContents.send(WORLD_THUMBNAILS_UPDATED_CHANNEL, {});
+    }
+  }
+}
+
+// status: 'saved' | 'exists' | 'no_source' | 'waiting' | 'failed' | 'skipped'
+async function saveWorldThumbnailForWorld(worldId, { retryFailed = false } = {}) {
+  const normalizedWorldId = normalizeWorldId(worldId);
+
+  if (!normalizedWorldId || !photoDb) {
+    return { status: 'skipped' };
+  }
+
+  const existingRow = photoDb.getWorldThumbnailByWorldId(normalizedWorldId);
+
+  if (
+    existingRow?.file_name &&
+    (await worldThumbnailStore.hasFile(existingRow.file_name))
+  ) {
+    return { status: 'exists' };
+  }
+
+  const metadataRow = photoDb.getWorldMetadataByWorldId(normalizedWorldId);
+  // image_url is the picture of the world itself. A preview video is a
+  // separate field and is never used here.
+  const sourceUrl =
+    worldThumbnailStore.normalizeSourceUrl(metadataRow?.image_url) ||
+    worldThumbnailStore.normalizeSourceUrl(metadataRow?.thumbnail_image_url);
+
+  if (!sourceUrl) {
+    return { status: 'no_source' };
+  }
+
+  if (!retryFailed && existingRow && existingRow.fetch_status !== 'success') {
+    const lastAttemptedAt = Date.parse(existingRow.last_attempted_at || '');
+
+    if (
+      Number.isFinite(lastAttemptedAt) &&
+      Date.now() - lastAttemptedAt < WORLD_THUMBNAIL_AUTO_RETRY_INTERVAL_MS
+    ) {
+      return { status: 'waiting' };
+    }
+  }
+
+  const attemptedAt = new Date().toISOString();
+  const result = await worldThumbnailStore.saveFromUrl(
+    normalizedWorldId,
+    sourceUrl
+  );
+
+  if (result.ok) {
+    photoDb.upsertWorldThumbnail({
+      worldId: normalizedWorldId,
+      fileName: result.fileName,
+      sourceUrl: result.sourceUrl,
+      width: result.width,
+      height: result.height,
+      byteSize: result.byteSize,
+      fetchStatus: 'success',
+      fetchError: null,
+      fetchedAt: attemptedAt,
+      lastAttemptedAt: attemptedAt,
+    });
+    return { status: 'saved' };
+  }
+
+  photoDb.upsertWorldThumbnail({
+    worldId: normalizedWorldId,
+    fileName: null,
+    sourceUrl,
+    fetchStatus: result.fetchStatus,
+    fetchError: result.fetchError,
+    fetchedAt: null,
+    lastAttemptedAt: attemptedAt,
+  });
+  return { status: 'failed', error: result.fetchError };
+}
+
+// Runs behind the world metadata sync; a failure here never stops that sync.
+async function saveWorldThumbnailQuietly(worldId) {
+  try {
+    const result = await saveWorldThumbnailForWorld(worldId);
+
+    if (result.status === 'saved') {
+      broadcastWorldThumbnailsUpdated();
+    }
+  } catch (error) {
+    console.warn('[world-thumbnail] Failed to save world thumbnail', worldId, error);
+  }
+}
+
+// Settings button: saves a thumbnail for every world that has none yet,
+// fetching the world information first where it is still missing.
+async function fetchMissingWorldThumbnails(progressReporter = null) {
+  if (!photoDb) {
+    throw new Error('データベースが初期化されていません');
+  }
+
+  const worldIds = buildWorldSidebarData('count')
+    .map((entry) => entry.worldId)
+    .filter(Boolean);
+  const counts = {
+    worldCount: worldIds.length,
+    savedCount: 0,
+    existingCount: 0,
+    failedCount: 0,
+    noImageCount: 0,
+  };
+  let processedCount = 0;
+
+  for (const worldId of worldIds) {
+    progressReporter?.({
+      phase: 'process',
+      current: processedCount,
+      total: worldIds.length,
+      message: 'ワールドのサムネイルを取得しています...',
+    });
+
+    try {
+      let result = await saveWorldThumbnailForWorld(worldId, {
+        retryFailed: true,
+      });
+
+      // World information is fetched here only where the regular sync
+      // would fetch it too, so nothing already stored is replaced.
+      if (
+        result.status === 'no_source' &&
+        !hasUsableOfficialWorldMetadataRow(
+          photoDb.getWorldMetadataByWorldId(worldId)
+        )
+      ) {
+        await delay(WORLD_METADATA_SYNC_DELAY_MS);
+        await fetchAndCacheOfficialWorldMetadata(
+          worldId,
+          buildWorldUrlFromId(worldId)
+        );
+        result = await saveWorldThumbnailForWorld(worldId, {
+          retryFailed: true,
+        });
+      }
+
+      if (result.status === 'saved') {
+        counts.savedCount += 1;
+        await delay(WORLD_METADATA_SYNC_DELAY_MS);
+      } else if (result.status === 'exists') {
+        counts.existingCount += 1;
+      } else if (result.status === 'no_source') {
+        counts.noImageCount += 1;
+      } else {
+        counts.failedCount += 1;
+        await delay(WORLD_METADATA_SYNC_DELAY_MS);
+      }
+    } catch (error) {
+      counts.failedCount += 1;
+      console.warn('[world-thumbnail] Failed to save world thumbnail', worldId, error);
+    }
+
+    processedCount += 1;
+  }
+
+  progressReporter?.({
+    phase: 'complete',
+    current: processedCount,
+    total: worldIds.length,
+    message: 'ワールドのサムネイルの取得が完了しました',
+  });
+
+  return { ok: true, ...counts };
+}
+
+function toWorldCardCoverThumbnailUrl(row) {
+  return typeof row?.thumbnail_path === 'string' &&
+    row.thumbnail_path.trim().length > 0
+    ? pathToFileURL(row.thumbnail_path).href
+    : null;
+}
+
 function buildWorldSidebarData(sortMode = 'count') {
   const rows = photoDb.getAllPhotosWithWorldInfo();
   const worldMap = new Map();
@@ -2884,24 +3087,73 @@ function buildWorldSidebarData(sortMode = 'count') {
 
     if (existingEntry) {
       existingEntry.count += 1;
+
+      if (!existingEntry.coverThumbnailUrl) {
+        existingEntry.coverThumbnailUrl = toWorldCardCoverThumbnailUrl(row);
+      }
+
       continue;
     }
 
+    // Rows arrive newest first, so the first row of a world is its latest
+    // photo: it gives the card its date and its fallback picture.
     worldMap.set(worldKey, {
       worldKey,
       worldId: worldId || null,
       worldName,
       count: 1,
+      latestGroupDate: row.group_date || null,
+      coverThumbnailUrl: toWorldCardCoverThumbnailUrl(row),
+      authorName: null,
+      worldThumbnailUrl: null,
     });
   }
 
   const entries = Array.from(worldMap.values());
+  const worldThumbnailFileNames = new Map(
+    photoDb
+      .getAllWorldThumbnails()
+      .filter((thumbnailRow) => thumbnailRow.file_name)
+      .map((thumbnailRow) => [thumbnailRow.world_id, thumbnailRow.file_name])
+  );
+
+  for (const entry of entries) {
+    if (!entry.worldId) {
+      continue;
+    }
+
+    const metadataRow = photoDb.getWorldMetadataByWorldId(entry.worldId);
+    const worldThumbnailPath = worldThumbnailStore.getFilePath(
+      worldThumbnailFileNames.get(entry.worldId)
+    );
+
+    entry.authorName =
+      normalizeOfficialWorldText(metadataRow?.author_name) || null;
+    entry.worldThumbnailUrl = worldThumbnailPath
+      ? pathToFileURL(worldThumbnailPath).href
+      : null;
+  }
+
   entries.sort((leftEntry, rightEntry) => {
     const leftName = leftEntry.worldName || '';
     const rightName = rightEntry.worldName || '';
 
     if (sortMode === 'name') {
       return leftName.localeCompare(rightName, 'ja');
+    }
+
+    if (sortMode === 'date') {
+      // Newest latest-photo date first. Worlds that share a date keep the
+      // order they arrived in, which is already newest photo first; a world
+      // without a date goes last.
+      const leftDate = leftEntry.latestGroupDate || '';
+      const rightDate = rightEntry.latestGroupDate || '';
+
+      if (leftDate === rightDate) {
+        return 0;
+      }
+
+      return leftDate < rightDate ? 1 : -1;
     }
 
     const countDelta = rightEntry.count - leftEntry.count;
@@ -4236,6 +4488,8 @@ async function syncOfficialWorldMetadataForTarget(target) {
     didFetch = true;
   }
 
+  await saveWorldThumbnailQuietly(worldId);
+
   const officialWorldName = normalizeOfficialWorldText(
     metadataRow?.world_name_official
   );
@@ -4888,6 +5142,7 @@ app.whenReady().then(async () => {
   await migrateLegacyThumbnailStorage();
 
   thumbnailDirPath = path.join(appStorageRootPath, THUMBNAIL_DIRNAME);
+  worldThumbnailDirPath = path.join(appStorageRootPath, WORLD_THUMBNAIL_DIRNAME);
   photoEditorOverlayAssetDirPath = path.join(
     app.getPath('userData'),
     PHOTO_EDITOR_OVERLAY_ASSET_DIRNAME
@@ -4897,6 +5152,7 @@ app.whenReady().then(async () => {
   await ensureDir(dbDirPath);
   await ensureDir(appStorageRootPath);
   await ensureDir(thumbnailDirPath);
+  await ensureDir(worldThumbnailDirPath);
   await ensureDir(photoEditorOverlayAssetDirPath);
 
   photoDb = initDatabase(path.join(dbDirPath, 'app.sqlite'));
@@ -5133,6 +5389,24 @@ app.whenReady().then(async () => {
         targetCount: 0,
         queuedCount: 0,
         pendingCount: getQueuedWorldMetadataSyncCount(),
+      };
+    }
+  });
+
+  ipcMain.handle('fetch-world-thumbnails', async (event) => {
+    try {
+      return await fetchMissingWorldThumbnails(
+        createProcessingProgressReporter(event.sender, 'fetch-world-thumbnails')
+      );
+    } catch (error) {
+      return {
+        ok: false,
+        message: error.message,
+        worldCount: 0,
+        savedCount: 0,
+        existingCount: 0,
+        failedCount: 0,
+        noImageCount: 0,
       };
     }
   });

@@ -1,0 +1,858 @@
+/*
+ * WorldShot Log — new design skin B "hc" (the default design, dark only).
+ * Every rule is scoped to body[data-ui="hc"]; the classic design in
+ * index.css and skin A (ui-next.css) are untouched.
+ * Direction: an orange rail carrying the period as one heavy numeral, a deep
+ * green work area, heavy orange day numerals beside each date row.
+ * No gradients or glows.
+ */
+
+body[data-ui='hc'] {
+  --hc-ground: #0f3a2c;
+  --hc-ground-deep: #0a2a20;
+  --hc-line: #1d4a3b;
+  --hc-ink: #f1ead8;
+  --hc-ink-muted: #cfc8b5;
+  --hc-ink-dim: #86b4a1;
+  --hc-rail: #ff7a4d;
+  --hc-rail-ink: #0a2a20;
+  --hc-accent: #ff7a4d;
+  --hc-danger: #ffb4a8;
+  --hc-heavy: 'Segoe UI Black', 'Segoe UI', 'Yu Gothic UI', sans-serif;
+  --hc-text: var(--app-font-family, 'Segoe UI', 'Yu Gothic UI', sans-serif);
+  --hc-rail-width: 260px;
+  --hc-topbar-height: 64px;
+
+  /* Tokens read by ui-skin-common.css */
+  --skin-ground: var(--hc-ground);
+  --skin-ground-deep: var(--hc-ground-deep);
+  --skin-surface: var(--hc-ground);
+  --skin-control: transparent;
+  --skin-control-hover: var(--hc-line);
+  --skin-line: var(--hc-line);
+  --skin-line-strong: var(--hc-ink);
+  --skin-ink: var(--hc-ink);
+  --skin-ink-muted: var(--hc-ink-muted);
+  --skin-ink-faint: var(--hc-ink-dim);
+  --skin-accent: var(--hc-accent);
+  --skin-accent-ink: var(--hc-rail-ink);
+  --skin-danger: var(--hc-danger);
+  --skin-radius: 0px;
+  --skin-border-width: 1.5px;
+  --skin-numeral: 900 16px/1.2 var(--hc-heavy);
+  --skin-numeral-spacing: 0;
+  --skin-label: 800 12px/1.2 var(--hc-text);
+  --skin-label-spacing: 0.08em;
+  --skin-text: var(--hc-text);
+  --skin-raised: var(--hc-ground-deep);
+  --skin-accent-hover: #ff9670;
+  --skin-ink-strong: #ffffff;
+  --skin-track: #2c5c4b;
+  --skin-thumb-radius: 0;
+  --skin-elevation: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --skin-heading: 900 24px/1.15 var(--hc-heavy);
+  --skin-heading-spacing: -0.01em;
+  --skin-section-title: 900 14px/1.3 var(--hc-heavy);
+  --skin-section-title-spacing: 0;
+  --skin-accent-rgb: 255, 122, 77;
+
+  background: var(--hc-ground);
+  color: var(--hc-ink);
+  padding: 0;
+  font-family: var(--hc-text);
+}
+
+html:has(body[data-ui='hc']) {
+  background: var(--hc-ground);
+}
+
+body[data-ui='hc'] ::selection {
+  background: var(--hc-ink);
+  color: var(--hc-ground-deep);
+}
+
+body[data-ui='hc'] :focus-visible {
+  outline: 2px solid var(--hc-ink);
+  outline-offset: 2px;
+}
+
+/* On the orange rail the ring has to be the dark ink. */
+body[data-ui='hc'] .sidebar :focus-visible {
+  outline-color: var(--hc-rail-ink);
+}
+
+body[data-ui='hc'] * {
+  scrollbar-color: var(--hc-ink-dim) transparent;
+}
+
+body[data-ui='hc'] ::-webkit-scrollbar-thumb {
+  background: var(--hc-ink-dim);
+  border-radius: 0;
+}
+
+body[data-ui='hc'] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- Shell ---------- */
+
+body[data-ui='hc'] .app {
+  width: 100% !important;
+  height: 100vh !important;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+body[data-ui='hc'] .top-sticky-shell,
+body[data-ui='hc'] .top-sticky-shell.is-compact {
+  position: sticky;
+  top: 0;
+  display: grid;
+  grid-template-columns: var(--hc-rail-width) minmax(0, 1fr) auto;
+  align-items: stretch;
+  min-height: var(--hc-topbar-height);
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  background: var(--hc-ground) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+body[data-ui='hc'] .page-header,
+body[data-ui='hc'] .page-header-row {
+  display: contents;
+}
+
+body[data-ui='hc'] .page-brand {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  background: var(--hc-rail);
+  color: var(--hc-rail-ink);
+  width: auto;
+  height: auto;
+  border-radius: 0;
+}
+
+body[data-ui='hc'] .page-brand-banner {
+  display: none;
+}
+
+body[data-ui='hc'] .page-brand::before {
+  content: '';
+  flex: none;
+  width: 34px;
+  height: 34px;
+  background: url('../img/newlogo/logo.svg') center / contain no-repeat;
+}
+
+body[data-ui='hc'] .page-brand::after {
+  content: 'WorldShot Log';
+  font: 900 17px/1 var(--hc-heavy);
+  white-space: nowrap;
+}
+
+body[data-ui='hc'] .top-sticky-shell .toolbar,
+body[data-ui='hc'] .top-sticky-shell.is-compact .toolbar {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0 !important;
+  padding: 0 20px 0 30px !important;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: nowrap;
+  min-width: 0;
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body[data-ui='hc'] .page-header-actions {
+  grid-column: 3;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 30px 0 0;
+}
+
+body[data-ui='hc'] #theme-toggle-btn {
+  display: none;
+}
+
+body[data-ui='hc'] .top-sticky-shell .theme-toggle-btn,
+body[data-ui='hc'] .top-sticky-shell.is-compact .theme-toggle-btn {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 0;
+  background: transparent;
+  border: 1.5px solid var(--hc-ink);
+  color: var(--hc-ink);
+  box-shadow: none;
+}
+
+body[data-ui='hc'] .theme-toggle-btn:hover {
+  background: var(--hc-ink);
+  color: var(--hc-ground-deep);
+}
+
+body[data-ui='hc'] .import-status {
+  color: var(--hc-ink-muted);
+  font-size: 12px;
+}
+
+body[data-ui='hc'] .app-layout {
+  grid-template-columns: var(--hc-rail-width) minmax(0, 1fr);
+  gap: 0;
+  align-items: stretch;
+}
+
+/* ---------- Orange rail ---------- */
+
+body[data-ui='hc'] .sidebar {
+  position: sticky !important;
+  top: var(--hc-topbar-height) !important;
+  align-self: start !important;
+  height: calc(100vh - var(--hc-topbar-height)) !important;
+  margin: 0;
+  padding: 4px 20px 78px;
+  background: var(--hc-rail);
+  color: var(--hc-rail-ink);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none !important;
+}
+
+body[data-ui='hc'] .sidebar-header {
+  margin: 0 0 10px;
+}
+
+body[data-ui='hc'] .sidebar-header h2,
+body[data-ui='hc'] .sidebar-header p {
+  display: none;
+}
+
+/* Selected period as one heavy numeral (element exists only in this skin). */
+body[data-ui='hc'] .ui-rail-period {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 8px;
+  color: var(--hc-rail-ink);
+}
+
+body[data-ui='hc'] .ui-rail-period-number {
+  font: 900 124px/0.86 var(--hc-heavy);
+  letter-spacing: -0.06em;
+  margin-left: -5px;
+}
+
+body[data-ui='hc'] .ui-rail-period.is-year .ui-rail-period-number {
+  font-size: 84px;
+  letter-spacing: -0.05em;
+  margin-left: -3px;
+}
+
+body[data-ui='hc'] .ui-rail-period-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+body[data-ui='hc'] .ui-rail-period-year {
+  font: 900 18px/1.2 var(--hc-heavy);
+}
+
+body[data-ui='hc'] .ui-rail-period-count {
+  font: 700 13px/1.2 var(--hc-text);
+}
+
+/* Photo / world switch pinned to the foot of the rail. */
+body[data-ui='hc'] .sidebar-header > .world-library-mode-btn.small-action-button {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  width: auto;
+  height: 38px;
+  min-height: 38px;
+  margin: 0;
+  padding: 0 10px !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--hc-rail-ink) !important;
+  border: 1.5px solid var(--hc-rail-ink) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  font-weight: 800;
+}
+
+body[data-ui='hc'] .sidebar-header > .world-library-mode-btn.small-action-button:hover,
+body[data-ui='hc'] .sidebar-header > .world-library-mode-btn.small-action-button.is-active {
+  background: var(--hc-rail-ink) !important;
+  color: var(--hc-rail) !important;
+}
+
+body[data-ui='hc'] .sidebar-header > .world-library-mode-btn.small-action-button .material-symbols-outlined,
+body[data-ui='hc'] .sidebar-header > .world-library-mode-btn.small-action-button span:last-child {
+  color: inherit;
+}
+
+body[data-ui='hc'] .sidebar-sort-toggle {
+  background: transparent;
+  color: var(--hc-rail-ink);
+  border: 1.5px solid var(--hc-rail-ink);
+  border-radius: 0;
+  box-shadow: none;
+  font-weight: 700;
+}
+
+body[data-ui='hc'] .sidebar-sort-toggle.is-active {
+  background: var(--hc-rail-ink);
+  color: var(--hc-rail);
+}
+
+/* The rail list scrolls without a scrollbar: a bar inside the narrow rail
+   crowded it and sat over the counts. Wheel, touchpad and keyboard still
+   scroll, and the list is cut off at the bottom when there is more. */
+body[data-ui='hc'] .sidebar-tree {
+  gap: 12px;
+  padding-right: 0;
+  scrollbar-width: none;
+}
+
+body[data-ui='hc'] .sidebar-tree::-webkit-scrollbar {
+  display: none;
+}
+
+body[data-ui='hc'] .year-block,
+body[data-ui='hc'] .month-list,
+body[data-ui='hc'] .day-list {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+body[data-ui='hc'] .year-button,
+body[data-ui='hc'] .month-button,
+body[data-ui='hc'] .day-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  color: var(--hc-rail-ink);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+  font-family: var(--hc-text);
+}
+
+body[data-ui='hc'] .year-button {
+  padding: 4px 0 6px;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+body[data-ui='hc'] .month-button {
+  min-height: 0;
+  padding: 7px 8px;
+  border-top: 1.5px solid var(--hc-rail-ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+body[data-ui='hc'] .day-button {
+  padding: 4px 8px 4px 24px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+body[data-ui='hc'] .year-count,
+body[data-ui='hc'] .month-count,
+body[data-ui='hc'] .day-count {
+  color: inherit;
+  font: inherit;
+  opacity: 1;
+}
+
+body[data-ui='hc'] .year-toggle,
+body[data-ui='hc'] .month-day-toggle {
+  color: inherit;
+}
+
+body[data-ui='hc'] .year-button:hover,
+body[data-ui='hc'] .month-button:hover,
+body[data-ui='hc'] .day-button:hover {
+  background: rgba(10, 42, 32, 0.12);
+}
+
+body[data-ui='hc'] .month-button.active {
+  background: var(--hc-rail-ink);
+  color: var(--hc-rail);
+}
+
+/* A whole year selected: the year row becomes the dark plate. */
+body[data-ui='hc'] .year-button.active {
+  padding-left: 8px;
+  padding-right: 8px;
+  background: var(--hc-rail-ink);
+  color: var(--hc-rail);
+}
+
+body[data-ui='hc'] .day-button.active {
+  background: none;
+  box-shadow: none;
+  color: var(--hc-rail-ink);
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* World list in the rail: compact rows, so a long list of worlds shows about
+   twice as many at once. The list itself drops the gap of the date tree. */
+body[data-ui='hc'] .sidebar-tree:has(> .world-sidebar-item) {
+  gap: 0;
+}
+
+body[data-ui='hc'] .world-sidebar-item {
+  align-items: center;
+  padding: 9px 8px;
+  background: transparent;
+  color: var(--hc-rail-ink);
+  border: 0;
+  border-top: 1.5px solid var(--hc-rail-ink);
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+body[data-ui='hc'] .world-sidebar-all-item {
+  margin-bottom: 6px;
+}
+
+body[data-ui='hc'] .world-sidebar-item:hover {
+  background: rgba(10, 42, 32, 0.12);
+}
+
+body[data-ui='hc'] .world-sidebar-item.active,
+body[data-ui='hc'] .world-sidebar-item.is-active {
+  background: var(--hc-rail-ink);
+  color: var(--hc-rail);
+}
+
+body[data-ui='hc'] .world-sidebar-item-count {
+  color: inherit;
+}
+
+body[data-ui='hc'] .sidebar-empty {
+  color: var(--hc-rail-ink);
+}
+
+/* ---------- Main ---------- */
+
+body[data-ui='hc'] .main-content {
+  min-width: 0;
+  padding: 6px 30px 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-ui='hc'] .main-header {
+  margin: 0 0 14px;
+  padding: 0;
+  align-items: flex-end;
+}
+
+body[data-ui='hc'] #current-month-label {
+  font: 900 26px/1 var(--hc-heavy);
+  letter-spacing: -0.02em;
+  color: var(--hc-ink);
+}
+
+body[data-ui='hc'] #current-month-count {
+  color: var(--hc-ink-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* The rail already names the period and its total, so the heading only
+   stays when a filter narrows the list ("3枚（ラベル: A） / 全18枚"). */
+body[data-ui='hc']:has(.ui-rail-period) #current-month-label,
+body[data-ui='hc']:has(.ui-rail-period) #current-month-count:not(.is-filtered) {
+  display: none;
+}
+
+body[data-ui='hc']:has(.ui-rail-period) .main-header > div:first-child {
+  min-width: 0;
+  margin-right: auto;
+}
+
+body[data-ui='hc']:has(.ui-rail-period) .main-header {
+  justify-content: flex-end;
+}
+
+body[data-ui='hc'] .header-filter-button {
+  height: 36px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 0;
+  background: transparent;
+  border: 1.5px solid var(--hc-ink);
+  color: var(--hc-ink);
+  box-shadow: none;
+  font-weight: 700;
+}
+
+body[data-ui='hc'] .header-filter-button.favorite-filter-icon-button,
+body[data-ui='hc'] .header-filter-button.photo-sort-icon-button {
+  width: 36px;
+  padding: 0;
+}
+
+body[data-ui='hc'] .header-filter-button:hover:not(:disabled) {
+  background: var(--hc-ink);
+  color: var(--hc-ground-deep);
+}
+
+body[data-ui='hc'] .header-filter-button.is-active {
+  background: var(--hc-accent);
+  border-color: var(--hc-accent);
+  color: var(--hc-rail-ink);
+}
+
+body[data-ui='hc'] .header-filter-button:disabled {
+  opacity: 1;
+  color: var(--hc-ink-dim);
+  border-color: var(--hc-line);
+  background: transparent;
+}
+
+body[data-ui='hc'] .danger-outline-button:not(:disabled) {
+  color: var(--hc-danger);
+  border-color: var(--hc-danger);
+}
+
+body[data-ui='hc'] .header-dropdown-menu {
+  background: var(--hc-ground-deep);
+  border: 1.5px solid var(--hc-ink);
+  border-radius: 0;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+  backdrop-filter: none;
+}
+
+body[data-ui='hc'] .header-dropdown-item {
+  color: var(--hc-ink);
+  border-radius: 0;
+}
+
+body[data-ui='hc'] .header-dropdown-item:hover {
+  background: var(--hc-line);
+}
+
+body[data-ui='hc'] .header-dropdown-item.is-active {
+  background: var(--hc-accent);
+  color: var(--hc-rail-ink);
+}
+
+/* Search (top bar) */
+body[data-ui='hc'] .toolbar-left-group {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 640px;
+}
+
+body[data-ui='hc'] .toolbar-world-filter .header-dropdown-menu:not(.toolbar-search-scope-menu),
+body[data-ui='hc'] .toolbar-world-filter .header-dropdown-input-panel {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+body[data-ui='hc'] .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-text-input {
+  min-height: 36px;
+  height: 36px;
+  border-radius: 0;
+  background: transparent;
+  border: 1.5px solid var(--hc-ink);
+  color: var(--hc-ink);
+  box-shadow: none;
+}
+
+body[data-ui='hc'] .header-dropdown-text-input::placeholder {
+  color: var(--hc-ink-muted);
+}
+
+body[data-ui='hc'] .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-text-input:focus {
+  border-color: var(--hc-accent);
+  outline: none;
+}
+
+body[data-ui='hc'] .top-sticky-shell .toolbar button,
+body[data-ui='hc'] .top-sticky-shell.is-compact .toolbar button {
+  padding: 0 14px !important;
+  font-size: 13px !important;
+}
+
+body[data-ui='hc'] .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-clear-button,
+body[data-ui='hc'] .toolbar-world-filter.is-static-toolbar-filter .toolbar-search-scope-button {
+  min-height: 36px;
+  height: 36px;
+  border-radius: 0;
+  background: transparent;
+  border: 1.5px solid var(--hc-ink);
+  color: var(--hc-ink);
+  box-shadow: none;
+  font-weight: 700;
+}
+
+body[data-ui='hc'] .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-clear-button.toolbar-search-submit-button {
+  background: var(--hc-ink);
+  border-color: var(--hc-ink);
+  color: var(--hc-ground-deep);
+}
+
+body[data-ui='hc'] .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-clear-button:disabled {
+  opacity: 1;
+  background: transparent;
+  border-color: var(--hc-line);
+  color: var(--hc-ink-dim);
+}
+
+/* ---------- Date rows: heavy day numeral beside the photos ---------- */
+
+body[data-ui='hc'] .gallery-list {
+  gap: 20px;
+  padding-bottom: 30px;
+}
+
+body[data-ui='hc'] .gallery-group {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: start;
+  padding: 12px 0 0;
+  background: none;
+  border: 0;
+  border-top: 1.5px solid var(--hc-ink);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-ui='hc'] .gallery-group.is-jump-target {
+  border-color: var(--hc-accent);
+}
+
+body[data-ui='hc'] .gallery-group.is-jump-target::after {
+  display: none;
+}
+
+body[data-ui='hc'] .day-box {
+  display: block;
+  margin: 0;
+  padding: 0;
+  background: none;
+  color: var(--hc-ink-muted);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font: 700 12px/1.3 var(--hc-text);
+  font-variant-numeric: tabular-nums;
+}
+
+body[data-ui='hc'] .day-box[data-day]::before {
+  content: attr(data-day);
+  display: block;
+  margin: -2px 0 6px -2px;
+  color: var(--hc-accent);
+  font: 900 44px/0.9 var(--hc-heavy);
+  letter-spacing: -0.04em;
+}
+
+body[data-ui='hc'] .gallery-grid {
+  padding: 3px;
+}
+
+body[data-ui='hc'] .photo-card {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  overflow: visible;
+  transform: none;
+}
+
+body[data-ui='hc'] .photo-card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+body[data-ui='hc'] .photo-card:hover .photo-card-image {
+  transform: none;
+  filter: brightness(1.06);
+}
+
+body[data-ui='hc'] .photo-card-image {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-ui='hc'] .photo-card.is-keyboard-focused,
+body[data-ui='hc'] .photo-card.is-selected {
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none;
+}
+
+body[data-ui='hc'] .photo-card.is-keyboard-focused .photo-card-image,
+body[data-ui='hc'] .photo-card.is-selected .photo-card-image {
+  outline: 3px solid var(--hc-accent);
+  outline-offset: 0;
+}
+
+body[data-ui='hc'] .photo-card-info {
+  display: flex;
+  flex-flow: row-reverse wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 10px;
+  padding: 6px 0 0;
+}
+
+/* Labels take their own line under the world name and the time. */
+body[data-ui='hc'] .photo-card-labels {
+  flex: 0 0 100%;
+  margin: 0;
+}
+
+body[data-ui='hc'] .photo-card-meta-row {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+}
+
+body[data-ui='hc'] .photo-card-date {
+  display: none;
+}
+
+body[data-ui='hc'] .photo-card-time-sub {
+  margin: 0;
+  color: var(--hc-ink-muted);
+  font: 500 12.5px/1.3 var(--hc-text);
+  font-variant-numeric: tabular-nums;
+}
+
+body[data-ui='hc'] .photo-card-resolution-badge {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--hc-ink-muted);
+  font: 700 12px/1.3 var(--hc-text);
+}
+
+body[data-ui='hc'] .photo-card-world {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  color: var(--hc-ink);
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body[data-ui='hc'] .photo-card-favorite-btn,
+body[data-ui='hc'] .photo-card-selection-btn {
+  background: rgba(10, 42, 32, 0.85);
+  color: var(--hc-ink);
+  border: 1px solid var(--hc-ink-dim);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+body[data-ui='hc'] .photo-card-favorite-btn.is-active,
+body[data-ui='hc'] .photo-card.is-favorite .photo-card-favorite-btn {
+  background: var(--hc-accent);
+  color: var(--hc-rail-ink);
+  border-color: var(--hc-accent);
+}
+
+body[data-ui='hc'] .gallery-empty {
+  color: var(--hc-ink-muted);
+  background: none;
+  border: 1.5px dashed var(--hc-ink-dim);
+  border-radius: 0;
+}
+
+body[data-ui='hc'] .drop-hint-always {
+  background: var(--hc-ground-deep);
+  color: var(--hc-ink-muted);
+  border: 1.5px dashed var(--hc-ink-dim);
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+/* Settings: the design switch itself */
+body[data-ui='hc'] .settings-ui-skin-option-group .settings-font-option-button.is-active {
+  background: var(--hc-accent);
+  color: var(--hc-rail-ink);
+  border-color: var(--hc-accent);
+}
+
+/* ---------- World card view ---------- */
+/* Like the photo cards here: no frame, the picture and the text under it. */
+body[data-ui='hc'] .world-card,
+body[data-ui='hc'] .world-card:hover {
+  background: none;
+  border: 0;
+  overflow: visible;
+}
+
+body[data-ui='hc'] .world-card-body {
+  padding: 8px 0 0;
+}
+
+body[data-ui='hc'] .world-card:hover .world-card-name {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+body[data-ui='hc'] .world-card:focus-visible {
+  outline: none;
+}
+
+body[data-ui='hc'] .world-card:focus-visible .world-card-media {
+  outline: 3px solid var(--hc-accent);
+  outline-offset: -3px;
+}

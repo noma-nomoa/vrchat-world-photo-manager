@@ -1,0 +1,38 @@
+/*
+ * WorldShot Log — new design skin "noir" (dark only).
+ * A black and white tone of skin B: the layout, type and shapes all come from
+ * ui-hc.css, which is loaded with it. This file only swaps the colours, so a
+ * screen added to skin B needs nothing here unless it writes a colour directly.
+ * Every rule is scoped to body[data-ui="hc"][data-ui-tone="noir"].
+ * Direction: a black work area, a light grey rail (not white: a white band of
+ * that width glares in a dark room), white kept for small controls.
+ */
+
+body[data-ui='hc'][data-ui-tone='noir'] {
+  --hc-ground: #0d0d0d;
+  --hc-ground-deep: #000000;
+  --hc-line: #2b2b2b;
+  --hc-ink: #f4f4f4;
+  --hc-ink-muted: #c9c9c9;
+  --hc-ink-dim: #8c8c8c;
+  --hc-rail: #d8d8d8;
+  --hc-rail-ink: #0d0d0d;
+  --hc-accent: #f4f4f4;
+
+  --skin-accent-hover: #ffffff;
+  --skin-ink-strong: #ffffff;
+  --skin-track: #3a3a3a;
+  --skin-accent-rgb: 244, 244, 244;
+}
+
+/* The few places where ui-hc.css writes its green directly. The selected
+   item is left out so it keeps its dark plate while the pointer is on it. */
+body[data-ui='hc'][data-ui-tone='noir']
+  :is(.year-button, .month-button, .day-button, .world-sidebar-item):hover:not(.active):not(.is-active) {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+body[data-ui='hc'][data-ui-tone='noir'] .photo-card-favorite-btn,
+body[data-ui='hc'][data-ui-tone='noir'] .photo-card-selection-btn {
+  background: rgba(0, 0, 0, 0.85);
+}

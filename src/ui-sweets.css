@@ -1,0 +1,186 @@
+/*
+ * WorldShot Log — new design skins "chocomint" and "soda" (dark only).
+ * Two sweet tones of skin B: the layout comes from ui-hc.css, which is loaded
+ * with this file. Here: the colours of each tone, round corners and a round
+ * typeface for both.
+ * Scoped to body[data-ui="hc"][data-ui-tone="chocomint"] and
+ * body[data-ui="hc"][data-ui-tone="soda"].
+ * Direction: a pastel rail on a dark ground of the same sweet (mint on
+ * chocolate, soda blue on deep sea blue). Flat colour only; the dots on the
+ * rail are a flat pattern, not a glow.
+ */
+
+/* ============ Chocomint ============ */
+
+body[data-ui='hc'][data-ui-tone='chocomint'] {
+  --hc-ground: #2b1d18;
+  --hc-ground-deep: #1f1410;
+  --hc-line: #4a352c;
+  --hc-ink: #fff4e3;
+  --hc-ink-muted: #dcc9b4;
+  --hc-ink-dim: #a58d7b;
+  --hc-rail: #a6e3cd;
+  --hc-rail-ink: #3a2218;
+  --hc-accent: #a6e3cd;
+
+  --skin-accent-hover: #c4f0e0;
+  --skin-ink-strong: #ffffff;
+  --skin-track: #5a4338;
+  --skin-accent-rgb: 166, 227, 205;
+
+  --sweet-text: 'Zen Maru Gothic', 'Yu Gothic UI', 'Malgun Gothic', sans-serif;
+  --sweet-heavy: 'RocknRoll One', 'Zen Maru Gothic', 'Yu Gothic UI',
+    'Malgun Gothic', sans-serif;
+  --sweet-photo-radius: 18px;
+  /* Chocolate chips. */
+  --sweet-rail-pattern:
+    radial-gradient(
+      circle at 18px 22px,
+      rgba(58, 34, 24, 0.2) 0 4px,
+      transparent 4.6px
+    ),
+    radial-gradient(
+      circle at 58px 64px,
+      rgba(58, 34, 24, 0.2) 0 3px,
+      transparent 3.6px
+    );
+  --sweet-rail-pattern-size: 84px 96px;
+}
+
+/* ============ Soda ============ */
+
+body[data-ui='hc'][data-ui-tone='soda'] {
+  --hc-ground: #0e2233;
+  --hc-ground-deep: #081824;
+  --hc-line: #214258;
+  --hc-ink: #f1fbff;
+  --hc-ink-muted: #c4dde8;
+  --hc-ink-dim: #7fa6ba;
+  --hc-rail: #96dcf2;
+  --hc-rail-ink: #0b2a3f;
+  /* The cherry on the soda. */
+  --hc-accent: #ffb3c1;
+  /* A clearer red than the cherry accent, so the two never read the same. */
+  --hc-danger: #ff6f7d;
+
+  --skin-accent-ink: #3a0f1c;
+  --skin-accent-hover: #ffd0d9;
+  --skin-ink-strong: #ffffff;
+  --skin-track: #2a5068;
+  --skin-accent-rgb: 255, 179, 193;
+
+  /* Tsukimi Rounded draws a looped 2: charming on the large numerals, hard
+     to read in small dates and times, so running text stays Zen Maru. */
+  --sweet-text: 'Zen Maru Gothic', 'Yu Gothic UI', 'Malgun Gothic', sans-serif;
+  --sweet-heavy: 'Tsukimi Rounded', 'Zen Maru Gothic', 'Yu Gothic UI',
+    'Malgun Gothic', sans-serif;
+  --sweet-photo-radius: 26px;
+  /* Bubbles, kept faint so the names on the rail stay easy to read. */
+  --sweet-rail-pattern:
+    radial-gradient(
+      circle at 24px 30px,
+      transparent 0 7px,
+      rgba(255, 255, 255, 0.42) 7.5px 9px,
+      transparent 9.6px
+    ),
+    radial-gradient(
+      circle at 78px 92px,
+      transparent 0 4px,
+      rgba(255, 255, 255, 0.42) 4.5px 6px,
+      transparent 6.6px
+    ),
+    radial-gradient(
+      circle at 96px 20px,
+      rgba(255, 255, 255, 0.38) 0 2.5px,
+      transparent 3px
+    );
+  --sweet-rail-pattern-size: 120px 130px;
+}
+
+/* ============ Shared by both tones ============ */
+
+/* One radius for every control and panel: anything up to 36px tall becomes a
+   pill, taller pieces become soft boxes. ui-skin-common.css reads it too. */
+body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda']) {
+  --skin-radius: 18px;
+  --skin-thumb-radius: 999px;
+  --hc-heavy: var(--sweet-heavy);
+  --hc-text: var(--sweet-text);
+  /* The numeral faces have one weight; a synthesised bold smears them. */
+  font-synthesis-weight: none;
+}
+
+/* A typeface picked in the settings still wins over the round default. */
+body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda'])[data-font]:not([data-font='standard']) {
+  --hc-text: var(--app-font-family);
+}
+
+body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda'])
+  :is(.sidebar, .page-brand) {
+  background-image: var(--sweet-rail-pattern);
+  background-size: var(--sweet-rail-pattern-size);
+  background-repeat: repeat;
+}
+
+/* Rail and toolbar controls that ui-hc.css draws square. */
+body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda'])
+  :is(
+    .sidebar-sort-toggle,
+    .year-button,
+    .month-button,
+    .day-button,
+    .world-sidebar-item,
+    .header-filter-button,
+    .header-dropdown-menu,
+    .header-dropdown-item,
+    .photo-card-resolution-badge,
+    .gallery-empty,
+    .drop-hint-always
+  ) {
+  border-radius: var(--skin-radius);
+}
+
+body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda'])
+  .sidebar-header
+  > .world-library-mode-btn.small-action-button {
+  border-radius: var(--skin-radius) !important;
+}
+
+body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda'])
+  .toolbar-world-filter.is-static-toolbar-filter
+  :is(
+    .header-dropdown-text-input,
+    .header-dropdown-clear-button,
+    .toolbar-search-scope-button
+  ) {
+  border-radius: var(--skin-radius);
+}
+
+body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda'])
+  ::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+}
+
+/* Photos and world pictures. */
+body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda'])
+  :is(.photo-card-image, .world-card-media, .world-card-image) {
+  border-radius: var(--sweet-photo-radius);
+}
+
+body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda'])
+  :is(.photo-card-favorite-btn, .photo-card-selection-btn) {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hc-ground-deep) 85%, transparent);
+}
+
+/* The places where ui-hc.css writes its green directly. */
+body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda'])
+  :is(.year-button, .month-button, .day-button, .world-sidebar-item):hover:not(.active):not(.is-active) {
+  background: color-mix(in srgb, var(--hc-rail-ink) 12%, transparent);
+}
+
+/* A line above a round item would curl at its ends; spacing separates them. */
+body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda'])
+  :is(.world-sidebar-item, .month-button) {
+  border-top-color: transparent;
+}

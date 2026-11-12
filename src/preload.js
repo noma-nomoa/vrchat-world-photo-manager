@@ -80,6 +80,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPhotosByWorldSelection: (selection) =>
     ipcRenderer.invoke('get-photos-by-world-selection', selection),
   getWorldMetadata: (worldId) => ipcRenderer.invoke('get-world-metadata', worldId),
+  fetchWorldThumbnails: () => ipcRenderer.invoke('fetch-world-thumbnails'),
+  onWorldThumbnailsUpdated: (listener) => {
+    if (typeof listener !== 'function') {
+      return () => {};
+    }
+
+    const wrappedListener = () => {
+      listener();
+    };
+
+    ipcRenderer.on('world-thumbnails-updated', wrappedListener);
+
+    return () => {
+      ipcRenderer.removeListener('world-thumbnails-updated', wrappedListener);
+    };
+  },
   getLabelCatalog: () => ipcRenderer.invoke('get-label-catalog'),
   getPhotoLabels: (photoId) => ipcRenderer.invoke('get-photo-labels', photoId),
   replacePhotoLabels: (photoId, labels) =>

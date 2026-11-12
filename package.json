@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "npm run test:unit && npm run test:color",
-    "test:unit": "node --test scripts/test-photo-editor-session.js scripts/test-photo-editor-save.js scripts/test-app-data-backup-service.js scripts/test-regression-runner.js scripts/test-concurrency.js scripts/test-photo-import-service.js scripts/test-photo-list-query.js scripts/test-photo-metadata.js scripts/test-photo-record.js scripts/test-ai-subject-model-store.js scripts/test-photo-editor-image-resources.js scripts/test-review-candidate.js scripts/test-review-launcher.js",
+    "test:unit": "node --test scripts/test-photo-editor-session.js scripts/test-photo-editor-save.js scripts/test-app-data-backup-service.js scripts/test-regression-runner.js scripts/test-concurrency.js scripts/test-photo-import-service.js scripts/test-photo-list-query.js scripts/test-photo-metadata.js scripts/test-photo-record.js scripts/test-ai-subject-model-store.js scripts/test-photo-editor-image-resources.js scripts/test-review-candidate.js scripts/test-review-launcher.js scripts/test-world-thumbnail-store.js",
     "test:color": "node scripts/test-photo-editor-color-core.js",
     "check": "node scripts/run-regression-checks.js",
     "check:syntax": "node scripts/check-syntax.js",

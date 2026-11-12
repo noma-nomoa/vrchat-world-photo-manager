@@ -231,6 +231,22 @@ function initDatabase(dbPath) {
       updated_at TEXT NOT NULL
     );
 
+    -- One small saved picture per world for the world card view. It is a
+    -- cache that can be fetched again, so it is not part of backups; the
+    -- file itself lives in the world thumbnail folder (file_name only).
+    CREATE TABLE IF NOT EXISTS world_thumbnail_cache (
+      world_id TEXT PRIMARY KEY,
+      file_name TEXT,
+      source_url TEXT,
+      width INTEGER,
+      height INTEGER,
+      byte_size INTEGER,
+      fetch_status TEXT NOT NULL,
+      fetch_error TEXT,
+      fetched_at TEXT,
+      last_attempted_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS tags (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -760,6 +776,57 @@ function initDatabase(dbPath) {
     DELETE FROM world_metadata_cache
   `);
 
+  const getWorldThumbnailByWorldIdStmt = db.prepare(`
+    SELECT *
+    FROM world_thumbnail_cache
+    WHERE world_id = ?
+  `);
+
+  const getAllWorldThumbnailsStmt = db.prepare(`
+    SELECT *
+    FROM world_thumbnail_cache
+  `);
+
+  const upsertWorldThumbnailStmt = db.prepare(`
+    INSERT INTO world_thumbnail_cache (
+      world_id,
+      file_name,
+      source_url,
+      width,
+      height,
+      byte_size,
+      fetch_status,
+      fetch_error,
+      fetched_at,
+      last_attempted_at
+    ) VALUES (
+      @worldId,
+      @fileName,
+      @sourceUrl,
+      @width,
+      @height,
+      @byteSize,
+      @fetchStatus,
+      @fetchError,
+      @fetchedAt,
+      @lastAttemptedAt
+    )
+    ON CONFLICT(world_id) DO UPDATE SET
+      file_name = excluded.file_name,
+      source_url = excluded.source_url,
+      width = excluded.width,
+      height = excluded.height,
+      byte_size = excluded.byte_size,
+      fetch_status = excluded.fetch_status,
+      fetch_error = excluded.fetch_error,
+      fetched_at = excluded.fetched_at,
+      last_attempted_at = excluded.last_attempted_at
+  `);
+
+  const deleteAllWorldThumbnailsStmt = db.prepare(`
+    DELETE FROM world_thumbnail_cache
+  `);
+
   const deleteAllTagsStmt = db.prepare(`
     DELETE FROM tags
   `);
@@ -1032,6 +1099,45 @@ function initDatabase(dbPath) {
 
     deleteTrackedFolderStmt.run(folderPath);
     return existing;
+  }
+
+  function getWorldThumbnailByWorldId(worldId) {
+    if (typeof worldId !== 'string' || worldId.trim().length === 0) {
+      return null;
+    }
+
+    return getWorldThumbnailByWorldIdStmt.get(worldId.trim()) || null;
+  }
+
+  function getAllWorldThumbnails() {
+    return getAllWorldThumbnailsStmt.all();
+  }
+
+  function upsertWorldThumbnail(payload) {
+    if (
+      !payload ||
+      typeof payload.worldId !== 'string' ||
+      payload.worldId.trim().length === 0
+    ) {
+      return null;
+    }
+
+    const worldId = payload.worldId.trim();
+
+    upsertWorldThumbnailStmt.run({
+      worldId,
+      fileName: payload.fileName || null,
+      sourceUrl: payload.sourceUrl || null,
+      width: Number.isInteger(payload.width) ? payload.width : null,
+      height: Number.isInteger(payload.height) ? payload.height : null,
+      byteSize: Number.isInteger(payload.byteSize) ? payload.byteSize : null,
+      fetchStatus: payload.fetchStatus || 'error',
+      fetchError: payload.fetchError || null,
+      fetchedAt: payload.fetchedAt || null,
+      lastAttemptedAt: payload.lastAttemptedAt || new Date().toISOString(),
+    });
+
+    return getWorldThumbnailByWorldIdStmt.get(worldId) || null;
   }
 
   function getWorldMetadataByWorldId(worldId) {
@@ -1607,6 +1713,7 @@ function initDatabase(dbPath) {
       deleteAllPhotosStmt.run();
       deleteAllTrackedFoldersStmt.run();
       deleteAllWorldMetadataCacheStmt.run();
+      deleteAllWorldThumbnailsStmt.run();
       deleteAllTagsStmt.run();
       resetSqliteSequenceStmt.run();
     });
@@ -1635,6 +1742,9 @@ function initDatabase(dbPath) {
     upsertTrackedFolder,
     deleteTrackedFolder,
     getWorldMetadataByWorldId,
+    getWorldThumbnailByWorldId,
+    getAllWorldThumbnails,
+    upsertWorldThumbnail,
     upsertWorldMetadata,
     getAllTags,
     getPhotoTags,

@@ -730,10 +730,58 @@ const themeToggleIcon = document.getElementById('theme-toggle-icon');
 
 const THEME_STORAGE_KEY = 'vrchat-world-photo-manager-theme';
 const FONT_STORAGE_KEY = 'vrchat-world-photo-manager-font';
+// New designs are separate skins, each in its own stylesheet and scoped by a
+// body[data-ui] value. The classic design stays selectable.
+const UI_SKIN_STORAGE_KEY = 'vrchat-world-photo-manager-ui';
+const UI_SKIN_NEXT = 'next';
+const UI_SKIN_HC = 'hc';
+const UI_SKIN_NOIR = 'noir';
+const UI_SKIN_CHOCOMINT = 'chocomint';
+const UI_SKIN_SODA = 'soda';
+const UI_SKIN_LEGACY = 'legacy';
+// Shown until a design is chosen in the settings. A saved choice, the classic
+// design included, always wins over it.
+const UI_SKIN_DEFAULT = UI_SKIN_HC;
+// Screens shared by every new skin (photo detail, ...) are styled once in
+// this file from --skin-* tokens that each skin stylesheet defines.
+const UI_SKIN_COMMON_STYLESHEET = './ui-skin-common.css';
+const UI_SKIN_STYLESHEETS = {
+  [UI_SKIN_NEXT]: './ui-next.css',
+  [UI_SKIN_HC]: './ui-hc.css',
+  [UI_SKIN_NOIR]: './ui-noir.css',
+  // Both sweet tones live in one file.
+  [UI_SKIN_CHOCOMINT]: './ui-sweets.css',
+  [UI_SKIN_SODA]: './ui-sweets.css',
+};
+// A tone is a recolour of another skin: body[data-ui] keeps the value of the
+// skin it is based on, so every rule and check for that skin applies as is,
+// and body[data-ui-tone] carries the tone for its own colour stylesheet.
+const UI_SKIN_TONE_BASES = {
+  [UI_SKIN_NOIR]: UI_SKIN_HC,
+  [UI_SKIN_CHOCOMINT]: UI_SKIN_HC,
+  [UI_SKIN_SODA]: UI_SKIN_HC,
+};
+const UI_SKIN_TONE_ATTRIBUTE = 'data-ui-tone';
 const BACKGROUND_IMAGE_STORAGE_KEY =
   'vrchat-world-photo-manager-background-image';
 const PHOTO_CARD_DENSITY_STORAGE_KEY =
   'vrchat-world-photo-manager-photo-card-density';
+// The v3.0.0 announcement is keyed by its own ID, not by the app version.
+// The saved value is the ID of the last announcement shown.
+const WHATS_NEW_ID = '3.0.0';
+const WHATS_NEW_SEEN_STORAGE_KEY = 'vrchat-world-photo-manager-whats-new-seen';
+const WHATS_NEW_IMAGE_BASE = '../img/whats-new/3.0.0';
+const WHATS_NEW_FALLBACK_LANGUAGE = 'ja';
+const WHATS_NEW_PAGE_COUNT = 2;
+// Same order, IDs and labels as Settings > Design.
+const WHATS_NEW_SKIN_OPTIONS = [
+  [UI_SKIN_LEGACY, '従来のデザイン'],
+  [UI_SKIN_NEXT, 'トランジット'],
+  [UI_SKIN_HC, 'ランタン'],
+  [UI_SKIN_NOIR, 'ノワール'],
+  [UI_SKIN_CHOCOMINT, 'チョコミント'],
+  [UI_SKIN_SODA, 'ソーダ'],
+];
 
 // Batch selection controls for the current month view.
 const selectionModeButton = document.getElementById('selection-mode-btn');
@@ -792,6 +840,13 @@ let trackedFolders = [];
 let settingsOverviewSection = null;
 let settingsOverviewGrid = null;
 let settingsBackgroundSection = null;
+let settingsUiSkinSection = null;
+let settingsUiSkinOptionButtons = [];
+let whatsNewModal = null;
+let whatsNewElements = null;
+let whatsNewPageIndex = 0;
+let whatsNewReturnFocusElement = null;
+let uiRailPeriodElement = null;
 let settingsBackgroundMeta = null;
 let selectBackgroundImageButton = null;
 let clearBackgroundImageButton = null;
@@ -823,6 +878,7 @@ let worldLibraryModeButton = null;
 let sidebarHeaderControls = null;
 let sidebarSortCountButton = null;
 let sidebarSortNameButton = null;
+let sidebarSortDateButton = null;
 let sidebarHeaderControlsHideTimer = null;
 let modalResolutionHeroBadge = null;
 let modalPrintNoteHeroBadge = null;
@@ -902,6 +958,15 @@ let dropOverlayWatchTimer = null;
 let monthSwitchAnimationTimer = null;
 let scrollToTopAnimationFrame = null;
 let monthSelectionRequestId = 0;
+// World mode opens on a card for every world; picking one shows its photos.
+let isWorldCardViewActive = false;
+// World card view: the world name typed into the toolbar search, and where the
+// card list was scrolled to when a world was opened from it.
+let worldCardSearchText = '';
+let worldCardListScrollTop = 0;
+let worldCardListElement = null;
+let fetchWorldThumbnailsButton = null;
+let worldCardRefreshTimer = null;
 let activeMonthSwitchOverlay = null;
 let renderedPhotoCount = 0;
 let renderedMonthGalleryKey = '';
@@ -2319,9 +2384,869 @@ function updateThemeToggleIcon(themeName) {
 
 function applyTheme(themeName) {
   const nextTheme = themeName === 'light' ? 'light' : 'dark';
-  document.body.setAttribute('data-theme', nextTheme);
+  // The new design is dark only; keep the saved preference for the classic
+  // design but never paint the light theme under the new skin.
+  document.body.setAttribute(
+    'data-theme',
+    isUiNextSkinActive() ? 'dark' : nextTheme
+  );
   localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
   updateThemeToggleIcon(nextTheme);
+}
+
+function normalizeUiSkinName(skinName) {
+  return Object.prototype.hasOwnProperty.call(UI_SKIN_STYLESHEETS, skinName)
+    ? skinName
+    : UI_SKIN_LEGACY;
+}
+
+// Every new skin is dark only.
+function isUiNextSkinActive() {
+  return (
+    normalizeUiSkinName(document.body.getAttribute('data-ui')) !==
+    UI_SKIN_LEGACY
+  );
+}
+
+function isUiHcSkinActive() {
+  return document.body.getAttribute('data-ui') === UI_SKIN_HC;
+}
+
+function readSavedUiSkin() {
+  try {
+    const savedSkin = localStorage.getItem(UI_SKIN_STORAGE_KEY);
+
+    return savedSkin === null
+      ? UI_SKIN_DEFAULT
+      : normalizeUiSkinName(savedSkin);
+  } catch {
+    return UI_SKIN_DEFAULT;
+  }
+}
+
+function appendUiSkinStylesheetLink(linkId, href) {
+  // A file shared by several skins is linked once.
+  const isAlreadyLinked = Array.from(
+    document.head.querySelectorAll('link[rel="stylesheet"]')
+  ).some((link) => link.getAttribute('href') === href);
+
+  if (document.getElementById(linkId) || isAlreadyLinked) {
+    return;
+  }
+
+  const link = document.createElement('link');
+  link.id = linkId;
+  link.rel = 'stylesheet';
+  link.href = href;
+  document.head.appendChild(link);
+}
+
+function ensureUiSkinStylesheet(skinName) {
+  const href = UI_SKIN_STYLESHEETS[skinName];
+
+  if (!href) {
+    return;
+  }
+
+  appendUiSkinStylesheetLink(
+    'ui-skin-stylesheet-common',
+    UI_SKIN_COMMON_STYLESHEET
+  );
+
+  const baseSkinName = UI_SKIN_TONE_BASES[skinName];
+
+  if (baseSkinName) {
+    appendUiSkinStylesheetLink(
+      `ui-skin-stylesheet-${baseSkinName}`,
+      UI_SKIN_STYLESHEETS[baseSkinName]
+    );
+  }
+
+  appendUiSkinStylesheetLink(`ui-skin-stylesheet-${skinName}`, href);
+}
+
+function syncUiSkinOptionButtons(skinName) {
+  settingsUiSkinOptionButtons.forEach((button) => {
+    const isActive = button.dataset.uiSkinOption === skinName;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+}
+
+function applyUiSkin(skinName) {
+  const nextSkin = normalizeUiSkinName(skinName);
+
+  const baseSkin = UI_SKIN_TONE_BASES[nextSkin];
+
+  if (nextSkin === UI_SKIN_LEGACY) {
+    document.body.removeAttribute('data-ui');
+  } else {
+    ensureUiSkinStylesheet(nextSkin);
+    document.body.setAttribute('data-ui', baseSkin || nextSkin);
+  }
+
+  if (baseSkin) {
+    document.body.setAttribute(UI_SKIN_TONE_ATTRIBUTE, nextSkin);
+  } else {
+    document.body.removeAttribute(UI_SKIN_TONE_ATTRIBUTE);
+  }
+
+  try {
+    localStorage.setItem(UI_SKIN_STORAGE_KEY, nextSkin);
+  } catch {
+    // Storage can be unavailable; the skin still applies for this session.
+  }
+
+  // Re-apply the saved theme so the classic design gets its light/dark
+  // preference back and the new design is forced to dark.
+  initializeTheme();
+  syncUiSkinOptionButtons(nextSkin);
+  renderUiRailPeriod();
+}
+
+// Skin "hc" only: the selected period as a large numeral at the top of
+// the rail. The element does not exist outside this skin.
+function removeUiRailPeriod() {
+  if (uiRailPeriodElement) {
+    uiRailPeriodElement.remove();
+    uiRailPeriodElement = null;
+  }
+}
+
+function renderUiRailPeriod() {
+  const selection = normalizeSelection(currentSelection);
+  const sidebarHeader = sidebarTree?.parentElement?.querySelector(
+    '.sidebar-header'
+  );
+  const isPeriodSelection =
+    selection?.mode === 'month' || selection?.mode === 'year';
+
+  if (!isUiHcSkinActive() || !sidebarHeader || !isPeriodSelection) {
+    removeUiRailPeriod();
+    return;
+  }
+
+  const yearEntry = getOrderedTimelineSidebarData().find(
+    (entry) => entry.year === selection.year
+  );
+
+  if (!yearEntry) {
+    removeUiRailPeriod();
+    return;
+  }
+
+  const monthEntry =
+    selection.mode === 'month'
+      ? yearEntry?.months?.find((entry) => entry.month === selection.month)
+      : null;
+  const periodCount =
+    selection.mode === 'month' ? monthEntry?.count : yearEntry?.count;
+
+  const period = document.createElement('div');
+  period.className = 'ui-rail-period';
+  period.classList.toggle('is-year', selection.mode === 'year');
+
+  const periodNumber = document.createElement('span');
+  periodNumber.className = 'ui-rail-period-number';
+  periodNumber.textContent =
+    selection.mode === 'month'
+      ? pad2(selection.month)
+      : String(selection.year);
+  period.appendChild(periodNumber);
+
+  const periodMeta = document.createElement('span');
+  periodMeta.className = 'ui-rail-period-meta';
+
+  if (selection.mode === 'month') {
+    const periodYear = document.createElement('span');
+    periodYear.className = 'ui-rail-period-year';
+    periodYear.textContent = String(selection.year);
+    periodMeta.appendChild(periodYear);
+  }
+
+  if (Number.isFinite(periodCount)) {
+    const periodCountElement = document.createElement('span');
+    periodCountElement.className = 'ui-rail-period-count';
+    periodCountElement.textContent = `${periodCount}枚`;
+    periodMeta.appendChild(periodCountElement);
+  }
+
+  period.appendChild(periodMeta);
+  removeUiRailPeriod();
+  sidebarHeader.insertAdjacentElement('afterbegin', period);
+  uiRailPeriodElement = period;
+}
+
+function initializeUiSkin() {
+  applyUiSkin(readSavedUiSkin());
+}
+
+function ensureSettingsUiSkinSection() {
+  if (!settingsModalBody || !settingsFontSection) {
+    return null;
+  }
+
+  if (!settingsUiSkinSection) {
+    const section = document.createElement('div');
+    section.className = 'settings-section settings-ui-skin-section';
+
+    const titleWrap = document.createElement('div');
+    const title = document.createElement('p');
+    title.className = 'settings-section-title';
+    title.textContent = 'デザイン';
+    titleWrap.appendChild(title);
+    section.appendChild(titleWrap);
+
+    const group = document.createElement('div');
+    group.className = 'settings-font-option-group settings-ui-skin-option-group';
+
+    [
+      [UI_SKIN_LEGACY, '従来のデザイン'],
+      [UI_SKIN_NEXT, 'トランジット'],
+      [UI_SKIN_HC, 'ランタン'],
+      [UI_SKIN_NOIR, 'ノワール'],
+      [UI_SKIN_CHOCOMINT, 'チョコミント'],
+      [UI_SKIN_SODA, 'ソーダ'],
+    ].forEach(([skinName, label]) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'settings-font-option-button';
+      button.dataset.uiSkinOption = skinName;
+      button.textContent = label;
+      button.addEventListener('click', () => {
+        applyUiSkin(skinName);
+      });
+      group.appendChild(button);
+    });
+
+    section.appendChild(group);
+
+    const whatsNewButton = document.createElement('button');
+    whatsNewButton.type = 'button';
+    whatsNewButton.className =
+      'small-action-button secondary whats-new-settings-button';
+    whatsNewButton.textContent = 'v3.0.0 のお知らせを見る';
+    whatsNewButton.addEventListener('click', () => {
+      openWhatsNewFromSettings();
+    });
+    section.appendChild(whatsNewButton);
+
+    settingsFontSection.insertAdjacentElement('beforebegin', section);
+
+    settingsUiSkinSection = section;
+    settingsUiSkinOptionButtons = Array.from(
+      group.querySelectorAll('[data-ui-skin-option]')
+    );
+  }
+
+  syncUiSkinOptionButtons(readSavedUiSkin());
+  return settingsUiSkinSection;
+}
+
+// ---------- v3.0.0 announcement ----------
+// Two pages (designs, world list), each a screenshot beside its text. It is
+// shown once on the first start after the update that has photos, and again
+// at any time from Settings > Design. Page changes and image swaps are
+// immediate: no animation is added here.
+function readWhatsNewSeenId() {
+  // undefined: storage cannot be read. null: nothing has been seen yet.
+  try {
+    return localStorage.getItem(WHATS_NEW_SEEN_STORAGE_KEY);
+  } catch {
+    return undefined;
+  }
+}
+
+function markWhatsNewSeen() {
+  try {
+    localStorage.setItem(WHATS_NEW_SEEN_STORAGE_KEY, WHATS_NEW_ID);
+  } catch {
+    // Storage can be unavailable; the announcement then simply shows again.
+  }
+}
+
+// The number of photos, from the year and month list loaded at start. null
+// when it cannot be told.
+function getWhatsNewStartupPhotoCount() {
+  if (!Array.isArray(sidebarData)) {
+    return null;
+  }
+
+  let photoCount = 0;
+
+  for (const yearEntry of sidebarData) {
+    const yearCount = Number(yearEntry?.totalCount);
+
+    if (!Number.isFinite(yearCount)) {
+      return null;
+    }
+
+    photoCount += yearCount;
+  }
+
+  return photoCount;
+}
+
+function isWhatsNewBlockedByOpenDialog() {
+  return Boolean(
+    imageModal?.classList.contains('hidden') === false ||
+      document.querySelector('.sub-modal:not(.hidden)')
+  );
+}
+
+// Startup check. Nothing is saved when the answer is unclear, so the next
+// start tries again.
+function maybeShowWhatsNewOnStartup({ isAppInitialized = true } = {}) {
+  const seenId = readWhatsNewSeenId();
+
+  if (seenId === undefined || seenId === WHATS_NEW_ID) {
+    return false;
+  }
+
+  if (!isAppInitialized) {
+    return false;
+  }
+
+  const photoCount = getWhatsNewStartupPhotoCount();
+
+  if (photoCount === null) {
+    return false;
+  }
+
+  // A new install: nothing changed for this user, so it is never shown.
+  if (photoCount === 0) {
+    markWhatsNewSeen();
+    return false;
+  }
+
+  if (isWhatsNewBlockedByOpenDialog()) {
+    return false;
+  }
+
+  // Saved on show, not on close, so quitting midway does not show it twice.
+  markWhatsNewSeen();
+  openWhatsNewModal();
+  return true;
+}
+
+function getWhatsNewLanguage() {
+  const language = window.WorldShotI18n?.getLanguage?.();
+
+  return language === 'en' || language === 'ko'
+    ? language
+    : WHATS_NEW_FALLBACK_LANGUAGE;
+}
+
+function getWhatsNewImageUrl(language, fileName) {
+  return `${WHATS_NEW_IMAGE_BASE}/${language}/${fileName}`;
+}
+
+// The frame keeps its size and shows only its ground when the image shown in
+// it could not be read.
+function syncWhatsNewShotState(shot) {
+  if (!shot) {
+    return;
+  }
+
+  const visibleImage = shot.querySelector('.whats-new-shot-image:not([hidden])');
+
+  shot.classList.toggle(
+    'is-missing',
+    !visibleImage || visibleImage.dataset.whatsNewState === 'missing'
+  );
+}
+
+function handleWhatsNewImageLoad(event) {
+  const image = event.currentTarget;
+  image.dataset.whatsNewState = 'loaded';
+  syncWhatsNewShotState(image.closest('.whats-new-shot'));
+}
+
+// A screenshot missing in the current language falls back to Japanese once.
+function handleWhatsNewImageError(event) {
+  const image = event.currentTarget;
+
+  if (image.dataset.whatsNewLanguage !== WHATS_NEW_FALLBACK_LANGUAGE) {
+    image.dataset.whatsNewLanguage = WHATS_NEW_FALLBACK_LANGUAGE;
+    image.src = getWhatsNewImageUrl(
+      WHATS_NEW_FALLBACK_LANGUAGE,
+      image.dataset.whatsNewFile
+    );
+    return;
+  }
+
+  image.dataset.whatsNewState = 'missing';
+  syncWhatsNewShotState(image.closest('.whats-new-shot'));
+}
+
+function createWhatsNewShot(labelText) {
+  const shot = document.createElement('div');
+  shot.className = 'whats-new-shot';
+  shot.setAttribute('role', 'img');
+  shot.setAttribute('aria-label', labelText);
+  return shot;
+}
+
+function createWhatsNewShotImage(fileName, skinName = '') {
+  const image = document.createElement('img');
+  image.className = 'whats-new-shot-image';
+  image.alt = '';
+  image.decoding = 'async';
+  image.draggable = false;
+  image.dataset.whatsNewFile = fileName;
+
+  if (skinName) {
+    image.dataset.whatsNewSkin = skinName;
+  }
+
+  image.addEventListener('load', handleWhatsNewImageLoad);
+  image.addEventListener('error', handleWhatsNewImageError);
+  return image;
+}
+
+function createWhatsNewTextElement(tagName, className, text) {
+  const element = document.createElement(tagName);
+  element.className = className;
+  element.textContent = text;
+  return element;
+}
+
+function createWhatsNewPage(pageName, shot) {
+  const page = document.createElement('section');
+  page.className = 'whats-new-page';
+  page.dataset.whatsNewPage = pageName;
+  page.appendChild(shot);
+
+  const text = document.createElement('div');
+  text.className = 'whats-new-text';
+  page.appendChild(text);
+
+  return { page, text };
+}
+
+function ensureWhatsNewModal() {
+  if (whatsNewModal) {
+    return whatsNewModal;
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'whats-new-modal';
+  modal.className = 'sub-modal hidden';
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'sub-modal-backdrop';
+  modal.appendChild(backdrop);
+
+  const content = document.createElement('div');
+  content.className = 'sub-modal-content whats-new-content';
+  content.setAttribute('role', 'dialog');
+  content.setAttribute('aria-modal', 'true');
+  content.setAttribute('aria-labelledby', 'whats-new-label');
+  modal.appendChild(content);
+
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'sub-modal-close';
+  closeButton.setAttribute('aria-label', 'お知らせを閉じる');
+  const closeIcon = document.createElement('span');
+  closeIcon.className = 'material-symbols-outlined';
+  closeIcon.textContent = 'close';
+  closeButton.appendChild(closeIcon);
+  content.appendChild(closeButton);
+
+  const header = document.createElement('div');
+  header.className = 'whats-new-header';
+  const kicker = createWhatsNewTextElement(
+    'p',
+    'whats-new-kicker',
+    'v3.0.0 のお知らせ'
+  );
+  kicker.id = 'whats-new-label';
+  header.appendChild(kicker);
+  content.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'sub-modal-body whats-new-body';
+  content.appendChild(body);
+
+  // Page 1: designs
+  const designsShot = createWhatsNewShot('写真一覧の画面の見本');
+  WHATS_NEW_SKIN_OPTIONS.forEach(([skinName]) => {
+    designsShot.appendChild(
+      createWhatsNewShotImage(`design-${skinName}.jpg`, skinName)
+    );
+  });
+
+  const designs = createWhatsNewPage('designs', designsShot);
+  const designsTitle = createWhatsNewTextElement(
+    'h3',
+    'whats-new-title',
+    'デザインがふえました！'
+  );
+  designsTitle.tabIndex = -1;
+  designs.text.appendChild(designsTitle);
+  designs.text.appendChild(
+    createWhatsNewTextElement(
+      'p',
+      'whats-new-lead',
+      'あたらしいデザインを 5 つ追加しました。ボタンを押すと、その場で切り替わります。'
+    )
+  );
+
+  const skinOptions = document.createElement('div');
+  skinOptions.className = 'whats-new-skin-options';
+  skinOptions.setAttribute('role', 'group');
+  skinOptions.setAttribute('aria-label', 'デザイン');
+
+  WHATS_NEW_SKIN_OPTIONS.forEach(([skinName, label]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'settings-font-option-button whats-new-skin-option';
+    button.dataset.whatsNewSkin = skinName;
+    button.textContent = label;
+    button.setAttribute('aria-pressed', 'false');
+    button.addEventListener('click', () => {
+      applyUiSkin(skinName);
+      syncWhatsNewSkinUi(skinName);
+    });
+    skinOptions.appendChild(button);
+  });
+
+  designs.text.appendChild(skinOptions);
+  designs.text.appendChild(
+    createWhatsNewTextElement(
+      'p',
+      'whats-new-note',
+      'はじめはランタンになっています。ライト表示は従来のデザインだけです。あとから「設定 > デザイン」でも変えられます。'
+    )
+  );
+  body.appendChild(designs.page);
+
+  // Page 2: world list
+  const worldsShot = createWhatsNewShot('ワールド一覧の画面の見本');
+  worldsShot.appendChild(createWhatsNewShotImage('worlds.jpg'));
+
+  const worlds = createWhatsNewPage('worlds', worldsShot);
+  worlds.page.hidden = true;
+  const worldsTitle = createWhatsNewTextElement(
+    'h3',
+    'whats-new-title',
+    'ワールド一覧ができました'
+  );
+  worldsTitle.tabIndex = -1;
+  worlds.text.appendChild(worldsTitle);
+  worlds.text.appendChild(
+    createWhatsNewTextElement(
+      'p',
+      'whats-new-lead',
+      '撮ったワールドがカードでならびます。カードを押すと、そのワールドの写真がひらきます。'
+    )
+  );
+
+  const points = document.createElement('ul');
+  points.className = 'whats-new-points';
+  [
+    '上の検索で、ワールド名からしぼりこめます',
+    '枚数順・名前順・日付順でならべかえられます',
+    'マウスの戻るボタンで一覧にもどれます',
+  ].forEach((pointText) => {
+    points.appendChild(createWhatsNewTextElement('li', '', pointText));
+  });
+  worlds.text.appendChild(points);
+
+  const openWorldsButton = createWhatsNewTextElement(
+    'button',
+    'primary-link-button whats-new-open-worlds',
+    'ワールド一覧を見る'
+  );
+  openWorldsButton.type = 'button';
+  openWorldsButton.addEventListener('click', () => {
+    openWorldListFromWhatsNew();
+  });
+  worlds.text.appendChild(openWorldsButton);
+  worlds.text.appendChild(
+    createWhatsNewTextElement(
+      'p',
+      'whats-new-note',
+      'いつでもサイドバーの「ワールド一覧」からひらけます。'
+    )
+  );
+  body.appendChild(worlds.page);
+
+  // Footer
+  const footer = document.createElement('div');
+  footer.className = 'whats-new-footer';
+
+  const step = document.createElement('p');
+  step.className = 'whats-new-step';
+  step.dataset.i18nIgnore = 'true';
+  step.setAttribute('aria-live', 'polite');
+  footer.appendChild(step);
+
+  const nav = document.createElement('div');
+  nav.className = 'whats-new-nav';
+
+  const prevButton = createWhatsNewTextElement(
+    'button',
+    'small-action-button secondary whats-new-prev',
+    '戻る'
+  );
+  prevButton.type = 'button';
+  prevButton.addEventListener('click', () => {
+    setWhatsNewPage(whatsNewPageIndex - 1);
+  });
+  nav.appendChild(prevButton);
+
+  const nextButton = document.createElement('button');
+  nextButton.type = 'button';
+  nextButton.addEventListener('click', () => {
+    if (whatsNewPageIndex < WHATS_NEW_PAGE_COUNT - 1) {
+      setWhatsNewPage(whatsNewPageIndex + 1);
+      return;
+    }
+
+    closeWhatsNewModal();
+  });
+  nav.appendChild(nextButton);
+  footer.appendChild(nav);
+  content.appendChild(footer);
+
+  bindSubModalCloseTriggers(backdrop, closeButton, closeWhatsNewModal);
+  modal.addEventListener('keydown', handleWhatsNewKeydown);
+
+  document.body.appendChild(modal);
+
+  whatsNewModal = modal;
+  whatsNewElements = {
+    body,
+    pages: [designs.page, worlds.page],
+    step,
+    prevButton,
+    nextButton,
+    skinButtons: Array.from(skinOptions.querySelectorAll('[data-whats-new-skin]')),
+    designImages: Array.from(
+      designsShot.querySelectorAll('.whats-new-shot-image')
+    ),
+    images: Array.from(modal.querySelectorAll('.whats-new-shot-image')),
+    shots: [designsShot, worldsShot],
+  };
+
+  setWhatsNewPage(0, { focus: false });
+  return whatsNewModal;
+}
+
+// Sets every screenshot to the current language. An image that already has
+// the same address keeps its state.
+function loadWhatsNewImages() {
+  if (!whatsNewElements) {
+    return;
+  }
+
+  const language = getWhatsNewLanguage();
+
+  whatsNewElements.images.forEach((image) => {
+    const nextUrl = getWhatsNewImageUrl(language, image.dataset.whatsNewFile);
+
+    if (image.getAttribute('src') === nextUrl) {
+      return;
+    }
+
+    image.dataset.whatsNewLanguage = language;
+    image.dataset.whatsNewState = 'loading';
+    image.src = nextUrl;
+  });
+
+  whatsNewElements.shots.forEach(syncWhatsNewShotState);
+}
+
+function syncWhatsNewSkinUi(skinName) {
+  if (!whatsNewElements) {
+    return;
+  }
+
+  whatsNewElements.skinButtons.forEach((button) => {
+    const isActive = button.dataset.whatsNewSkin === skinName;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+
+  whatsNewElements.designImages.forEach((image) => {
+    image.hidden = image.dataset.whatsNewSkin !== skinName;
+  });
+
+  syncWhatsNewShotState(whatsNewElements.shots[0]);
+}
+
+function setWhatsNewPage(pageIndex, { focus = true } = {}) {
+  ensureWhatsNewModal();
+
+  const nextIndex = Math.min(
+    Math.max(Math.trunc(Number(pageIndex)) || 0, 0),
+    WHATS_NEW_PAGE_COUNT - 1
+  );
+  const isLastPage = nextIndex === WHATS_NEW_PAGE_COUNT - 1;
+  const { body, pages, step, prevButton, nextButton } = whatsNewElements;
+
+  whatsNewPageIndex = nextIndex;
+  pages.forEach((page, index) => {
+    page.hidden = index !== nextIndex;
+  });
+
+  step.textContent = `${nextIndex + 1} / ${WHATS_NEW_PAGE_COUNT}`;
+  prevButton.hidden = nextIndex === 0;
+  nextButton.className = isLastPage
+    ? 'small-action-button secondary whats-new-next'
+    : 'primary-link-button whats-new-next';
+  nextButton.textContent = isLastPage ? '閉じる' : '次へ';
+  body.scrollTop = 0;
+
+  if (focus) {
+    pages[nextIndex].querySelector('.whats-new-title')?.focus({
+      preventScroll: true,
+    });
+  }
+}
+
+function getWhatsNewFocusableElements() {
+  if (!whatsNewModal) {
+    return [];
+  }
+
+  return Array.from(
+    whatsNewModal.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+  ).filter(
+    (element) =>
+      !element.disabled &&
+      !element.closest('[hidden]') &&
+      element.getClientRects().length > 0
+  );
+}
+
+// Left and right change the page; Tab stays inside the dialog.
+function handleWhatsNewKeydown(event) {
+  if (!whatsNewModal || whatsNewModal.classList.contains('hidden')) {
+    return;
+  }
+
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const nextIndex =
+      whatsNewPageIndex + (event.key === 'ArrowRight' ? 1 : -1);
+
+    if (nextIndex >= 0 && nextIndex < WHATS_NEW_PAGE_COUNT) {
+      setWhatsNewPage(nextIndex);
+    }
+
+    return;
+  }
+
+  if (event.key !== 'Tab') {
+    return;
+  }
+
+  const focusableElements = getWhatsNewFocusableElements();
+
+  if (focusableElements.length === 0) {
+    event.preventDefault();
+    return;
+  }
+
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+  const activeElement = document.activeElement;
+  const isInside = whatsNewModal.contains(activeElement);
+
+  if (event.shiftKey && (!isInside || activeElement === firstElement)) {
+    event.preventDefault();
+    lastElement.focus();
+    return;
+  }
+
+  if (!event.shiftKey && (!isInside || activeElement === lastElement)) {
+    event.preventDefault();
+    firstElement.focus();
+  }
+}
+
+function openWhatsNewModal({ returnFocusElement } = {}) {
+  const modal = ensureWhatsNewModal();
+
+  if (!modal.classList.contains('hidden')) {
+    return;
+  }
+
+  const activeElement = document.activeElement;
+  whatsNewReturnFocusElement =
+    returnFocusElement !== undefined
+      ? returnFocusElement
+      : activeElement && activeElement !== document.body
+        ? activeElement
+        : null;
+
+  setWhatsNewPage(0, { focus: false });
+  loadWhatsNewImages();
+  // Opening only shows the saved design; it never writes the design setting.
+  syncWhatsNewSkinUi(readSavedUiSkin());
+  openSubModalElement(modal);
+  whatsNewElements.nextButton.focus({ preventScroll: true });
+}
+
+function closeWhatsNewModal() {
+  if (!whatsNewModal || whatsNewModal.classList.contains('hidden')) {
+    return;
+  }
+
+  const returnFocusElement = whatsNewReturnFocusElement;
+  whatsNewReturnFocusElement = null;
+  closeSubModalElement(whatsNewModal);
+
+  if (
+    returnFocusElement?.isConnected &&
+    typeof returnFocusElement.focus === 'function' &&
+    !whatsNewModal.contains(returnFocusElement)
+  ) {
+    returnFocusElement.focus({ preventScroll: true });
+  }
+}
+
+// Same as the sidebar button: it switches the sidebar to worlds and shows the
+// card list. When the sidebar already lists worlds, that button would switch
+// back to the year and month list, so the card list is shown directly, as
+// the sidebar entry for every world does.
+function openWorldListFromWhatsNew() {
+  closeWhatsNewModal();
+
+  if (currentSidebarMode !== 'world') {
+    worldLibraryModeButton?.click();
+    return;
+  }
+
+  showWorldCardView();
+}
+
+// From Settings > Design: settings closes first so the two never overlap.
+function openWhatsNewFromSettings() {
+  if (!settingsModal || settingsModal.classList.contains('hidden')) {
+    openWhatsNewModal();
+    return;
+  }
+
+  closeSettingsModal();
+
+  const openWhenSettingsClosed = (attempt) => {
+    if (settingsModal.classList.contains('hidden') || attempt >= 20) {
+      openWhatsNewModal({ returnFocusElement: null });
+      return;
+    }
+
+    setTimeout(() => openWhenSettingsClosed(attempt + 1), 50);
+  };
+
+  openWhenSettingsClosed(0);
 }
 
 function toggleTheme() {
@@ -3128,6 +4053,11 @@ function syncSettingsUtilityActionsUi() {
         ? 'サムネイルを再生成する月を選択'
         : '対象月がありません'
     );
+  }
+
+  if (fetchWorldThumbnailsButton) {
+    fetchWorldThumbnailsButton.disabled =
+      isImporting || worldSidebarData.length === 0;
   }
 
   if (regenerateThumbnailsButton) {
@@ -4020,11 +4950,19 @@ function ensureStaticToolbarWorldFilterVisible() {
 }
 
 function syncToolbarSearchInputUi() {
-  const scopeMeta = getToolbarSearchScopeMeta();
-  const selectionDependentDisabled = isImporting || !currentSelection;
+  // The world card view searches worlds by name, whatever scope is set for
+  // photos.
+  const scopeMeta = isWorldCardViewActive
+    ? getToolbarSearchScopeMeta('world')
+    : getToolbarSearchScopeMeta();
+  const selectionDependentDisabled = isWorldCardViewActive
+    ? isImporting
+    : isImporting || !currentSelection;
   const hasDraftSearch =
     normalizeWorldNameFilterText(worldNameFilterInput?.value || '').length > 0;
-  const hasActiveSearch = activeWorldNameFilter.length > 0;
+  const hasActiveSearch = isWorldCardViewActive
+    ? worldCardSearchText.length > 0
+    : activeWorldNameFilter.length > 0;
 
   if (worldNameFilterInput) {
     worldNameFilterInput.placeholder = scopeMeta.placeholder;
@@ -4045,12 +4983,15 @@ function syncToolbarSearchInputUi() {
   }
 
   if (toolbarSearchScopeButton) {
-    toolbarSearchScopeButton.disabled = selectionDependentDisabled;
+    toolbarSearchScopeButton.disabled =
+      selectionDependentDisabled || isWorldCardViewActive;
     toolbarSearchScopeButton.setAttribute(
       'title',
-      selectionDependentDisabled
-        ? '写真を選択すると利用できます'
-        : '検索対象を切り替え'
+      isWorldCardViewActive
+        ? 'ワールド一覧ではWorld名で検索します'
+        : selectionDependentDisabled
+          ? '写真を選択すると利用できます'
+          : '検索対象を切り替え'
     );
   }
 }
@@ -4060,7 +5001,9 @@ function renderToolbarSearchScopeMenu() {
     return;
   }
 
-  const scopeMeta = getToolbarSearchScopeMeta();
+  const scopeMeta = isWorldCardViewActive
+    ? getToolbarSearchScopeMeta('world')
+    : getToolbarSearchScopeMeta();
   toolbarSearchScopeButton.innerHTML = `
     <span class="toolbar-search-scope-button-label">${escapeHtml(
       scopeMeta.buttonLabel
@@ -4138,6 +5081,12 @@ async function setToolbarSearchScope(nextScope) {
 }
 
 async function submitWorldNameFilter({ focusCards = false } = {}) {
+  if (isWorldCardViewActive) {
+    clearWorldNameFilterInputTimer();
+    applyWorldCardSearch(worldNameFilterInput?.value || '');
+    return;
+  }
+
   const nextValue = worldNameFilterInput?.value || '';
   const normalizedValue = normalizeWorldNameFilterText(nextValue);
   const previousSearchScope = activeToolbarSearchScope;
@@ -4184,6 +5133,17 @@ async function submitWorldNameFilter({ focusCards = false } = {}) {
 }
 
 async function clearWorldNameFilter({ keepFocus = true } = {}) {
+  if (isWorldCardViewActive) {
+    clearWorldNameFilterInputTimer();
+    closeToolbarSearchScopeMenu();
+    applyWorldCardSearch('');
+
+    if (keepFocus) {
+      worldNameFilterInput?.focus({ preventScroll: true });
+    }
+    return;
+  }
+
   if (worldNameFilterInput) {
     worldNameFilterInput.value = '';
   }
@@ -4445,6 +5405,8 @@ function setAnimatedHeaderText(
 }
 
 function setAnimatedMonthCountText(nextText, { animate = true } = {}) {
+  // Hook for the new design skins; unused by index.css.
+  currentMonthCount?.classList.toggle('is-filtered', isAnyPhotoFilterActive());
   setAnimatedHeaderText(currentMonthCount, nextText, {
     animate,
     durationMs: 2840,
@@ -5510,9 +6472,10 @@ function syncSidebarSelectionState() {
     let hasWorldEntries = false;
 
     for (const worldButton of sidebarTree.querySelectorAll('.world-sidebar-item')) {
-      const isActive =
-        isWorldSelection(currentSelection) &&
-        currentSelection.worldKey === worldButton.dataset.worldKey;
+      const isActive = worldButton.classList.contains('world-sidebar-all-item')
+        ? isWorldCardViewActive
+        : isWorldSelection(currentSelection) &&
+          currentSelection.worldKey === worldButton.dataset.worldKey;
 
       hasWorldEntries = true;
       worldButton.classList.toggle('active', Boolean(isActive));
@@ -5625,14 +6588,24 @@ function ensureSidebarWorldSortControls() {
   sidebarSortCountButton = document.createElement('button');
   sidebarSortCountButton.type = 'button';
   sidebarSortCountButton.className = 'sidebar-sort-toggle';
-  sidebarSortCountButton.textContent = '撮影枚数順';
+  sidebarSortCountButton.textContent = '枚数順';
 
   sidebarSortNameButton = document.createElement('button');
   sidebarSortNameButton.type = 'button';
   sidebarSortNameButton.className = 'sidebar-sort-toggle';
   sidebarSortNameButton.textContent = '名前順';
 
-  sortToggleGroup.append(sidebarSortCountButton, sidebarSortNameButton);
+  // Worlds by the date of the latest photo taken there, newest first.
+  sidebarSortDateButton = document.createElement('button');
+  sidebarSortDateButton.type = 'button';
+  sidebarSortDateButton.className = 'sidebar-sort-toggle';
+  sidebarSortDateButton.textContent = '日付順';
+
+  sortToggleGroup.append(
+    sidebarSortCountButton,
+    sidebarSortNameButton,
+    sidebarSortDateButton
+  );
   sidebarHeaderControls.appendChild(sortToggleGroup);
   sidebarHeader.appendChild(sidebarHeaderControls);
 }
@@ -5645,6 +6618,10 @@ function syncWorldSidebarSortButtons() {
   sidebarSortNameButton?.classList.toggle(
     'is-active',
     currentWorldSidebarSort === 'name'
+  );
+  sidebarSortDateButton?.classList.toggle(
+    'is-active',
+    currentWorldSidebarSort === 'date'
   );
 }
 
@@ -5894,6 +6871,11 @@ async function restoreMonthViewAfterDataChange({
   clearWhenEmpty = true,
 } = {}) {
   if (currentSidebarMode === 'world') {
+    if (isWorldCardViewActive) {
+      showWorldCardView();
+      return worldSidebarData.length > 0;
+    }
+
     if (await selectSidebarSelectionIfAvailable(preferredSelection)) {
       return true;
     }
@@ -10056,7 +11038,14 @@ function drawPhotoEditorCurveCanvas() {
     ctx.stroke();
   }
 
-  ctx.strokeStyle = 'rgba(79, 140, 255, 0.95)';
+  // The new design skins set --photo-editor-curve-line; the classic design
+  // does not, so it keeps its own blue.
+  const curveLineColor =
+    getComputedStyle(photoEditorCurveCanvas)
+      .getPropertyValue('--photo-editor-curve-line')
+      .trim() || 'rgba(79, 140, 255, 0.95)';
+
+  ctx.strokeStyle = curveLineColor;
   ctx.lineWidth = Math.max(2, Math.round(2 * metrics.scale));
   ctx.beginPath();
   canvasPoints.forEach((point, index) => {
@@ -10069,7 +11058,7 @@ function drawPhotoEditorCurveCanvas() {
   ctx.stroke();
 
   for (const point of canvasPoints) {
-    ctx.fillStyle = 'rgba(79, 140, 255, 0.95)';
+    ctx.fillStyle = curveLineColor;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
     ctx.lineWidth = Math.max(2, Math.round(metrics.scale));
     ctx.beginPath();
@@ -12090,6 +13079,18 @@ function drawPhotoEditorRulers(ctx, width, height) {
   ctx.restore();
 }
 
+// Colour of the guides and handles drawn over the editor preview. The new
+// design skins set --photo-editor-guide-rgb; the classic design does not,
+// so each caller keeps its own blue.
+function getPhotoEditorGuideColor(alpha, classicRgb = '79, 140, 255') {
+  const rgb =
+    getComputedStyle(document.body)
+      .getPropertyValue('--photo-editor-guide-rgb')
+      .trim() || classicRgb;
+
+  return `rgba(${rgb}, ${alpha})`;
+}
+
 function drawPhotoEditorRulerGuides(ctx, width, height) {
   if (!ctx || !photoEditorState?.showRulers || width <= 0 || height <= 0) {
     return;
@@ -12114,7 +13115,7 @@ function drawPhotoEditorRulerGuides(ctx, width, height) {
   const lineWidth = Math.max(1.5, edge / 1100);
 
   ctx.save();
-  ctx.strokeStyle = 'rgba(96, 165, 250, 0.82)';
+  ctx.strokeStyle = getPhotoEditorGuideColor(0.82, '96, 165, 250');
   ctx.lineWidth = lineWidth;
   ctx.setLineDash([Math.max(8, lineWidth * 4), Math.max(6, lineWidth * 3)]);
   ctx.shadowColor = 'rgba(15, 23, 42, 0.58)';
@@ -13220,7 +14221,7 @@ function drawPhotoEditorSubjectMaskPreview(ctx, outputSize, sourceRect) {
     return;
   }
 
-  overlayCtx.fillStyle = 'rgba(79, 140, 255, 1)';
+  overlayCtx.fillStyle = getPhotoEditorGuideColor(1);
   overlayCtx.fillRect(0, 0, overlayCanvas.width, overlayCanvas.height);
   overlayCtx.globalCompositeOperation = 'destination-in';
   overlayCtx.drawImage(maskCanvas, 0, 0);
@@ -13443,7 +14444,7 @@ function drawPhotoEditorRadialBlurControl(ctx, width, height) {
   const handleRadius = Math.max(7, lineWidth * 3);
 
   ctx.save();
-  ctx.fillStyle = 'rgba(79, 140, 255, 0.1)';
+  ctx.fillStyle = getPhotoEditorGuideColor(0.1);
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
   ctx.lineWidth = lineWidth;
   ctx.setLineDash([10, 7]);
@@ -13456,7 +14457,7 @@ function drawPhotoEditorRadialBlurControl(ctx, width, height) {
   ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(79, 140, 255, 0.92)';
+  ctx.fillStyle = getPhotoEditorGuideColor(0.92);
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
   ctx.lineWidth = Math.max(2, Math.round(lineWidth * 0.8));
   ctx.beginPath();
@@ -14574,7 +15575,7 @@ function drawPhotoEditorImageOverlayControls(ctx, width, height) {
   ctx.save();
   ctx.translate(metrics.centerX, metrics.centerY);
   ctx.rotate(metrics.rotationRadians || 0);
-  ctx.fillStyle = 'rgba(79, 140, 255, 0.08)';
+  ctx.fillStyle = getPhotoEditorGuideColor(0.08);
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.94)';
   ctx.lineWidth = Math.max(2, Math.round(Math.max(width, height) / 950));
   ctx.setLineDash([8, 6]);
@@ -14597,7 +15598,7 @@ function drawPhotoEditorImageOverlayControls(ctx, width, height) {
     ctx.shadowBlur = Math.max(4, handleSize * 0.45);
     ctx.shadowOffsetY = Math.max(1, handleSize * 0.16);
     ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
-    ctx.strokeStyle = 'rgba(79, 140, 255, 0.96)';
+    ctx.strokeStyle = getPhotoEditorGuideColor(0.96);
     ctx.beginPath();
     ctx.rect(
       metrics.width / 2 - handleSize / 2,
@@ -14898,7 +15899,7 @@ function drawPhotoEditorSnapGuides(ctx, width, height) {
   const lineWidth = Math.max(2, Math.round(edge / 900));
 
   ctx.save();
-  ctx.strokeStyle = 'rgba(125, 211, 252, 0.88)';
+  ctx.strokeStyle = getPhotoEditorGuideColor(0.88, '125, 211, 252');
   ctx.lineWidth = lineWidth;
   ctx.setLineDash([Math.max(10, lineWidth * 5), Math.max(8, lineWidth * 4)]);
 
@@ -14944,7 +15945,7 @@ function drawPhotoEditorTextControls(ctx, width, height) {
   ctx.save();
   ctx.translate(metrics.centerX, metrics.centerY);
   ctx.rotate(metrics.rotationRadians);
-  ctx.fillStyle = 'rgba(79, 140, 255, 0.08)';
+  ctx.fillStyle = getPhotoEditorGuideColor(0.08);
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
   ctx.lineWidth = Math.max(2, Math.round(Math.max(width, height) / 950));
   ctx.setLineDash([8, 6]);
@@ -14977,7 +15978,7 @@ function drawPhotoEditorDraftMask(ctx, width, height, sourceRect = null, sourceI
   }
 
   ctx.save();
-  ctx.fillStyle = 'rgba(79, 140, 255, 0.16)';
+  ctx.fillStyle = getPhotoEditorGuideColor(0.16);
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
   ctx.lineWidth = Math.max(2, Math.round(Math.max(width, height) / 800));
   ctx.setLineDash([8, 6]);
@@ -15001,7 +16002,7 @@ function drawPhotoEditorDraftMask(ctx, width, height, sourceRect = null, sourceI
   const handles = getPhotoEditorDraftMaskHandles(width, height, sourceRect, sourceImage);
   const handleRadius = Math.max(9, Math.round(Math.max(width, height) / 118));
   const resizeHandleSize = handleRadius * 1.55;
-  ctx.fillStyle = 'rgba(79, 140, 255, 0.94)';
+  ctx.fillStyle = getPhotoEditorGuideColor(0.94);
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
   ctx.lineWidth = Math.max(2, Math.round(Math.max(width, height) / 900));
 
@@ -15024,7 +16025,7 @@ function drawPhotoEditorDraftMask(ctx, width, height, sourceRect = null, sourceI
     ctx.translate(handles.resize.x, handles.resize.y);
     ctx.rotate(getPhotoEditorMaskRotation(draftMask) * Math.PI / 180);
     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    ctx.strokeStyle = 'rgba(79, 140, 255, 0.96)';
+    ctx.strokeStyle = getPhotoEditorGuideColor(0.96);
     ctx.beginPath();
     ctx.rect(
       -resizeHandleSize / 2,
@@ -22258,6 +23259,29 @@ function initializeTopToolbarLayout() {
     utilityActions.appendChild(reimportRegisteredPhotosButton);
     renderReimportRegisteredPhotoMonthOptions();
   }
+
+  if (settingsMaintenanceSection && !fetchWorldThumbnailsButton) {
+    // Worlds imported before thumbnails were saved get theirs from here.
+    const utilityActions = ensureSettingsUtilityActionsContainer('world-thumbnails');
+
+    if (utilityActions) {
+      const description = document.createElement('p');
+      description.className = 'settings-section-meta settings-world-thumbnail-meta';
+      description.textContent =
+        'サムネイルが未保存のワールドの画像を、公式サイトから取得して保存します';
+
+      fetchWorldThumbnailsButton = document.createElement('button');
+      fetchWorldThumbnailsButton.type = 'button';
+      fetchWorldThumbnailsButton.id = 'fetch-world-thumbnails-btn';
+      fetchWorldThumbnailsButton.className = 'small-action-button';
+      fetchWorldThumbnailsButton.textContent = 'ワールドのサムネイルを取得';
+      fetchWorldThumbnailsButton.addEventListener('click', async () => {
+        await runFetchWorldThumbnailsFlow();
+      });
+
+      utilityActions.append(description, fetchWorldThumbnailsButton);
+    }
+  }
 }
 
 function handleSettingsModalWheel(event) {
@@ -22389,6 +23413,7 @@ function resetCurrentMonthState() {
 }
 
 function clearMainContent() {
+  hideWorldCardView();
   resetCurrentMonthState();
   setAnimatedMonthLabelText('写真一覧', { animate: false });
   setAnimatedMonthCountText('0枚', { animate: false });
@@ -22779,6 +23804,12 @@ function buildGalleryGroupSection(groupDate, startIndex = -1) {
   const dayBox = document.createElement('div');
   dayBox.className = 'day-box';
   dayBox.textContent = groupDate;
+
+  // Day of month for skins that set the day as a numeral (ui-hc.css).
+  const groupDateMatch = /^\d{4}-\d{2}-(\d{2})$/.exec(groupDate || '');
+  if (groupDateMatch) {
+    dayBox.dataset.day = String(Number(groupDateMatch[1]));
+  }
 
   const grid = document.createElement('div');
   grid.className = 'gallery-grid';
@@ -23532,6 +24563,8 @@ function createMonthSwitchOverlay({
   removeMonthSwitchOverlay();
 
   const overlay = document.createElement('div');
+  // Hook for the new design skins (they fade without blur); unused by index.css.
+  overlay.className = 'month-switch-overlay';
   const containerRect = mainContent.getBoundingClientRect();
   const snapshotSources = [];
 
@@ -23671,6 +24704,7 @@ async function refreshCurrentMonthWithFilterAnimation() {
 function renderSidebar() {
   sidebarTree.innerHTML = '';
   syncSidebarModeUi();
+  renderUiRailPeriod();
 
   if (currentSidebarMode === 'world') {
     if (worldSidebarData.length === 0) {
@@ -23680,6 +24714,25 @@ function renderSidebar() {
       sidebarTree.appendChild(empty);
       return;
     }
+
+    const allWorldsButton = document.createElement('button');
+    allWorldsButton.type = 'button';
+    allWorldsButton.className = 'world-sidebar-item world-sidebar-all-item';
+    allWorldsButton.classList.toggle('active', isWorldCardViewActive);
+
+    const allWorldsName = document.createElement('span');
+    allWorldsName.className = 'world-sidebar-item-name';
+    allWorldsName.textContent = 'すべてのワールド';
+
+    const allWorldsCount = document.createElement('span');
+    allWorldsCount.className = 'world-sidebar-item-count';
+    allWorldsCount.textContent = String(worldSidebarData.length);
+
+    allWorldsButton.append(allWorldsName, allWorldsCount);
+    allWorldsButton.addEventListener('click', () => {
+      showWorldCardView();
+    });
+    sidebarTree.appendChild(allWorldsButton);
 
     for (const worldEntry of worldSidebarData) {
       const worldButton = document.createElement('button');
@@ -23914,6 +24967,300 @@ async function refreshSidebar() {
     ? nextWorldSidebarData
     : [];
   syncSelectionLinkedUi({ forceSidebarRender: true });
+
+  if (isWorldCardViewActive) {
+    renderWorldCardView();
+  }
+}
+
+// ---------- World card view ----------
+// In world mode the main area first shows every world as a card: its
+// thumbnail, author, photo count and the date of the latest photo. Picking a
+// card (or a world in the sidebar) shows the photos taken there, as before.
+function ensureWorldCardListElement() {
+  if (worldCardListElement) {
+    return worldCardListElement;
+  }
+
+  worldCardListElement = document.createElement('div');
+  worldCardListElement.id = 'world-card-list';
+  worldCardListElement.className = 'world-card-list';
+  worldCardListElement.hidden = true;
+  monthGalleryList.insertAdjacentElement('afterend', worldCardListElement);
+  return worldCardListElement;
+}
+
+// The saved thumbnail of the world first, then the latest photo taken there.
+// Both are local files: the cards never load anything from the network.
+function getWorldCardImageCandidates(worldEntry) {
+  return [worldEntry?.worldThumbnailUrl, worldEntry?.coverThumbnailUrl].filter(
+    (url) => typeof url === 'string' && url.length > 0
+  );
+}
+
+// The main process saves world thumbnails in the background; the open card
+// view picks them up a moment later instead of once per saved file.
+function scheduleWorldCardRefresh() {
+  if (worldCardRefreshTimer) {
+    return;
+  }
+
+  worldCardRefreshTimer = setTimeout(async () => {
+    worldCardRefreshTimer = null;
+
+    if (isWorldCardViewActive && !isImporting) {
+      await refreshSidebar();
+    }
+  }, 1500);
+}
+
+async function runFetchWorldThumbnailsFlow() {
+  setSettingsMaintenanceStatus('ワールドのサムネイルを取得しています...', 'busy');
+  await runForegroundAsyncAction({
+    guardMessage: '別の処理中です。完了してから実行してください',
+    statusMessage: 'ワールドのサムネイルを取得しています...',
+    progressMessage: 'ワールドのサムネイルを取得しています...',
+    run: () => window.electronAPI.fetchWorldThumbnails(),
+    handleResult: async (result) => {
+      if (!result?.ok) {
+        throw new Error(result?.message || '不明なエラー');
+      }
+
+      const hasNewResult =
+        result.savedCount > 0 || result.failedCount > 0 || result.noImageCount > 0;
+      const successStatus = hasNewResult
+        ? `ワールドのサムネイル: 保存 ${result.savedCount}件 / 失敗 ${result.failedCount}件 / 画像なし ${result.noImageCount}件`
+        : 'すべてのワールドのサムネイルは保存済みです';
+
+      importStatus.textContent = successStatus;
+      setSettingsMaintenanceStatus(
+        successStatus,
+        result.failedCount > 0 ? 'error' : 'success'
+      );
+      showToast(successStatus);
+      await refreshSidebar();
+    },
+    buildErrorStatus: (message) => {
+      const errorStatus = `ワールドのサムネイル取得に失敗しました: ${message}`;
+      setSettingsMaintenanceStatus(errorStatus, 'error');
+      return errorStatus;
+    },
+  });
+}
+
+function createWorldCard(worldEntry) {
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = 'world-card';
+  card.dataset.worldKey = worldEntry.worldKey;
+
+  const media = document.createElement('span');
+  media.className = 'world-card-media';
+
+  const placeholder = document.createElement('span');
+  placeholder.className = 'material-symbols-outlined world-card-placeholder';
+  placeholder.textContent = 'public';
+  placeholder.setAttribute('aria-hidden', 'true');
+  media.appendChild(placeholder);
+
+  const candidates = getWorldCardImageCandidates(worldEntry);
+
+  if (candidates.length > 0) {
+    const image = document.createElement('img');
+    image.className = 'world-card-image';
+    image.alt = '';
+    image.loading = 'lazy';
+    image.decoding = 'async';
+    image.draggable = false;
+
+    let candidateIndex = 0;
+
+    image.addEventListener('load', () => {
+      media.classList.add('has-image');
+    });
+    image.addEventListener('error', () => {
+      candidateIndex += 1;
+
+      if (candidateIndex < candidates.length) {
+        image.src = candidates[candidateIndex];
+        return;
+      }
+
+      image.remove();
+    });
+    image.src = candidates[0];
+    media.appendChild(image);
+  }
+
+  const body = document.createElement('span');
+  body.className = 'world-card-body';
+
+  const name = document.createElement('span');
+  name.className = 'world-card-name';
+  name.textContent = worldEntry.worldName;
+  name.dataset.i18nIgnore = 'true';
+  body.appendChild(name);
+
+  if (worldEntry.authorName) {
+    const author = document.createElement('span');
+    author.className = 'world-card-author';
+    author.textContent = worldEntry.authorName;
+    author.dataset.i18nIgnore = 'true';
+    body.appendChild(author);
+  }
+
+  const meta = document.createElement('span');
+  meta.className = 'world-card-meta';
+
+  const count = document.createElement('span');
+  count.className = 'world-card-count';
+  count.textContent = `${worldEntry.count}枚`;
+  meta.appendChild(count);
+
+  if (worldEntry.latestGroupDate) {
+    const date = document.createElement('span');
+    date.className = 'world-card-date';
+    date.textContent = worldEntry.latestGroupDate;
+    meta.appendChild(date);
+  }
+
+  body.appendChild(meta);
+  card.append(media, body);
+  card.addEventListener('click', async () => {
+    await selectWorld(worldEntry);
+  });
+
+  return card;
+}
+
+// The worlds the card view shows: all of them, or the ones whose name (or
+// world ID) contains the search text. Matching follows the photo search.
+function getWorldCardViewEntries() {
+  const query = getNormalizedWorldNameFilterText(worldCardSearchText);
+
+  if (!query) {
+    return worldSidebarData;
+  }
+
+  return worldSidebarData.filter((worldEntry) =>
+    [worldEntry.worldName, worldEntry.worldId]
+      .filter(Boolean)
+      .join(' ')
+      .normalize('NFKC')
+      .toLocaleLowerCase('ja-JP')
+      .includes(query)
+  );
+}
+
+function renderWorldCardView() {
+  const list = ensureWorldCardListElement();
+  const fragment = document.createDocumentFragment();
+  const worldEntries = getWorldCardViewEntries();
+
+  for (const worldEntry of worldEntries) {
+    fragment.appendChild(createWorldCard(worldEntry));
+  }
+
+  list.replaceChildren(fragment);
+  list.hidden = worldEntries.length === 0;
+  setAnimatedMonthLabelText('ワールド一覧', { animate: false });
+  setAnimatedMonthCountText(`${worldEntries.length}ワールド`, {
+    animate: false,
+  });
+  monthGalleryEmpty.style.display = worldEntries.length === 0 ? 'block' : 'none';
+  monthGalleryEmpty.textContent =
+    worldSidebarData.length === 0
+      ? 'ワールド情報付きの写真はまだありません'
+      : '該当するワールドはありません';
+}
+
+function applyWorldCardSearch(nextValue) {
+  worldCardSearchText = normalizeWorldNameFilterText(nextValue);
+
+  if (worldNameFilterInput) {
+    worldNameFilterInput.value = worldCardSearchText;
+  }
+
+  renderWorldCardView();
+  syncToolbarSearchInputUi();
+
+  if (worldCardListElement) {
+    worldCardListElement.scrollTop = 0;
+  }
+}
+
+function showWorldCardView({ restoreScroll = false } = {}) {
+  const scrollTopToRestore = restoreScroll ? worldCardListScrollTop : 0;
+
+  // Drop a photo list that is still loading, then start from the empty state.
+  monthSelectionRequestId += 1;
+  removeMonthSwitchOverlay();
+  resetMonthSwitchClasses();
+  clearMainContent();
+  isWorldCardViewActive = true;
+  document.body.classList.add('world-card-view');
+
+  // The search box now belongs to the card view: show its own search text.
+  if (worldNameFilterInput) {
+    worldNameFilterInput.value = worldCardSearchText;
+  }
+
+  renderToolbarSearchScopeMenu();
+  syncToolbarSearchInputUi();
+  renderWorldCardView();
+  renderSidebar();
+  stopScrollToTopAnimation();
+  scrollGalleryViewToTop({ animated: false });
+
+  if (worldCardListElement) {
+    worldCardListElement.scrollTop = scrollTopToRestore;
+  }
+}
+
+function hideWorldCardView() {
+  if (!isWorldCardViewActive) {
+    return;
+  }
+
+  isWorldCardViewActive = false;
+  document.body.classList.remove('world-card-view');
+
+  if (worldCardListElement) {
+    worldCardListScrollTop = worldCardListElement.scrollTop;
+    worldCardListElement.hidden = true;
+    worldCardListElement.replaceChildren();
+  }
+
+  // Hand the search box back to the photo search.
+  if (worldNameFilterInput) {
+    worldNameFilterInput.value = activeWorldNameFilter;
+  }
+
+  renderToolbarSearchScopeMenu();
+  syncToolbarSearchInputUi();
+}
+
+// The mouse back button, while the photos of one world are shown: back to the
+// world card list, at the place it was left. Nothing happens while a dialog
+// is open or photos are being selected.
+function canReturnToWorldCardView() {
+  return (
+    currentSidebarMode === 'world' &&
+    !isWorldCardViewActive &&
+    !isImporting &&
+    !isSelectionMode &&
+    isWorldSelection(currentSelection) &&
+    !document.querySelector('.image-modal:not(.hidden), .sub-modal:not(.hidden)')
+  );
+}
+
+function returnToWorldCardView() {
+  if (!canReturnToWorldCardView()) {
+    return false;
+  }
+
+  showWorldCardView({ restoreScroll: true });
+  return true;
 }
 
 // Month/year switching shares the same fetch -> selection -> render pipeline.
@@ -23946,6 +25293,7 @@ async function selectPhotoScope(fetchPhotos, nextSelection) {
     return;
   }
 
+  hideWorldCardView();
   setCurrentSelectionValue(nextSelection);
 
   const renderStartedAt = performance.now();
@@ -24251,6 +25599,11 @@ function syncBusyAffectedFilterActions(isBusy) {
   setElementDisabledState(toolbarSearchClearButton, selectionDependentDisabled);
   setElementDisabledState(toolbarSearchScopeButton, selectionDependentDisabled);
   setElementDisabledState(selectionModeButton, selectionDependentDisabled);
+
+  // The world card view has no photo selection, but its search stays usable.
+  if (isWorldCardViewActive) {
+    syncToolbarSearchInputUi();
+  }
 }
 
 function syncBusyAffectedSelectionActions(isBusy) {
@@ -25517,6 +26870,7 @@ async function runRendererStartupStep(label, step) {
 async function bootstrapRenderer() {
   const initializationTimeoutMs = 8000;
   let timeoutId = null;
+  let isAppInitialized = false;
 
   try {
     await runRendererStartupStep('initializeRendererUi', async () => {
@@ -25537,12 +26891,19 @@ async function bootstrapRenderer() {
           }, initializationTimeoutMs);
         }),
       ]);
+      isAppInitialized = true;
     });
   } finally {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
     finishAppInitialization();
+  }
+
+  if (isAppInitialized) {
+    await runRendererStartupStep('maybeShowWhatsNewOnStartup', async () => {
+      maybeShowWhatsNewOnStartup({ isAppInitialized });
+    });
   }
 }
 
@@ -25717,23 +27078,20 @@ function bindHeaderFilterControls() {
     await clearWorldNameFilter({ keepFocus: true });
   });
 
+  // Mouse back button (button 3).
+  window.addEventListener('mouseup', (event) => {
+    if (event.button === 3 && returnToWorldCardView()) {
+      event.preventDefault();
+    }
+  });
+
   worldLibraryModeButton?.addEventListener('click', async () => {
     await runSidebarModeSwitchTransition(async () => {
       currentSidebarMode = currentSidebarMode === 'world' ? 'timeline' : 'world';
       await refreshSidebar();
 
       if (currentSidebarMode === 'world') {
-        const targetSelection =
-          lastWorldSelection || getLatestWorldSelectionFromSidebarData();
-
-        if (targetSelection) {
-          await selectSidebarSelectionIfAvailable(targetSelection);
-        } else {
-          resetCurrentMonthState();
-          clearSelectionState();
-          clearMainContent();
-          renderSidebar();
-        }
+        showWorldCardView();
         return;
       }
 
@@ -25753,7 +27111,7 @@ function bindHeaderFilterControls() {
     await runSidebarTreeRefreshTransition(async () => {
       await refreshSidebar();
 
-      if (currentSidebarMode === 'world') {
+      if (currentSidebarMode === 'world' && !isWorldCardViewActive) {
         await selectSidebarSelectionIfAvailable(
           lastWorldSelection || currentSelection || getLatestWorldSelectionFromSidebarData()
         );
@@ -25770,7 +27128,24 @@ function bindHeaderFilterControls() {
     await runSidebarTreeRefreshTransition(async () => {
       await refreshSidebar();
 
-      if (currentSidebarMode === 'world') {
+      if (currentSidebarMode === 'world' && !isWorldCardViewActive) {
+        await selectSidebarSelectionIfAvailable(
+          lastWorldSelection || currentSelection || getLatestWorldSelectionFromSidebarData()
+        );
+      }
+    });
+  });
+
+  sidebarSortDateButton?.addEventListener('click', async () => {
+    if (currentWorldSidebarSort === 'date') {
+      return;
+    }
+
+    currentWorldSidebarSort = 'date';
+    await runSidebarTreeRefreshTransition(async () => {
+      await refreshSidebar();
+
+      if (currentSidebarMode === 'world' && !isWorldCardViewActive) {
         await selectSidebarSelectionIfAvailable(
           lastWorldSelection || currentSelection || getLatestWorldSelectionFromSidebarData()
         );
@@ -26974,6 +28349,11 @@ function bindGlobalDocumentInteractions() {
       return;
     }
 
+    if (whatsNewModal && !whatsNewModal.classList.contains('hidden')) {
+      closeWhatsNewModal();
+      return;
+    }
+
     if (confirmModal && !confirmModal.classList.contains('hidden')) {
       closeConfirmModal(false);
       return;
@@ -27018,6 +28398,7 @@ function bindGlobalDocumentInteractions() {
     if (
       !imageModal ||
       imageModal.classList.contains('hidden') ||
+      whatsNewModal?.classList.contains('hidden') === false ||
       worldNameEditModal?.classList.contains('hidden') === false ||
       photoLabelModal?.classList.contains('hidden') === false ||
       photoEditorModal?.classList.contains('hidden') === false
@@ -27043,6 +28424,7 @@ function bindGlobalDocumentInteractions() {
       photoLabelModal?.classList.contains('hidden') === false ||
       photoEditorModal?.classList.contains('hidden') === false ||
       trackedFolderModal?.classList.contains('hidden') === false ||
+      whatsNewModal?.classList.contains('hidden') === false ||
       settingsModal?.classList.contains('hidden') === false ||
       confirmModal?.classList.contains('hidden') === false ||
       isEditableKeyboardTarget(event.target)
@@ -27109,6 +28491,10 @@ function bindIpcEventListeners() {
     applyWorldMetadataUpdated(payload);
   });
 
+  window.electronAPI.onWorldThumbnailsUpdated?.(() => {
+    scheduleWorldCardRefresh();
+  });
+
   window.electronAPI.onAppUpdateStatus?.((payload) => {
     const message =
       typeof payload?.message === 'string' ? payload.message.trim() : '';
@@ -27140,6 +28526,10 @@ function initializeRendererBindings() {
 
 function initializeRendererUi() {
   initializeTheme();
+  ensureSettingsUiSkinSection();
+  appendUiSkinStylesheetLink('world-card-stylesheet', './world-cards.css');
+  appendUiSkinStylesheetLink('whats-new-stylesheet', './whats-new.css');
+  initializeUiSkin();
   initializeFontPreference();
   initializePhotoCardDensityPreference();
   initializeBackgroundImagePreference();

@@ -1,0 +1,825 @@
+/*
+ * WorldShot Log — new design skin (opt-in, dark only).
+ * Every rule is scoped to body[data-ui="next"]; the classic design in
+ * index.css stays untouched and remains the default.
+ * Direction: arrivals board — wayfinding-sign yellow rail, flat warm-black
+ * work area, condensed board numerals for dates, times and counts.
+ * No gradients, glows or decorative blur.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&display=swap');
+
+body[data-ui='next'] {
+  --next-sign: #f2c230;
+  --next-sign-ink: #14130f;
+  --next-sign-ink-soft: #3d3412;
+  --next-ground: #14130f;
+  --next-surface: #1c1b16;
+  --next-surface-raised: #24231d;
+  --next-line: #2e2c24;
+  --next-line-strong: #46433a;
+  --next-ink: #efe9dc;
+  --next-ink-muted: #b4ad9d;
+  --next-ink-faint: #8f897b;
+  --next-plate: #efe9dc;
+  --next-danger: #f0605d;
+  --next-board: 'Barlow Condensed', 'Yu Gothic UI', 'Segoe UI', sans-serif;
+  --next-text: var(--app-font-family, 'Yu Gothic UI', 'Segoe UI', sans-serif);
+  --next-rail-width: 232px;
+  --next-topbar-height: 64px;
+  --next-radius: 4px;
+
+  /* Tokens read by ui-skin-common.css */
+  --skin-ground: var(--next-ground);
+  --skin-ground-deep: #0c0b08;
+  --skin-surface: var(--next-surface);
+  --skin-control: var(--next-surface);
+  --skin-control-hover: var(--next-surface-raised);
+  --skin-line: var(--next-line);
+  --skin-line-strong: var(--next-line-strong);
+  --skin-ink: var(--next-ink);
+  --skin-ink-muted: var(--next-ink-muted);
+  --skin-ink-faint: var(--next-ink-faint);
+  --skin-accent: var(--next-sign);
+  --skin-accent-ink: var(--next-sign-ink);
+  --skin-danger: var(--next-danger);
+  --skin-radius: var(--next-radius);
+  --skin-border-width: 1px;
+  --skin-numeral: 600 18px/1.2 var(--next-board);
+  --skin-numeral-spacing: 0.06em;
+  --skin-label: 700 12px/1.2 var(--next-board);
+  --skin-label-spacing: 0.14em;
+  --skin-text: var(--next-text);
+  --skin-raised: var(--next-surface-raised);
+  --skin-accent-hover: #ffd75a;
+  --skin-ink-strong: #ffffff;
+  --skin-track: var(--next-line-strong);
+  --skin-thumb-radius: 50%;
+  --skin-elevation: 0 24px 60px rgba(0, 0, 0, 0.5);
+  --skin-heading: 700 30px/1.1 var(--next-board);
+  --skin-heading-spacing: 0.04em;
+  --skin-section-title: 700 15px/1.3 var(--next-board);
+  --skin-section-title-spacing: 0.1em;
+  --skin-accent-rgb: 242, 194, 48;
+
+  background: var(--next-ground);
+  color: var(--next-ink);
+  padding: 0;
+  font-family: var(--next-text);
+}
+
+html:has(body[data-ui='next']) {
+  background: var(--next-ground);
+}
+
+body[data-ui='next'] ::selection {
+  background: var(--next-sign);
+  color: var(--next-sign-ink);
+}
+
+body[data-ui='next'] :focus-visible {
+  outline: 2px solid var(--next-sign);
+  outline-offset: 2px;
+}
+
+/* On the yellow rail the ring has to be the dark ink. */
+body[data-ui='next'] .sidebar :focus-visible {
+  outline-color: var(--next-sign-ink);
+}
+
+body[data-ui='next'] .sidebar-empty {
+  color: var(--next-sign-ink);
+}
+
+body[data-ui='next'] * {
+  scrollbar-color: var(--next-line-strong) transparent;
+}
+
+body[data-ui='next'] ::-webkit-scrollbar-thumb {
+  background: var(--next-line-strong);
+  border-radius: 0;
+}
+
+body[data-ui='next'] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- Shell: top bar + yellow rail ---------- */
+
+body[data-ui='next'] .app {
+  height: 100vh;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+body[data-ui='next'] .top-sticky-shell {
+  position: sticky;
+  top: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: var(--next-rail-width) minmax(0, 1fr) auto;
+  align-items: stretch;
+  min-height: var(--next-topbar-height);
+  background: var(--next-ground);
+  border-bottom: 1px solid var(--next-line);
+}
+
+body[data-ui='next'] .page-header,
+body[data-ui='next'] .page-header-row {
+  display: contents;
+}
+
+body[data-ui='next'] .page-brand {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  background: var(--next-sign);
+  color: var(--next-sign-ink);
+  width: auto;
+  height: auto;
+  border-radius: 0;
+}
+
+body[data-ui='next'] .page-brand-banner {
+  display: none;
+}
+
+body[data-ui='next'] .page-brand::before {
+  content: '';
+  flex: none;
+  width: 34px;
+  height: 34px;
+  background: url('../img/newlogo/logo.svg') center / contain no-repeat;
+}
+
+body[data-ui='next'] .page-brand::after {
+  content: 'WorldShot Log';
+  font: 700 22px/1 var(--next-board);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body[data-ui='next'] .toolbar {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+  padding: 0 20px 0 30px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: nowrap;
+  min-width: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-ui='next'] .page-header-actions {
+  grid-column: 3;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 20px 0 0;
+}
+
+body[data-ui='next'] #theme-toggle-btn {
+  display: none;
+}
+
+body[data-ui='next'] .theme-toggle-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--next-radius);
+  background: var(--next-surface);
+  border: 1px solid var(--next-line-strong);
+  color: var(--next-ink);
+  box-shadow: none;
+}
+
+body[data-ui='next'] .theme-toggle-btn:hover {
+  background: var(--next-surface-raised);
+  border-color: var(--next-ink-faint);
+}
+
+body[data-ui='next'] .import-status {
+  color: var(--next-ink-muted);
+  font-size: 12px;
+}
+
+body[data-ui='next'] .app-layout {
+  grid-template-columns: var(--next-rail-width) minmax(0, 1fr);
+  gap: 0;
+  align-items: stretch;
+  min-height: calc(100vh - var(--next-topbar-height));
+}
+
+body[data-ui='next'] .sidebar {
+  position: sticky;
+  top: var(--next-topbar-height);
+  align-self: start;
+  height: calc(100vh - var(--next-topbar-height));
+  margin: 0;
+  padding: 16px 14px 20px;
+  overflow-y: auto;
+  background: var(--next-sign);
+  color: var(--next-sign-ink);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  /* No scrollbar inside the rail (same as skin B): wheel, touchpad and
+     keyboard still scroll. */
+  scrollbar-width: none;
+}
+
+body[data-ui='next'] .sidebar::-webkit-scrollbar,
+body[data-ui='next'] .sidebar-tree::-webkit-scrollbar {
+  display: none;
+}
+
+body[data-ui='next'] .sidebar-tree {
+  scrollbar-width: none;
+}
+
+/* Rail header: world/photo switch and the period title */
+body[data-ui='next'] .sidebar-header h2 {
+  margin: 18px 0 6px;
+  font: 700 12px/1 var(--next-board);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--next-sign-ink);
+}
+
+body[data-ui='next'] .sidebar-header p {
+  display: none;
+}
+
+body[data-ui='next'] .world-library-mode-btn {
+  width: 100%;
+  height: 38px;
+  justify-content: center;
+  border-radius: var(--next-radius);
+  background: transparent;
+  color: var(--next-sign-ink);
+  border: 2px solid var(--next-sign-ink);
+  box-shadow: none;
+  font-weight: 700;
+}
+
+body[data-ui='next'] .world-library-mode-btn:hover,
+body[data-ui='next'] .world-library-mode-btn.is-active {
+  background: var(--next-sign-ink);
+  color: var(--next-sign);
+}
+
+body[data-ui='next'] .sidebar-sort-toggle {
+  background: transparent;
+  color: var(--next-sign-ink);
+  border: 1px solid var(--next-sign-ink);
+  border-radius: var(--next-radius);
+  box-shadow: none;
+}
+
+body[data-ui='next'] .sidebar-sort-toggle.is-active {
+  background: var(--next-sign-ink);
+  color: var(--next-sign);
+}
+
+/* Year / month / day tree, set like a board */
+body[data-ui='next'] .sidebar-tree {
+  gap: 6px;
+}
+
+body[data-ui='next'] .year-block,
+body[data-ui='next'] .month-list,
+body[data-ui='next'] .day-list {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+body[data-ui='next'] .year-button,
+body[data-ui='next'] .month-button,
+body[data-ui='next'] .day-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: transparent;
+  color: var(--next-sign-ink);
+  border: 0;
+  border-radius: 3px;
+  box-shadow: none;
+  font-family: var(--next-board);
+  letter-spacing: 0.04em;
+  transform: none;
+}
+
+body[data-ui='next'] .year-button {
+  padding: 6px 8px;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+body[data-ui='next'] .month-button {
+  margin: 0;
+  padding: 5px 8px;
+  min-height: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+body[data-ui='next'] .day-button {
+  padding: 3px 8px 3px 22px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+body[data-ui='next'] .year-button:hover,
+body[data-ui='next'] .month-button:hover,
+body[data-ui='next'] .day-button:hover {
+  background: rgba(20, 19, 15, 0.1);
+}
+
+body[data-ui='next'] .year-button.active,
+body[data-ui='next'] .month-button.active {
+  background: var(--next-sign-ink);
+  color: var(--next-sign);
+}
+
+body[data-ui='next'] .day-button.active,
+body[data-ui='next'] .day-button.is-active {
+  background: none;
+  box-shadow: inset 2px 0 0 var(--next-sign-ink);
+  font-weight: 700;
+}
+
+body[data-ui='next'] .year-count,
+body[data-ui='next'] .month-count,
+body[data-ui='next'] .day-count {
+  color: inherit;
+  font: inherit;
+  font-size: 0.86em;
+  opacity: 1;
+}
+
+body[data-ui='next'] .year-toggle,
+body[data-ui='next'] .month-day-toggle {
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* World list in the rail: compact rows, so a long list of worlds shows about
+   twice as many at once. */
+body[data-ui='next'] .sidebar-tree:has(> .world-sidebar-item) {
+  gap: 1px;
+}
+
+body[data-ui='next'] .world-sidebar-item {
+  align-items: center;
+  padding: 9px 8px;
+  background: transparent;
+  color: var(--next-sign-ink);
+  border: 0;
+  border-radius: 3px;
+  box-shadow: none;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+body[data-ui='next'] .world-sidebar-all-item {
+  margin-bottom: 6px;
+}
+
+body[data-ui='next'] .world-sidebar-item:hover {
+  background: rgba(20, 19, 15, 0.1);
+}
+
+body[data-ui='next'] .world-sidebar-item.active,
+body[data-ui='next'] .world-sidebar-item.is-active {
+  background: var(--next-sign-ink);
+  color: var(--next-sign);
+}
+
+body[data-ui='next'] .world-sidebar-item-count {
+  color: inherit;
+  font-family: var(--next-board);
+}
+
+/* ---------- Main work area ---------- */
+
+body[data-ui='next'] .main-content {
+  min-width: 0;
+  padding: 22px 30px 40px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+body[data-ui='next'] .main-header {
+  margin: 0 0 22px;
+  padding: 0 0 14px;
+  border-bottom: 2px solid var(--next-sign);
+  align-items: flex-end;
+}
+
+body[data-ui='next'] #current-month-label {
+  font: 700 44px/1 var(--next-board);
+  letter-spacing: 0.03em;
+  color: var(--next-ink);
+}
+
+body[data-ui='next'] #current-month-count {
+  color: var(--next-ink-muted);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+body[data-ui='next'] .header-filter-button {
+  height: 36px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--next-radius);
+  background: var(--next-surface);
+  border: 1px solid var(--next-line-strong);
+  color: var(--next-ink);
+  box-shadow: none;
+  font-weight: 600;
+}
+
+body[data-ui='next'] .header-filter-button.favorite-filter-icon-button,
+body[data-ui='next'] .header-filter-button.photo-sort-icon-button {
+  width: 36px;
+  padding: 0;
+}
+
+body[data-ui='next'] .header-filter-button:hover:not(:disabled) {
+  background: var(--next-surface-raised);
+  border-color: var(--next-ink-faint);
+}
+
+body[data-ui='next'] .header-filter-button.is-active {
+  background: var(--next-sign);
+  border-color: var(--next-sign);
+  color: var(--next-sign-ink);
+}
+
+body[data-ui='next'] .header-filter-button:disabled {
+  opacity: 1;
+  color: var(--next-ink-faint);
+  border-color: var(--next-line);
+  background: transparent;
+}
+
+body[data-ui='next'] .danger-outline-button:not(:disabled) {
+  color: var(--next-danger);
+  border-color: #5a2a28;
+}
+
+body[data-ui='next'] .header-dropdown-menu {
+  background: var(--next-surface-raised);
+  border: 1px solid var(--next-line-strong);
+  border-radius: var(--next-radius);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  backdrop-filter: none;
+}
+
+body[data-ui='next'] .header-dropdown-item {
+  color: var(--next-ink);
+  border-radius: 3px;
+}
+
+body[data-ui='next'] .header-dropdown-item:hover {
+  background: var(--next-surface);
+}
+
+body[data-ui='next'] .header-dropdown-item.is-active {
+  background: var(--next-sign);
+  color: var(--next-sign-ink);
+}
+
+/* Search field in the top bar (world / memo / print note) */
+body[data-ui='next'] .toolbar-left-group {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 640px;
+}
+
+body[data-ui='next'] .toolbar-world-filter .header-dropdown-menu:not(.toolbar-search-scope-menu),
+body[data-ui='next'] .toolbar-world-filter .header-dropdown-input-panel {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+body[data-ui='next'] .header-dropdown-text-input {
+  height: 38px;
+  background: var(--next-surface);
+  border: 1px solid var(--next-line-strong);
+  border-radius: var(--next-radius);
+  color: var(--next-ink);
+  box-shadow: none;
+}
+
+body[data-ui='next'] .header-dropdown-text-input::placeholder {
+  color: var(--next-ink-faint);
+}
+
+body[data-ui='next'] .header-dropdown-text-input:focus {
+  border-color: var(--next-sign);
+  outline: none;
+}
+
+body[data-ui='next'] .header-dropdown-clear-button {
+  height: 38px;
+  border-radius: var(--next-radius);
+  background: var(--next-surface);
+  border: 1px solid var(--next-line-strong);
+  color: var(--next-ink);
+  box-shadow: none;
+  font-weight: 600;
+}
+
+body[data-ui='next'] .header-dropdown-clear-button.toolbar-search-submit-button {
+  background: var(--next-sign);
+  border-color: var(--next-sign);
+  color: var(--next-sign-ink);
+}
+
+body[data-ui='next'] .header-dropdown-clear-button:disabled {
+  opacity: 1;
+  color: var(--next-ink-faint);
+  background: transparent;
+  border-color: var(--next-line);
+}
+
+/* ---------- Date groups and photo cards ---------- */
+
+body[data-ui='next'] .gallery-list {
+  gap: 30px;
+}
+
+body[data-ui='next'] .gallery-group {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-ui='next'] .day-box {
+  display: inline-block;
+  margin: 0 0 12px;
+  padding: 3px 10px;
+  background: var(--next-plate);
+  color: var(--next-sign-ink);
+  border: 0;
+  border-radius: 2px;
+  box-shadow: none;
+  font: 700 17px/1.2 var(--next-board);
+  letter-spacing: 0.08em;
+}
+
+/* Jumping to a date from the rail turns that date plate yellow. */
+body[data-ui='next'] .gallery-group.is-jump-target .day-box {
+  background: var(--next-sign);
+}
+
+body[data-ui='next'] .gallery-grid {
+  padding: 0;
+}
+
+body[data-ui='next'] .photo-card {
+  background: var(--next-surface);
+  border: 1px solid var(--next-line);
+  border-radius: var(--next-radius);
+  box-shadow: none;
+  padding: 0;
+  overflow: hidden;
+  transform: none;
+  transition: border-color 0.16s ease-out;
+}
+
+body[data-ui='next'] .photo-card:hover {
+  border-color: var(--next-line-strong);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Drawn inside the card edge: the gallery is a scroll container, so a ring
+   outside the first column would be clipped on the left. */
+body[data-ui='next'] .photo-card.is-keyboard-focused,
+body[data-ui='next'] .photo-card.is-selected {
+  outline: 3px solid var(--next-sign);
+  outline-offset: -3px;
+  border-color: var(--next-line) !important;
+  box-shadow: none !important;
+}
+
+body[data-ui='next'] .photo-card-image {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-ui='next'] .photo-card-info {
+  padding: 9px 11px 11px;
+}
+
+body[data-ui='next'] .photo-card-date {
+  display: none;
+}
+
+body[data-ui='next'] .photo-card-time-sub {
+  margin: 0;
+  color: var(--next-ink);
+  font: 600 16px/1 var(--next-board);
+  letter-spacing: 0.06em;
+}
+
+body[data-ui='next'] .photo-card-resolution-badge {
+  background: transparent;
+  color: var(--next-ink-muted);
+  border: 1px solid var(--next-line-strong);
+  border-radius: 2px;
+  font: 700 12px/1.3 var(--next-board);
+  letter-spacing: 0.1em;
+  box-shadow: none;
+}
+
+body[data-ui='next'] .photo-card-world {
+  margin-top: 5px;
+  color: var(--next-ink-muted);
+  font-size: 12.5px;
+}
+
+body[data-ui='next'] .photo-card-favorite-btn,
+body[data-ui='next'] .photo-card-selection-btn {
+  background: rgba(20, 19, 15, 0.82);
+  color: var(--next-ink);
+  border: 1px solid var(--next-line-strong);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+body[data-ui='next'] .photo-card-favorite-btn.is-active,
+body[data-ui='next'] .photo-card.is-favorite .photo-card-favorite-btn {
+  background: var(--next-sign);
+  color: var(--next-sign-ink);
+  border-color: var(--next-sign);
+}
+
+body[data-ui='next'] .gallery-empty {
+  color: var(--next-ink-muted);
+  background: none;
+  border: 1px dashed var(--next-line-strong);
+  border-radius: var(--next-radius);
+}
+
+body[data-ui='next'] .drop-hint-always {
+  background: var(--next-surface);
+  color: var(--next-ink-muted);
+  border: 1px dashed var(--next-line-strong);
+  border-radius: var(--next-radius);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+/* ---------- Settings: the design switch itself ---------- */
+body[data-ui='next'] .settings-ui-skin-option-group .settings-font-option-button.is-active {
+  background: var(--next-sign);
+  color: var(--next-sign-ink);
+  border-color: var(--next-sign);
+}
+
+/* ---------- Shell hardening ----------
+ * index.css carries several "final pass" blocks with !important for the
+ * sticky header, its compact scroll state and the outer scroll container.
+ * The new shell is a fixed bar, so those states are neutralised here. */
+body[data-ui='next'] .app {
+  width: 100% !important;
+  height: 100vh !important;
+}
+
+body[data-ui='next'] .top-sticky-shell,
+body[data-ui='next'] .top-sticky-shell.is-compact {
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  background: var(--next-ground) !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--next-line) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+body[data-ui='next'] .top-sticky-shell .toolbar,
+body[data-ui='next'] .top-sticky-shell.is-compact .toolbar {
+  padding: 0 20px 0 30px !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: none !important;
+  border: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body[data-ui='next'] .top-sticky-shell .theme-toggle-btn,
+body[data-ui='next'] .top-sticky-shell.is-compact .theme-toggle-btn {
+  width: 38px !important;
+  height: 38px !important;
+}
+
+body[data-ui='next'] .top-sticky-shell .toolbar button,
+body[data-ui='next'] .top-sticky-shell.is-compact .toolbar button {
+  padding: 0 14px !important;
+  font-size: 13px !important;
+}
+
+body[data-ui='next'] .sidebar {
+  position: sticky !important;
+  top: var(--next-topbar-height) !important;
+  align-self: start !important;
+  height: calc(100vh - var(--next-topbar-height)) !important;
+  overflow-y: auto !important;
+  transform: none !important;
+}
+
+body[data-ui='next'] .sidebar-header > .world-library-mode-btn.small-action-button {
+  width: 100%;
+  height: 38px;
+  min-height: 38px;
+  margin: 0;
+  border-radius: var(--next-radius) !important;
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--next-sign-ink) !important;
+  border: 2px solid var(--next-sign-ink) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  font-weight: 700;
+}
+
+body[data-ui='next'] .sidebar-header > .world-library-mode-btn.small-action-button:hover,
+body[data-ui='next'] .sidebar-header > .world-library-mode-btn.small-action-button.is-active {
+  background: var(--next-sign-ink) !important;
+  color: var(--next-sign) !important;
+}
+
+body[data-ui='next'] .sidebar-header > .world-library-mode-btn.small-action-button .material-symbols-outlined,
+body[data-ui='next'] .sidebar-header > .world-library-mode-btn.small-action-button span:last-child {
+  color: inherit;
+}
+
+body[data-ui='next'] .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-text-input {
+  min-height: 38px;
+  border-radius: var(--next-radius);
+  background: var(--next-surface);
+  border: 1px solid var(--next-line-strong);
+  box-shadow: none;
+}
+
+body[data-ui='next'] .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-text-input:focus {
+  border-color: var(--next-sign);
+}
+
+body[data-ui='next'] .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-clear-button,
+body[data-ui='next'] .toolbar-world-filter.is-static-toolbar-filter .toolbar-search-scope-button {
+  min-height: 38px;
+  border-radius: var(--next-radius);
+  background: var(--next-surface);
+  border: 1px solid var(--next-line-strong);
+  color: var(--next-ink);
+  box-shadow: none;
+}
+
+body[data-ui='next'] .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-clear-button.toolbar-search-submit-button {
+  background: var(--next-sign);
+  border-color: var(--next-sign);
+  color: var(--next-sign-ink);
+}
+
+body[data-ui='next'] .toolbar-world-filter.is-static-toolbar-filter .header-dropdown-clear-button:disabled {
+  background: transparent;
+  border-color: var(--next-line);
+  color: var(--next-ink-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-ui='next'] .photo-card {
+    transition: none;
+  }
+}
