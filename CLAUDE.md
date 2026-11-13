@@ -23,6 +23,11 @@ npm.cmd run make:win
 - `check`: 回帰テスト一式
 - `check:security`: 同梱ランタイムのセキュリティ確認
 - `smoke:*`: 個別の動作確認
+- Claude のセッションの中では、環境変数 `NoDefaultCurrentDirectoryInExePath=1` が入っている（PC の設定ではない）。このままだと cmd がカレントフォルダーのバッチを見つけられず、`scripts/test-review-launcher.js` の 3 件が失敗し、`npm.cmd run check` 全体も失敗で終わる。Bash から次のように外して実行する。
+  ```bash
+  env -u NoDefaultCurrentDirectoryInExePath npm.cmd run check
+  ```
+- `npm.cmd run smoke:packaged` は、ビルド直後の 1 回目だけ「初期化を待って時間切れ」で失敗することがある（v3.0.0 のビルドで 1 回発生。原因は未特定で、手動起動は 5 秒で初期化でき、続く 3 回は合格した）。失敗したら、ログを確かめたうえでもう一度実行する。
 
 ## 改修のルール
 - 先祖返りを絶対に避ける。解決済みの箇所に余計な変更を入れない。
@@ -98,6 +103,7 @@ npm.cmd run make:win
 - CI（`.github/workflows/verify-windows-release.yml`）は `npm ci --ignore-scripts` で、ビルド済みのバイナリを検証する。
   - CI と `scripts/verify-windows-install.ps1` は、検証する版（候補）と比較する旧版を番号で直接書いている。2026-11-13 に「候補 3.0.0・旧版 2.5.4」へ更新済み。次のリリースでは両方のファイルの番号を書き換える（候補と旧版を取り違えない）。
   - CI は、GitHub に上げたリリース（draft でよい）の 3 点をダウンロードして検証する。上げる前に動かすと失敗する。自動で動くのは `codex/retouch-session-safety` への push だけなので、`main` からは手動で実行する（Actions の「Run workflow」）。
+- **更新後の最初の起動で出る「主な更新内容」は、リリース文の `## 更新内容` の直下にある箇条書きの先頭 4 つ**（`src/index.js` の `extractAppUpdateReleaseHighlights`）。利用者にいちばん伝えたいことを、この 4 つに書く。`###` の小見出しの下の箇条書きは、直下に 1 つも無いときだけ使われる。取り出すのは更新前の版のアプリなので、書き方を変えるときは公開中の版の処理で確かめる。
 - リリースノートの構成は「短い概要」「更新内容」「補足」。BOOTH の更新履歴は `[日付] vX.Y.Z 一行の要約` の形式。
 
 ## アプリアイコン（2026-11-12 に新しいロゴへ統一）
