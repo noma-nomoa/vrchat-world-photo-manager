@@ -353,15 +353,24 @@ GitHub Release に配布物があっても、更新サービスが古いキャ�
 
 ## 12. 現在の公開版
 
-2026年10月25日に GitHub Releases API と自動更新サービスで確認した公開版:
+2026年11月13日に GitHub Releases API と自動更新サービスで確認した公開版:
 
-- [v2.5.4](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases/tag/v2.5.4)
+- [v3.0.0](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases/tag/v3.0.0)
 
 対応する変更点ファイル:
 
-- `release-notes/v2.5.4.md`
+- `release-notes/v3.0.0.md`
 
-全体回帰20項目、配布版の機能確認、新規導入・Setup上書き・Squirrel更新の3経路が成功しています。旧版v2.5.3から最新版の配信、最新版自身では更新なし（HTTP 204）も確認済みです。[今回の検証記録](./docs/release-preparation-v2.5.4.md)を参照してください。
+全体回帰20項目、配布版の機能確認（`smoke:packaged`）、新規導入・Setup上書き・Squirrel更新の3経路（[Actions の実行記録](https://github.com/noma-nomoa/vrchat-world-photo-manager/actions/runs/43392007952)）が成功しています。旧版v2.5.4から最新版の配信、最新版自身では更新なし（HTTP 204）も確認済みです。
+
+v3.0.0 の公開で分かったこと:
+
+- インストール検証は、検証する版と比較する旧版を番号で直接書いています。書き換える場所は3つです: `.github/workflows/verify-windows-release.yml`、`scripts/verify-windows-install.ps1`、`scripts/lib/verify-installed-runtime.js`。
+- v3.0.0 から、デザインを選んでいない場合はダーク専用のランタンで起動します。インストール検証は「旧版で保存したライト表示の設定が残っていること」「ランタンではダークで表示されること」「従来のデザインに戻すとライトで表示されること」を確認します。
+- Squirrel更新のあと、`Update.exe` は補助プロセスによって入れ替えられます。入れ替え中にファイルを読むと検証側も更新側も失敗することがあるため、補助プロセスの終了を待ってから比較します。
+- `v3.0.0` のタグは公開したアプリのソース（`98617bb`）を指しています。そのあとの `main` のコミットは、検証スクリプトの修正とこの記録だけです。
+
+ひとつ前の公開版は [v2.5.4](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases/tag/v2.5.4) です。そのときの検証記録は [v2.5.4 の公開準備](./docs/release-preparation-v2.5.4.md) に残しています。
 
 ---
 
