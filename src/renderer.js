@@ -846,6 +846,12 @@ let whatsNewModal = null;
 let whatsNewElements = null;
 let whatsNewPageIndex = 0;
 let whatsNewReturnFocusElement = null;
+// The announcement and the dialogs of the app update (main changes, update
+// ready) never sit on top of each other: whichever comes second waits until
+// the first is closed.
+const WHATS_NEW_DIALOG_WAIT_INTERVAL_MS = 400;
+const WHATS_NEW_DIALOG_WAIT_LIMIT_MS = 10 * 60 * 1000;
+let whatsNewStartupWaitTimer = null;
 let uiRailPeriodElement = null;
 let settingsBackgroundMeta = null;
 let selectBackgroundImageButton = null;
@@ -2720,6 +2726,7 @@ function maybeShowWhatsNewOnStartup({ isAppInitialized = true } = {}) {
   }
 
   if (isWhatsNewBlockedByOpenDialog()) {
+    scheduleWhatsNewAfterOpenDialog();
     return false;
   }
 
@@ -2727,6 +2734,53 @@ function maybeShowWhatsNewOnStartup({ isAppInitialized = true } = {}) {
   markWhatsNewSeen();
   openWhatsNewModal();
   return true;
+}
+
+// Another dialog is open at startup, usually the list of main changes shown
+// after an update: try again once it is closed. Past the limit nothing is
+// recorded, so the next launch tries again.
+function scheduleWhatsNewAfterOpenDialog() {
+  if (whatsNewStartupWaitTimer) {
+    return;
+  }
+
+  const startedAt = Date.now();
+
+  whatsNewStartupWaitTimer = setInterval(() => {
+    const isTimedOut = Date.now() - startedAt > WHATS_NEW_DIALOG_WAIT_LIMIT_MS;
+
+    if (!isTimedOut && isWhatsNewBlockedByOpenDialog()) {
+      return;
+    }
+
+    clearInterval(whatsNewStartupWaitTimer);
+    whatsNewStartupWaitTimer = null;
+
+    if (!isTimedOut) {
+      maybeShowWhatsNewOnStartup();
+    }
+  }, WHATS_NEW_DIALOG_WAIT_INTERVAL_MS);
+}
+
+function isWhatsNewModalOpen() {
+  return Boolean(whatsNewModal && !whatsNewModal.classList.contains('hidden'));
+}
+
+// Resolves at once when the announcement is not open, otherwise when it has
+// been closed.
+function waitForWhatsNewModalClosed() {
+  if (!isWhatsNewModalOpen()) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    const timer = setInterval(() => {
+      if (!isWhatsNewModalOpen()) {
+        clearInterval(timer);
+        resolve();
+      }
+    }, WHATS_NEW_DIALOG_WAIT_INTERVAL_MS);
+  });
 }
 
 function getWhatsNewLanguage() {
@@ -21777,6 +21831,9 @@ async function handleAppUpdateAction(payload) {
   if (!config) {
     return;
   }
+
+  // Not on top of the announcement: wait until it has been closed.
+  await waitForWhatsNewModalClosed();
 
   const confirmed = await openConfirmModal(config);
 
