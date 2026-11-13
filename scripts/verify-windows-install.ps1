@@ -115,7 +115,13 @@ try {
     # Squirrel's self-update helper completes after its parent exits.
     $deadline = [DateTime]::UtcNow.AddSeconds(20)
     do {
-        $ready = (Get-FileHash -LiteralPath (Join-Path $installRoot 'Update.exe') -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath (Join-Path $installRoot 'app-3.0.0/squirrel.exe') -Algorithm SHA256).Hash
+        # While the helper swaps Update.exe the file is locked; a failed read
+        # only means it is not ready yet.
+        try {
+            $ready = (Get-FileHash -LiteralPath (Join-Path $installRoot 'Update.exe') -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath (Join-Path $installRoot 'app-3.0.0/squirrel.exe') -Algorithm SHA256).Hash
+        } catch {
+            $ready = $false
+        }
         if (-not $ready) { Start-Sleep -Milliseconds 200 }
     } until ($ready -or [DateTime]::UtcNow -gt $deadline)
     $report.candidate = Verify-Installation '3.0.0' $candidatePackage
