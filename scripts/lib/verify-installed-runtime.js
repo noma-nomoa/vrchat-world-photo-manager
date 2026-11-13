@@ -13,7 +13,8 @@ async function main() {
   assert(process.env.GITHUB_ACTIONS === 'true' && process.env.RUNNER_ENVIRONMENT === 'github-hosted' && process.platform === 'win32',
     'This helper may only run in a disposable GitHub-hosted Windows job');
   const [exe, version, mode, output] = process.argv.slice(2);
-  assert(exe && /^2\.5\.[34]$/.test(version) && ['seed', 'verify'].includes(mode) && output);
+  // The candidate and the release before it; update both with the release gate.
+  assert(exe && /^(2\.5\.4|3\.0\.0)$/.test(version) && ['seed', 'verify'].includes(mode) && output);
   const name = `${version}-${mode}-${Date.now()}`;
   const stderr = path.join(output, `${name}.stderr.log`);
   const stdoutFd = fs.openSync(path.join(output, `${name}.stdout.log`), 'w');
@@ -89,15 +90,37 @@ async function main() {
       const records = [];
       for (const p of photos) records.push({ id: p.id, filePath: p.filePath, isFavorite: p.isFavorite,
         memoText: p.memoText, worldNameManual: p.worldNameManual, labels: await electronAPI.getPhotoLabels(p.id) });
-      return { records, theme: localStorage.getItem('vrchat-world-photo-manager-theme'), appliedTheme: document.body.dataset.theme };
+      // From v3.0.0 the design can be switched. Going to the classic design and
+      // back shows whether the saved light theme is still honoured there.
+      let classicTheme = null;
+      if (typeof applyUiSkin === 'function') {
+        const design = readSavedUiSkin();
+        applyUiSkin('legacy');
+        classicTheme = document.body.dataset.theme;
+        applyUiSkin(design);
+      }
+      return { records, theme: localStorage.getItem('vrchat-world-photo-manager-theme'), appliedTheme: document.body.dataset.theme,
+        design: document.body.dataset.ui || null, classicTheme };
     })()`);
     assert.equal(report.data.records.length, 1);
     assert.equal(report.data.records[0].isFavorite, true);
     assert.equal(report.data.theme, 'light');
-    assert.equal(report.data.appliedTheme, 'light');
+    if (version.startsWith('2.')) {
+      assert.equal(report.data.appliedTheme, 'light');
+    } else {
+      // No design has been chosen in this profile, so v3.0.0 shows Lantern,
+      // which is dark only. The saved light theme must survive and come back
+      // in the classic design.
+      assert.equal(report.data.design, 'hc');
+      assert.equal(report.data.appliedTheme, 'dark');
+      assert.equal(report.data.classicTheme, 'light');
+    }
     report.fixtureSha256 = createHash('sha256').update(fs.readFileSync(fixture)).digest('hex');
-    if (mode === 'seed') fs.writeFileSync(path.join(output, 'baseline-data.json'), JSON.stringify({ data: report.data, fixtureSha256: report.fixtureSha256 }, null, 2));
-    else assert.deepEqual({ data: report.data, fixtureSha256: report.fixtureSha256 }, JSON.parse(fs.readFileSync(path.join(output, 'baseline-data.json'), 'utf8')));
+    // What must survive an install or update: the photo records and the saved
+    // theme. How the theme is applied differs by version and is checked above.
+    const persisted = { data: { records: report.data.records, theme: report.data.theme }, fixtureSha256: report.fixtureSha256 };
+    if (mode === 'seed') fs.writeFileSync(path.join(output, 'baseline-data.json'), JSON.stringify(persisted, null, 2));
+    else assert.deepEqual(persisted, JSON.parse(fs.readFileSync(path.join(output, 'baseline-data.json'), 'utf8')));
     report.ok = true;
   } catch (error) {
     report.error = error.stack;
