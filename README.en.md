@@ -44,6 +44,15 @@ In addition to photo management by date and world, it includes image adjustments
 - Reuse fetched info for photos with the same World ID
 - Display World names, descriptions, tags, and World URLs
 
+### World List
+
+- Browse the worlds you have photographed as cards (world image, author, photo count, and the date of the latest photo)
+- Open the photos from a world by selecting its card
+- Sort by count, name, or date
+- Filter the cards by World name
+- Return from the photos to the world list with the mouse back button
+- World images are fetched once, saved on your PC, and shown without network access afterwards
+
 ### Built-in Image Editor
 
 - Open the image editor from photo details
@@ -100,6 +109,12 @@ In addition to photo management by date and world, it includes image adjustments
 - Japanese-friendly fonts and decorative fonts
 - Preview each font in the font selector
 - Show recently used fonts
+
+### Designs
+
+- Choose from six designs (Classic design, Transit, Lantern, Noir, Choco Mint, and Soda)
+- Switch at any time from the settings screen
+- The five added designs are dark only. Light mode is available in the classic design
 
 ### Display Languages
 
@@ -167,6 +182,7 @@ WorldShot Log supports update checks through GitHub Releases.
 - Imported photos, notes, labels, settings, and thumbnails are stored on your PC.
 - Original images are not overwritten. Edited images are saved as separate files.
 - The app may access external services such as VRChat and GitHub to fetch World info or check for updates.
+- World images shown in the world list are fetched from VRChat once and saved on your PC.
 - AI subject selection runs on your PC. External access is used only when downloading additional model files.
 - Downloaded AI models and image overlay assets are stored in app-managed folders and can be deleted from inside the app.
 - Backups and CSV / JSON exports are saved to locations selected by the user.
@@ -180,6 +196,7 @@ The app primarily stores data in the following locations.
 - AI models: `C:\Users\<UserName>\AppData\Roaming\WorldShot Log\models\`
 - Image overlay assets: `C:\Users\<UserName>\AppData\Roaming\WorldShot Log\photo-editor-overlays\`
 - Thumbnails: `C:\Users\<UserName>\WorldShot Log\thumbnails`
+- World images: `C:\Users\<UserName>\WorldShot Log\world-thumbnails`
 - Runtime cache: `C:\Users\<UserName>\AppData\Local\WorldShot Log\SessionData\`
 
 ## About This App

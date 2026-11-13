@@ -44,6 +44,15 @@ WorldShot Log는 VRChat 사진을 정리하고, 다시 보고, 게시하기 좋�
 - 같은 World ID의 사진에서는 이미 취득한 정보를 재사용
 - 월드 이름, 설명, 태그, World URL 표시
 
+### 월드 목록
+
+- 사진을 찍은 월드를 카드로 표시 (월드 이미지, 제작자, 사진 수, 마지막으로 찍은 날짜)
+- 카드를 눌러 그 월드의 사진 목록 열기
+- 장수순, 이름순, 날짜순 정렬
+- World 이름으로 카드 필터링
+- 마우스의 뒤로 버튼으로 사진 목록에서 월드 목록으로 돌아가기
+- 월드 이미지는 한 번만 가져와 PC에 저장하고, 다음부터는 통신 없이 표시
+
 ### 앱 내 이미지 편집
 
 - 사진 상세 화면에서 이미지 편집 화면 열기
@@ -100,6 +109,12 @@ WorldShot Log는 VRChat 사진을 정리하고, 다시 보고, 게시하기 좋�
 - 일본어용 폰트와 장식 폰트
 - 폰트 선택 시 각 폰트의 실제 모양을 미리보기
 - 최근 사용한 폰트 표시
+
+### 디자인
+
+- 6가지 디자인 중에서 선택 (기존 디자인, 트랜짓, 랜턴, 누아르, 초코민트, 소다)
+- 설정 화면에서 언제든지 전환
+- 추가된 5가지는 다크 표시 전용. 라이트 표시는 기존 디자인에서 사용 가능
 
 ### 표시 언어
 
@@ -167,6 +182,7 @@ WorldShot Log는 GitHub Releases를 사용한 업데이트 확인을 지원합�
 - 가져온 사진, 메모, 라벨, 설정, 썸네일은 사용자의 PC 안에 저장됩니다.
 - 원본 이미지는 덮어쓰지 않습니다. 이미지 편집으로 저장한 파일은 별도 이름으로 저장됩니다.
 - World 정보 취득이나 업데이트 확인을 위해 VRChat, GitHub 등의 외부 서비스에 접근할 수 있습니다.
+- 월드 목록에 표시하는 월드 이미지는 VRChat에서 한 번만 가져와 PC에 저장합니다.
 - AI 피사체 선택은 PC 안에서 실행됩니다. 모델을 추가하는 경우에만 모델 파일 다운로드 대상에 접근합니다.
 - 추가 다운로드한 AI 모델과 이미지 오버레이 소재는 앱 관리 폴더 안에 저장되며, 앱 안에서 삭제할 수 있습니다.
 - 앱에서 만든 백업이나 CSV / JSON 내보내기는 사용자가 선택한 저장 위치에 출력됩니다.
@@ -180,6 +196,7 @@ WorldShot Log는 GitHub Releases를 사용한 업데이트 확인을 지원합�
 - AI 모델: `C:\Users\<UserName>\AppData\Roaming\WorldShot Log\models\`
 - 이미지 오버레이 소재: `C:\Users\<UserName>\AppData\Roaming\WorldShot Log\photo-editor-overlays\`
 - 썸네일: `C:\Users\<UserName>\WorldShot Log\thumbnails`
+- 월드 이미지: `C:\Users\<UserName>\WorldShot Log\world-thumbnails`
 - 실행 중 캐시: `C:\Users\<UserName>\AppData\Local\WorldShot Log\SessionData\`
 
 ## 이 앱에 대해
