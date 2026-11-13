@@ -112,7 +112,17 @@ try {
     } else {
         Invoke-CheckedProcess 'install-candidate' (Join-Path $CandidateDirectory 'WorldShotLogSetup.exe') @('--silent')
     }
-    # Squirrel's self-update helper completes after its parent exits.
+    # Squirrel's self-update helper (app-<version>\squirrel.exe --updateSelf)
+    # copies itself over Update.exe after its parent exits. Reading Update.exe
+    # while it does can make either side fail on the shared file, so wait for
+    # the helper to leave before looking at the file.
+    $selfUpdateHelper = [IO.Path]::GetFullPath((Join-Path $installRoot 'app-3.0.0/squirrel.exe'))
+    $deadline = [DateTime]::UtcNow.AddSeconds(60)
+    do {
+        Start-Sleep -Milliseconds 500
+        $selfUpdateHelpers = @(Get-Process -Name 'squirrel' -ErrorAction SilentlyContinue | Where-Object { $_.Path -and ([IO.Path]::GetFullPath($_.Path) -eq $selfUpdateHelper) })
+    } until ($selfUpdateHelpers.Count -eq 0 -or [DateTime]::UtcNow -gt $deadline)
+    $report.selfUpdateHelperExited = ($selfUpdateHelpers.Count -eq 0)
     $deadline = [DateTime]::UtcNow.AddSeconds(20)
     do {
         # While the helper swaps Update.exe the file is locked; a failed read
@@ -135,7 +145,15 @@ try {
 } finally {
     $report.finishedAt = [DateTime]::UtcNow.ToString('o')
     Save-Report
-    foreach ($source in @($installRoot, (Join-Path $env:LOCALAPPDATA 'SquirrelTemp'))) {
+    # What the updater files look like at the end, for a failed comparison.
+    $report.updaterFiles = @(foreach ($file in @('Update.exe', 'app-2.5.4/squirrel.exe', 'app-3.0.0/squirrel.exe')) {
+        $target = Join-Path $installRoot $file
+        $entry = @{ file = $file; exists = (Test-Path -LiteralPath $target -PathType Leaf) }
+        if ($entry.exists) { try { $entry.sha256 = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash; $entry.bytes = (Get-Item -LiteralPath $target).Length } catch { $entry.error = $_.ToString() } }
+        $entry
+    })
+    Save-Report
+    foreach ($source in @($installRoot, (Join-Path $env:LOCALAPPDATA 'SquirrelTemp'), (Join-Path $installRoot 'app-2.5.4'), (Join-Path $installRoot 'app-3.0.0'))) {
         if (Test-Path -LiteralPath $source) {
             foreach ($log in @(Get-ChildItem -LiteralPath $source -File -Filter '*.log' -ErrorAction SilentlyContinue)) {
                 Copy-Item -LiteralPath $log.FullName -Destination (Join-Path $OutputDirectory ($log.Directory.Name + '-' + $log.Name)) -Force
