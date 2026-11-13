@@ -353,15 +353,21 @@ GitHub Release に配布物があっても、更新サービスが古いキャ�
 
 ## 12. 現在の公開版
 
-2026年11月13日に GitHub Releases API と自動更新サービスで確認した公開版:
+2026年11月13日（UTC）に GitHub Releases API と自動更新サービスで確認した公開版:
 
-- [v3.0.0](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases/tag/v3.0.0)
+- [v3.0.1](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases/tag/v3.0.1)
 
 対応する変更点ファイル:
 
-- `release-notes/v3.0.0.md`
+- `release-notes/v3.0.1.md`
 
-全体回帰20項目、配布版の機能確認（`smoke:packaged`）、新規導入・Setup上書き・Squirrel更新の3経路（[Actions の実行記録](https://github.com/noma-nomoa/vrchat-world-photo-manager/actions/runs/43392007952)）が成功しています。旧版v2.5.4から最新版の配信、最新版自身では更新なし（HTTP 204）も確認済みです。
+v3.0.1 は、v3.0.0 の公開から数時間後に出した修正版です。ノワール・チョコミント・ソーダで、お気に入りの星と選択のチェックが見えなくなる問題を修正しました。全体回帰20項目、新規導入・Setup上書き・Squirrel更新の3経路（[Actions の実行記録](https://github.com/noma-nomoa/vrchat-world-photo-manager/actions/runs/43451044543)。配布版の機能確認 `smoke:packaged` もこの中で実行）が成功しています。v3.0.0 と v2.5.4 のどちらからも v3.0.1 が配信され、v3.0.1 自身では更新なし（HTTP 204）になることも確認済みです。
+
+v3.0.1 の公開で分かったこと:
+
+- 回帰検証と `smoke:packaged` は、アプリのウィンドウを隠して起動します。PCの画面が見えていない状態（画面オフ、リモート操作中、ほかのウィンドウの裏）では描画が止まり、「起動完了を待って時間切れ」で失敗します。アプリの不具合ではありません。画面が見える状態で実行するか、`electron --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows --disable-renderer-backgrounding scripts/<検証>.js` のように描画を止めない指定を付けて実行します。
+
+ひとつ前の v3.0.0（`release-notes/v3.0.0.md`）は、同じ日に公開しました。全体回帰20項目、配布版の機能確認（`smoke:packaged`）、新規導入・Setup上書き・Squirrel更新の3経路（[Actions の実行記録](https://github.com/noma-nomoa/vrchat-world-photo-manager/actions/runs/43392007952)）が成功し、旧版v2.5.4から最新版の配信、最新版自身では更新なし（HTTP 204）を確認しています。
 
 v3.0.0 の公開で分かったこと:
 
@@ -370,7 +376,7 @@ v3.0.0 の公開で分かったこと:
 - Squirrel更新のあと、`Update.exe` は補助プロセスによって入れ替えられます。入れ替え中にファイルを読むと検証側も更新側も失敗することがあるため、補助プロセスの終了を待ってから比較します。
 - `v3.0.0` のタグは公開したアプリのソース（`98617bb`）を指しています。そのあとの `main` のコミットは、検証スクリプトの修正とこの記録だけです。
 
-ひとつ前の公開版は [v2.5.4](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases/tag/v2.5.4) です。そのときの検証記録は [v2.5.4 の公開準備](./docs/release-preparation-v2.5.4.md) に残しています。
+v3.0.0 の前の公開版は [v2.5.4](https://github.com/noma-nomoa/vrchat-world-photo-manager/releases/tag/v2.5.4) です。そのときの検証記録は [v2.5.4 の公開準備](./docs/release-preparation-v2.5.4.md) に残しています。
 
 ---
 

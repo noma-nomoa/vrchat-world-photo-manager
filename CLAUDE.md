@@ -27,7 +27,14 @@ npm.cmd run make:win
   ```bash
   env -u NoDefaultCurrentDirectoryInExePath npm.cmd run check
   ```
-- `npm.cmd run smoke:packaged` は、ビルド直後の 1 回目だけ「初期化を待って時間切れ」で失敗することがある（v3.0.0 のビルドで 1 回発生。原因は未特定で、手動起動は 5 秒で初期化でき、続く 3 回は合格した）。失敗したら、ログを確かめたうえでもう一度実行する。
+- **`check` の smoke 各種と `smoke:packaged` は、PC の画面が見えていないと「起動完了を待って時間切れ」で失敗する**（2026-11-13 に原因を特定）。検査はアプリのウィンドウを隠して起動する。画面オフ・リモート操作中・ほかのウィンドウの裏といった状態では Chromium が描画を止め、起動完了の合図（`requestAnimationFrame` の中で出している）が出ない。アプリの不具合ではない。同じコードが、画面の見えている時間帯には通っている。
+  - 見分け方: 失敗が `Timed out: renderer startup` や `Timed out waiting for initialized renderer modules` で、検査の中身に入る前に止まっている。
+  - 対処: 画面が見える状態で実行する。できないときは、描画を止めない指定を付けて 1 項目ずつ実行する。
+    ```bash
+    env -u NoDefaultCurrentDirectoryInExePath node_modules/.bin/electron --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows --disable-renderer-backgrounding scripts/smoke-photo-editor-subject-session.js
+    ```
+  - `smoke:packaged` はこの指定を渡せない。手元で通らないときは、GitHub 上のインストール検証（同じ検査を含む）で確かめる。
+  - v3.0.0 のビルド直後に `smoke:packaged` が 1 回だけ失敗した件と、2026-11-11 に `smoke:backup-restore` が 1 回だけ失敗した件は、当時は原因を特定できなかった。同じ現象だった可能性があるが、確かめてはいない。
 
 ## 改修のルール
 - 先祖返りを絶対に避ける。解決済みの箇所に余計な変更を入れない。
@@ -96,7 +103,7 @@ npm.cmd run make:win
 - 次のお知らせを作るときは、`WHATS_NEW_ID` と画像のフォルダー名を変える。画面の文言を変えたら、スクリーンショットも 3 言語とも撮り直す。
 
 ## リリース（明示の指示があるときだけ）
-- **v3.0.1 を 2026-11-13 に公開**（v3.0.0 の公開から数時間後。色違い 3 デザインでお気に入りの星と選択のチェックが見えない不具合の修正）。検証の番号は「候補 3.0.1・旧版 3.0.0」。
+- **v3.0.1 を公開済み**（GitHub Release は 2026-11-13 15:20 UTC、日本時間では 11-14 の 0 時台。3 点添付、3 経路の検証と更新フィードも確認済み。v3.0.0 の公開から数時間後。色違い 3 デザインでお気に入りの星と選択のチェックが見えない不具合の修正）。検証の番号は「候補 3.0.1・旧版 3.0.0」。
 - **v3.0.0 は 2026-11-13 に公開済み**（GitHub Release、3 点添付、更新フィードも確認済み）。以下はその経緯。次のリリースは v3.0.0 の次の番号になる。
 - v3.0.0 の内容（2026-11-12 に決定）。新デザイン 5 つ・ワールドのカード一覧・標準デザインの変更をまとめて出す。v2.5.5 は単独では出さず、配布サイズの削減（`release-notes/v2.5.5.md` の内容）も v3.0.0 のリリースノートに入れる。バージョン番号は 2026-11-13 に 3.0.0 へ更新済み（`package.json` / `package-lock.json` / `src/index.html` のタイトル）。まだ公開はしていない。
   - v3.0.0 のリリース時にやること（2026-11-12 に決定）: README（日英韓）に新デザインとワールド一覧を書く。リリースノートで「起動時の標準デザインがランタンに変わる。従来のデザインには設定から戻せる」と伝える。
