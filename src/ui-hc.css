@@ -791,9 +791,11 @@ body[data-ui='hc'] .photo-card-world {
   text-overflow: ellipsis;
 }
 
+/* The idle ground is a token: a tone must recolour it without a rule of its
+   own, or that rule out-ranks the favourite / selected fill below. */
 body[data-ui='hc'] .photo-card-favorite-btn,
 body[data-ui='hc'] .photo-card-selection-btn {
-  background: rgba(10, 42, 32, 0.85);
+  background: var(--hc-card-button-ground, rgba(10, 42, 32, 0.85));
   color: var(--hc-ink);
   border: 1px solid var(--hc-ink-dim);
   box-shadow: none;

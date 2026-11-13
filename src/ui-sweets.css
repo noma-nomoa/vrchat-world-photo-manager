@@ -103,6 +103,11 @@ body[data-ui='hc'][data-ui-tone='soda'] {
    pill, taller pieces become soft boxes. ui-skin-common.css reads it too. */
 body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda']) {
   --skin-radius: 18px;
+  --hc-card-button-ground: color-mix(
+    in srgb,
+    var(--hc-ground-deep) 85%,
+    transparent
+  );
   --skin-thumb-radius: 999px;
   --hc-heavy: var(--sweet-heavy);
   --hc-text: var(--sweet-text);
@@ -170,7 +175,6 @@ body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda'])
 body[data-ui='hc']:is([data-ui-tone='chocomint'], [data-ui-tone='soda'])
   :is(.photo-card-favorite-btn, .photo-card-selection-btn) {
   border-radius: 999px;
-  background: color-mix(in srgb, var(--hc-ground-deep) 85%, transparent);
 }
 
 /* The places where ui-hc.css writes its green directly. */

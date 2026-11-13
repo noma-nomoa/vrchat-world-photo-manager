@@ -27,8 +27,8 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          if ($version -ne '3.0.0') { throw 'This release gate targets v3.0.0.' }
-          foreach ($tag in @('v2.5.4', "v$version")) {
+          if ($version -ne '3.0.1') { throw 'This release gate targets v3.0.1.' }
+          foreach ($tag in @('v3.0.0', "v$version")) {
             $destination = Join-Path $env:RUNNER_TEMP "release-downloads/$tag"
             New-Item -ItemType Directory -Path $destination -Force | Out-Null
             gh release download $tag --repo $env:GITHUB_REPOSITORY --dir $destination --pattern WorldShotLogSetup.exe --pattern '*.nupkg' --pattern RELEASES
@@ -84,7 +84,7 @@ jobs:
       - name: Verify actual Windows install and application data
         shell: pwsh
         run: |
-          ./scripts/verify-windows-install.ps1 -Scenario '${{ matrix.scenario }}' -CandidateDirectory "$env:RUNNER_TEMP/release-downloads/v3.0.0" -BaselineDirectory "$env:RUNNER_TEMP/release-downloads/v2.5.4" -OutputDirectory "$env:GITHUB_WORKSPACE/out/windows-install/${{ matrix.scenario }}"
+          ./scripts/verify-windows-install.ps1 -Scenario '${{ matrix.scenario }}' -CandidateDirectory "$env:RUNNER_TEMP/release-downloads/v3.0.1" -BaselineDirectory "$env:RUNNER_TEMP/release-downloads/v3.0.0" -OutputDirectory "$env:GITHUB_WORKSPACE/out/windows-install/${{ matrix.scenario }}"
       - name: Upload verification results and failure logs
         if: always()
         uses: actions/upload-artifact@v4

@@ -14,7 +14,7 @@ async function main() {
     'This helper may only run in a disposable GitHub-hosted Windows job');
   const [exe, version, mode, output] = process.argv.slice(2);
   // The candidate and the release before it; update both with the release gate.
-  assert(exe && /^(2\.5\.4|3\.0\.0)$/.test(version) && ['seed', 'verify'].includes(mode) && output);
+  assert(exe && /^(3\.0\.0|3\.0\.1)$/.test(version) && ['seed', 'verify'].includes(mode) && output);
   const name = `${version}-${mode}-${Date.now()}`;
   const stderr = path.join(output, `${name}.stderr.log`);
   const stdoutFd = fs.openSync(path.join(output, `${name}.stdout.log`), 'w');

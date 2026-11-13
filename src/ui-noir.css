@@ -18,6 +18,7 @@ body[data-ui='hc'][data-ui-tone='noir'] {
   --hc-rail: #d8d8d8;
   --hc-rail-ink: #0d0d0d;
   --hc-accent: #f4f4f4;
+  --hc-card-button-ground: rgba(0, 0, 0, 0.85);
 
   --skin-accent-hover: #ffffff;
   --skin-ink-strong: #ffffff;
@@ -30,9 +31,4 @@ body[data-ui='hc'][data-ui-tone='noir'] {
 body[data-ui='hc'][data-ui-tone='noir']
   :is(.year-button, .month-button, .day-button, .world-sidebar-item):hover:not(.active):not(.is-active) {
   background: rgba(0, 0, 0, 0.1);
-}
-
-body[data-ui='hc'][data-ui-tone='noir'] .photo-card-favorite-btn,
-body[data-ui='hc'][data-ui-tone='noir'] .photo-card-selection-btn {
-  background: rgba(0, 0, 0, 0.85);
 }

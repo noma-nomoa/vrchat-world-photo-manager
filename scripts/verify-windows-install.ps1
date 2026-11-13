@@ -100,12 +100,12 @@ function Invoke-Runtime([string]$Name, [string]$Version, [string]$Mode) {
 
 try {
     if ((Test-Path -LiteralPath $installRoot) -or (Test-Path -LiteralPath $registryPath)) { throw 'Runner already contains WorldShot; refusing to overwrite it.' }
-    $candidatePackage = Verify-Feed $CandidateDirectory '3.0.0'
+    $candidatePackage = Verify-Feed $CandidateDirectory '3.0.1'
     if ($Scenario -ne 'fresh') {
-        $baselinePackage = Verify-Feed $BaselineDirectory '2.5.4'
+        $baselinePackage = Verify-Feed $BaselineDirectory '3.0.0'
         Invoke-CheckedProcess 'install-baseline' (Join-Path $BaselineDirectory 'WorldShotLogSetup.exe') @('--silent')
-        $report.baseline = Verify-Installation '2.5.4' $baselinePackage
-        Invoke-Runtime 'seed-baseline-data' '2.5.4' 'seed'
+        $report.baseline = Verify-Installation '3.0.0' $baselinePackage
+        Invoke-Runtime 'seed-baseline-data' '3.0.0' 'seed'
     }
     if ($Scenario -eq 'squirrel-update') {
         Invoke-CheckedProcess 'apply-squirrel-update' (Join-Path $installRoot 'Update.exe') @('--update', ('"' + [IO.Path]::GetFullPath($CandidateDirectory) + '"'))
@@ -116,7 +116,7 @@ try {
     # copies itself over Update.exe after its parent exits. Reading Update.exe
     # while it does can make either side fail on the shared file, so wait for
     # the helper to leave before looking at the file.
-    $selfUpdateHelper = [IO.Path]::GetFullPath((Join-Path $installRoot 'app-3.0.0/squirrel.exe'))
+    $selfUpdateHelper = [IO.Path]::GetFullPath((Join-Path $installRoot 'app-3.0.1/squirrel.exe'))
     $deadline = [DateTime]::UtcNow.AddSeconds(60)
     do {
         Start-Sleep -Milliseconds 500
@@ -128,16 +128,16 @@ try {
         # While the helper swaps Update.exe the file is locked; a failed read
         # only means it is not ready yet.
         try {
-            $ready = (Get-FileHash -LiteralPath (Join-Path $installRoot 'Update.exe') -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath (Join-Path $installRoot 'app-3.0.0/squirrel.exe') -Algorithm SHA256).Hash
+            $ready = (Get-FileHash -LiteralPath (Join-Path $installRoot 'Update.exe') -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath (Join-Path $installRoot 'app-3.0.1/squirrel.exe') -Algorithm SHA256).Hash
         } catch {
             $ready = $false
         }
         if (-not $ready) { Start-Sleep -Milliseconds 200 }
     } until ($ready -or [DateTime]::UtcNow -gt $deadline)
-    $report.candidate = Verify-Installation '3.0.0' $candidatePackage
-    Invoke-Runtime 'candidate-first-launch' '3.0.0' $(if ($Scenario -eq 'fresh') { 'seed' } else { 'verify' })
-    Invoke-Runtime 'candidate-restart' '3.0.0' 'verify'
-    Invoke-CheckedProcess 'installed-packaged-smoke' (Get-Command node.exe).Source @(('"' + (Join-Path $PSScriptRoot 'smoke-packaged-app.js') + '"'), ('"--exe=' + (Join-Path $installRoot 'app-3.0.0/WorldShotLog.exe') + '"')) 240
+    $report.candidate = Verify-Installation '3.0.1' $candidatePackage
+    Invoke-Runtime 'candidate-first-launch' '3.0.1' $(if ($Scenario -eq 'fresh') { 'seed' } else { 'verify' })
+    Invoke-Runtime 'candidate-restart' '3.0.1' 'verify'
+    Invoke-CheckedProcess 'installed-packaged-smoke' (Get-Command node.exe).Source @(('"' + (Join-Path $PSScriptRoot 'smoke-packaged-app.js') + '"'), ('"--exe=' + (Join-Path $installRoot 'app-3.0.1/WorldShotLog.exe') + '"')) 240
     $report.ok = $true
 } catch {
     $report.error = $_.ToString() + "`n" + $_.ScriptStackTrace
@@ -146,14 +146,14 @@ try {
     $report.finishedAt = [DateTime]::UtcNow.ToString('o')
     Save-Report
     # What the updater files look like at the end, for a failed comparison.
-    $report.updaterFiles = @(foreach ($file in @('Update.exe', 'app-2.5.4/squirrel.exe', 'app-3.0.0/squirrel.exe')) {
+    $report.updaterFiles = @(foreach ($file in @('Update.exe', 'app-3.0.0/squirrel.exe', 'app-3.0.1/squirrel.exe')) {
         $target = Join-Path $installRoot $file
         $entry = @{ file = $file; exists = (Test-Path -LiteralPath $target -PathType Leaf) }
         if ($entry.exists) { try { $entry.sha256 = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash; $entry.bytes = (Get-Item -LiteralPath $target).Length } catch { $entry.error = $_.ToString() } }
         $entry
     })
     Save-Report
-    foreach ($source in @($installRoot, (Join-Path $env:LOCALAPPDATA 'SquirrelTemp'), (Join-Path $installRoot 'app-2.5.4'), (Join-Path $installRoot 'app-3.0.0'))) {
+    foreach ($source in @($installRoot, (Join-Path $env:LOCALAPPDATA 'SquirrelTemp'), (Join-Path $installRoot 'app-3.0.0'), (Join-Path $installRoot 'app-3.0.1'))) {
         if (Test-Path -LiteralPath $source) {
             foreach ($log in @(Get-ChildItem -LiteralPath $source -File -Filter '*.log' -ErrorAction SilentlyContinue)) {
                 Copy-Item -LiteralPath $log.FullName -Destination (Join-Path $OutputDirectory ($log.Directory.Name + '-' + $log.Name)) -Force
