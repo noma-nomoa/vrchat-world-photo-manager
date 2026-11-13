@@ -100,12 +100,12 @@ function Invoke-Runtime([string]$Name, [string]$Version, [string]$Mode) {
 
 try {
     if ((Test-Path -LiteralPath $installRoot) -or (Test-Path -LiteralPath $registryPath)) { throw 'Runner already contains WorldShot; refusing to overwrite it.' }
-    $candidatePackage = Verify-Feed $CandidateDirectory '2.5.4'
+    $candidatePackage = Verify-Feed $CandidateDirectory '3.0.0'
     if ($Scenario -ne 'fresh') {
-        $baselinePackage = Verify-Feed $BaselineDirectory '2.5.3'
+        $baselinePackage = Verify-Feed $BaselineDirectory '2.5.4'
         Invoke-CheckedProcess 'install-baseline' (Join-Path $BaselineDirectory 'WorldShotLogSetup.exe') @('--silent')
-        $report.baseline = Verify-Installation '2.5.3' $baselinePackage
-        Invoke-Runtime 'seed-baseline-data' '2.5.3' 'seed'
+        $report.baseline = Verify-Installation '2.5.4' $baselinePackage
+        Invoke-Runtime 'seed-baseline-data' '2.5.4' 'seed'
     }
     if ($Scenario -eq 'squirrel-update') {
         Invoke-CheckedProcess 'apply-squirrel-update' (Join-Path $installRoot 'Update.exe') @('--update', ('"' + [IO.Path]::GetFullPath($CandidateDirectory) + '"'))
@@ -115,13 +115,13 @@ try {
     # Squirrel's self-update helper completes after its parent exits.
     $deadline = [DateTime]::UtcNow.AddSeconds(20)
     do {
-        $ready = (Get-FileHash -LiteralPath (Join-Path $installRoot 'Update.exe') -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath (Join-Path $installRoot 'app-2.5.4/squirrel.exe') -Algorithm SHA256).Hash
+        $ready = (Get-FileHash -LiteralPath (Join-Path $installRoot 'Update.exe') -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath (Join-Path $installRoot 'app-3.0.0/squirrel.exe') -Algorithm SHA256).Hash
         if (-not $ready) { Start-Sleep -Milliseconds 200 }
     } until ($ready -or [DateTime]::UtcNow -gt $deadline)
-    $report.candidate = Verify-Installation '2.5.4' $candidatePackage
-    Invoke-Runtime 'candidate-first-launch' '2.5.4' $(if ($Scenario -eq 'fresh') { 'seed' } else { 'verify' })
-    Invoke-Runtime 'candidate-restart' '2.5.4' 'verify'
-    Invoke-CheckedProcess 'installed-packaged-smoke' (Get-Command node.exe).Source @(('"' + (Join-Path $PSScriptRoot 'smoke-packaged-app.js') + '"'), ('"--exe=' + (Join-Path $installRoot 'app-2.5.4/WorldShotLog.exe') + '"')) 240
+    $report.candidate = Verify-Installation '3.0.0' $candidatePackage
+    Invoke-Runtime 'candidate-first-launch' '3.0.0' $(if ($Scenario -eq 'fresh') { 'seed' } else { 'verify' })
+    Invoke-Runtime 'candidate-restart' '3.0.0' 'verify'
+    Invoke-CheckedProcess 'installed-packaged-smoke' (Get-Command node.exe).Source @(('"' + (Join-Path $PSScriptRoot 'smoke-packaged-app.js') + '"'), ('"--exe=' + (Join-Path $installRoot 'app-3.0.0/WorldShotLog.exe') + '"')) 240
     $report.ok = $true
 } catch {
     $report.error = $_.ToString() + "`n" + $_.ScriptStackTrace
