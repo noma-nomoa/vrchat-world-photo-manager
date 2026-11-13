@@ -89,19 +89,21 @@ npm.cmd run make:win
 - 次のお知らせを作るときは、`WHATS_NEW_ID` と画像のフォルダー名を変える。画面の文言を変えたら、スクリーンショットも 3 言語とも撮り直す。
 
 ## リリース（明示の指示があるときだけ）
-- **次のリリースは v3.0.0**（2026-11-12 に決定）。新デザイン 5 つ・ワールドのカード一覧・標準デザインの変更をまとめて出す。v2.5.5 は単独では出さず、配布サイズの削減（`release-notes/v2.5.5.md` の内容）も v3.0.0 のリリースノートに入れる。バージョン番号の更新は、リリースの指示があったときに行う。
+- **次のリリースは v3.0.0**（2026-11-12 に決定）。新デザイン 5 つ・ワールドのカード一覧・標準デザインの変更をまとめて出す。v2.5.5 は単独では出さず、配布サイズの削減（`release-notes/v2.5.5.md` の内容）も v3.0.0 のリリースノートに入れる。バージョン番号は 2026-11-13 に 3.0.0 へ更新済み（`package.json` / `package-lock.json` / `src/index.html` のタイトル）。まだ公開はしていない。
   - v3.0.0 のリリース時にやること（2026-11-12 に決定）: README（日英韓）に新デザインとワールド一覧を書く。リリースノートで「起動時の標準デザインがランタンに変わる。従来のデザインには設定から戻せる」と伝える。
   - お知らせモーダルの韓国語の文言は、母語話者の確認なしで出す（2026-11-12 に決定）。
 - 手順: バージョン更新 → `check` → Windows ビルド → `main` を push → 注釈付きタグ `v<version>` → GitHub Release に 3 点を添付して公開 → 更新フィードを確認。
 - 添付は `WorldShotLogSetup.exe`・`worldshot_log-x.y.z-full.nupkg`・`RELEASES` の **3 点すべて**。
 - draft のまま完了扱いにしない。`update.electronjs.org` で「旧版→新版の更新」と「新版での更新なし（204）」の両方を確認する。
 - CI（`.github/workflows/verify-windows-release.yml`）は `npm ci --ignore-scripts` で、ビルド済みのバイナリを検証する。
+  - CI と `scripts/verify-windows-install.ps1` は、検証する版（候補）と比較する旧版を番号で直接書いている。2026-11-13 に「候補 3.0.0・旧版 2.5.4」へ更新済み。次のリリースでは両方のファイルの番号を書き換える（候補と旧版を取り違えない）。
+  - CI は、GitHub に上げたリリース（draft でよい）の 3 点をダウンロードして検証する。上げる前に動かすと失敗する。自動で動くのは `codex/retouch-session-safety` への push だけなので、`main` からは手動で実行する（Actions の「Run workflow」）。
 - リリースノートの構成は「短い概要」「更新内容」「補足」。BOOTH の更新履歴は `[日付] vX.Y.Z 一行の要約` の形式。
 
 ## アプリアイコン（2026-11-12 に新しいロゴへ統一）
 - `img/logo.ico`（16〜256px の 9 サイズ）と `img/logo.png`（100px）は、`img/newlogo/logo.svg` から作る。ロゴを直したら、次で作り直す。
   ```powershell
-  node_modules\.bin\electron scriptsuild-app-icon.js
+  node_modules\.bin\electron scripts\build-app-icon.js
   ```
 - `img/logo.png` は 100×100 のままにする。複数の smoke テストが小さな見本写真として使っている。
 
